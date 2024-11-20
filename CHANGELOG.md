@@ -1,5 +1,16 @@
 # J5 Pharmacy POS System Changelog
 
+## [Beta 0.2.3] - 2024-09-20
+
+### Changed
+- Updated website title to "J5 Pharmacy POS"
+- Implemented new branding icons using icon_solid.png:
+  * logo512.ico for browser tab icon
+  * logo192.png for small devices
+  * logo512.png for larger displays
+- Updated web app manifest information
+- Improved website metadata and description
+
 ## [Beta 0.2.2] - 2024-09-20
 
 ### Added

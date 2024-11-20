@@ -3,7 +3,7 @@
 A modern, user-friendly pharmacy point of sale system built with React and Material-UI.
 
 ## Version
-Current Version: Beta 0.2.2
+Current Version: Beta 0.2.3
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history and updates.
 
