@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
@@ -16,6 +16,8 @@ import { DiscountType } from './components/TransactionSummary/types';
 import TransactionSummary from './components/TransactionSummary/TransactionSummary';
 import { calculateTotals } from './utils/calculations';
 import { format } from 'date-fns';
+import { CheckoutDialog } from './components/CheckoutDialog/CheckoutDialog';
+import { cartItemToReceiptItem } from './utils/mappers';
 
 const generateTransactionId = (branchId: string = 'B001'): string => {
   const now = new Date();
@@ -42,6 +44,8 @@ function App() {
   }[]>([]);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [customDiscountValue, setCustomDiscountValue] = useState<number>();
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [starPointsEarned, setStarPointsEarned] = useState(0);
 
   const handleAddSampleItems = (newItems: CartItem[]) => {
     setCartItems(prevItems => [...prevItems, ...newItems]);
@@ -53,14 +57,15 @@ function App() {
   };
 
   const handleCheckout = () => {
-    const totals = calculateTotals(cartItems, discountType, customDiscountValue);
-    console.log('Checkout clicked', {
-      transactionId,
-      customerId,
-      customerName,
-      starPointsId,
-      ...totals
-    });
+    if (cartItems.length === 0) {
+      return;
+    }
+    setIsCheckoutOpen(true);
+  };
+
+  const handleCheckoutComplete = () => {
+    setIsCheckoutOpen(false);
+    setCartItems([]); // Clear the cart
   };
 
   const handleVoid = () => {
@@ -119,6 +124,16 @@ function App() {
     items: itemsWithDiscounts
   } = calculateTotals(cartItems, discountType, customDiscountValue);
 
+  // Calculate star points: 1 point per 200 PHP
+  const calculateStarPoints = (total: number): number => {
+    return Math.floor(total / 200);
+  };
+
+  useEffect(() => {
+    const totals = calculateTotals(cartItems, discountType, customDiscountValue);
+    setStarPointsEarned(calculateStarPoints(totals.total));
+  }, [cartItems, discountType, customDiscountValue]);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -176,6 +191,7 @@ function App() {
             >
               <Cart 
                 items={cartItems}
+                setItems={setCartItems}
               />
             </Paper>
           </Grid>
@@ -234,6 +250,20 @@ function App() {
         onClose={() => setDiscountDialogOpen(false)}
         onSelect={handleDiscountSelect}
         currentDiscount={discountType}
+      />
+      <CheckoutDialog
+        open={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        items={cartItems.map(cartItemToReceiptItem)}
+        subtotal={subtotal}
+        discountType={discountType}
+        discountAmount={discountAmount}
+        discountedSubtotal={discountedSubtotal}
+        vat={vat}
+        total={total}
+        starPointsEarned={starPointsEarned}
+        onCheckout={handleCheckoutComplete}
+        onClearCart={() => setCartItems([])}
       />
     </ThemeProvider>
   );

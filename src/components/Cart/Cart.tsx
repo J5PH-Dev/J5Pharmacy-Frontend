@@ -16,13 +16,15 @@ import { alpha } from '@mui/material/styles';
 
 interface CartProps {
   items: CartItem[];
+  setItems: (items: CartItem[]) => void;
 }
 
-export default function Cart({ items }: CartProps) {
+export default function Cart({ items, setItems }: CartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
+  const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
 
   // Auto scroll to bottom when items change
   useEffect(() => {
@@ -55,8 +57,20 @@ export default function Cart({ items }: CartProps) {
     setIsDragging(false);
   };
 
+  const handleCheckout = () => {
+    setCheckoutDialogOpen(true);
+  };
+
+  const handleCheckoutComplete = () => {
+    // Checkout completed, transaction saved
+  };
+
+  const handleClearCart = () => {
+    setItems([]);
+  };
+
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box
         sx={{
           py: 1,

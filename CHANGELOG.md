@@ -1,5 +1,62 @@
 # J5 Pharmacy POS System Changelog
 
+## [Beta 0.2.6] - 2024-01-XX
+
+### Changed
+- Redesigned Header component with new logo and greeting system
+- Enhanced TransactionSummary UI with improved layout and styling
+- Moved theme configuration to dedicated theme directory
+- Simplified transaction ID generation logic
+- Reorganized component imports for better maintainability
+
+### Added
+- Dynamic time-based greeting in Header
+- StarPoints calculation in TransactionSummary
+- Custom discount label formatting
+- Improved transaction information display
+
+### Removed
+- Redundant transaction ID prop from CheckoutDialog
+- Void and Checkout buttons from TransactionSummary
+- Unused imports and duplicate functions
+
+### Fixed
+- Transaction ID consistency across components
+- Component prop type definitions
+- File organization and import paths
+
+## [Beta 0.2.5] - 2024-01-XX
+
+### Added
+- Multiple payment methods support (Cash, GCash, Maya)
+- QR code payment dialog for digital payments
+- Reference ID field for digital payment verification
+- Print button on receipt preview
+- Enhanced receipt preview styling
+- Structured transaction ID format (B001-YYMMDD-XXXXX)
+- Payment details on receipt (method, amount, reference)
+
+### Changed
+- Updated checkout dialog UI with payment method selection
+- Improved button colors and styling for better visibility
+- Reorganized receipt preview layout
+- Enhanced receipt information display
+- Modified transaction ID generation system
+
+## [Beta 0.2.4] - 2024-09-20
+
+### Added
+- Implemented Checkout Dialog with payment processing
+- Added Receipt component with printer-friendly design
+- Integrated transaction ID generation using UUID
+- Added customer name and StarPoints ID fields
+- Implemented amount tendered and change calculation
+- Added print receipt functionality
+
+### Changed
+- Updated App.tsx to handle checkout process
+- Added uuid dependency for transaction IDs
+
 ## [Beta 0.2.3] - 2024-09-20
 
 ### Changed

@@ -3,7 +3,7 @@
 A modern, user-friendly pharmacy point of sale system built with React and Material-UI.
 
 ## Version
-Current Version: Beta 0.2.3
+Current Version: Beta 0.2.4-c
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history and updates.
 
@@ -17,15 +17,34 @@ J5 Pharmacy POS is a comprehensive web application designed to streamline pharma
 - date-fns
 
 ## Features
-- Modern, intuitive user interface
+### Current Features (Beta 0.2.4-c)
+- Modern and intuitive user interface built with Material-UI
 - Real-time transaction processing
-- Comprehensive discount system
-  - Senior Citizen (20%)
-  - PWD (20%)
-  - Employee (10%)
-  - Custom percentage
-- Star Points rewards system
-- Development tools for testing
+- Multiple payment methods support (Cash, GCash, Maya)
+- Digital payment integration with QR codes
+- Dynamic product search and filtering
+- Discount management system
+- Receipt generation and printing
+- Transaction history tracking
+- UUID-based transaction ID system
+
+### Planned Features
+- Branch Management System
+- Inventory Management
+- Medicine and Products Management
+- Customer Management
+- Attendance System
+- Analytics and Sales Reports
+- Role-based Access Control
+  - Admin Dashboard
+  - Manager Dashboard
+  - Pharmacist POS Interface
+
+## Technology Stack
+- React
+- TypeScript
+- Material-UI
+- Local Storage for data persistence
 
 ## Project Structure
 ```
@@ -60,7 +79,7 @@ j5pharmacy/
 
 ### Prerequisites
 - Node.js (v14 or higher)
-- npm or yarn
+- npm or yarn package manager
 
 ### Installation
 1. Clone the repository
@@ -73,14 +92,8 @@ j5pharmacy/
    npm start
    ```
 
-### Upcoming
-- [ ] User authentication
-- [ ] Transaction processing
-- [ ] Inventory management
-- [ ] Sales reporting
-- [ ] Print functionality
-- [ ] Stock management
-- [ ] User roles and permissions
+## Development Status
+Currently in Beta phase (v0.2.4-c) with focus on core POS functionality. The system is being expanded to include comprehensive pharmacy management features.
 
 ## Available Scripts
 
@@ -100,7 +113,7 @@ Builds the app for production
 4. Create a Pull Request
 
 ## License
-This project is proprietary software. All rights reserved.
+Proprietary software. All rights reserved.
 
 ## Acknowledgments
 - Material-UI team for the component library
