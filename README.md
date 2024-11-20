@@ -3,7 +3,7 @@
 A modern, user-friendly pharmacy point of sale system built with React and Material-UI.
 
 ## Version
-Beta 0.1.0
+Beta 0.2.1
 
 ## Description
 J5 Pharmacy POS is a comprehensive web application designed to streamline pharmacy operations. It features a clean, intuitive interface and robust functionality to handle various pharmacy transactions and inventory management tasks.
@@ -34,7 +34,8 @@ j5pharmacy/
 │   │   ├── Header/
 │   │   ├── TransactionInfo/
 │   │   ├── FunctionKeys/
-│   │   └── (future components)
+│   │   └── Cart/
+│   ├── devtools/
 │   ├── theme/
 │   ├── types/
 │   └── App.tsx
@@ -60,9 +61,56 @@ j5pharmacy/
 
 ## Development Log
 
-### Beta 0.1.0 (Current)
+### Beta 0.2.1 (Current)
+#### Enhanced Cart Component
+- Added scroll-on-drag functionality
+  - Intuitive mouse drag scrolling
+  - Visual cursor feedback
+  - Smooth scrolling behavior
+- Implemented auto-scroll to latest item
+- Optimized scrollbar styling
+  - Custom scrollbar design
+  - Improved visibility and interaction
+  - Theme-consistent colors
 
+#### DevTools Improvements
+- Streamlined item addition
+  - Single item addition feature
+  - Maintains existing cart items
+  - Automatic cart updates
+- Enhanced development workflow
+  - Clear cart functionality
+  - Reset stock placeholder
+  - Improved tool accessibility
+
+#### UI/UX Enhancements
+- Refined color palette
+  - Improved header contrast
+  - Softer interaction states
+  - Better visual hierarchy
+- Enhanced component spacing
+- Improved responsive behavior
+
+### Beta 0.2.0
 #### Implemented Components
+- Cart Component
+  - Fixed height container
+  - Responsive design
+  - Custom scrollbar
+  - Item management
+- DevTools Component
+  - Development utilities
+  - Sample data generation
+  - Cart manipulation tools
+
+#### Added
+- Cart state management
+- Dummy data generation
+- Development utilities
+- Component integration
+
+### Beta 0.1.0
+#### Initial Components
 - Header Component
   - Dynamic time-based greeting
   - Logo display
@@ -81,18 +129,12 @@ j5pharmacy/
   - Icon integration
   - Responsive layout
 
-#### Added
+#### Foundation
 - Material-UI theme configuration
 - Custom color palette
 - Responsive grid layout
 - Type definitions
 - Component architecture
-
-#### Changes
-- Improved button hover states
-- Enhanced color contrast
-- Added transition animations
-- Optimized component spacing
 
 #### Upcoming
 - [ ] User authentication
@@ -100,7 +142,8 @@ j5pharmacy/
 - [ ] Inventory management
 - [ ] Sales reporting
 - [ ] Print functionality
-- [ ] Settings management
+- [ ] Stock management
+- [ ] User roles and permissions
 
 ## Available Scripts
 

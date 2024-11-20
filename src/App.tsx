@@ -14,8 +14,8 @@ import { CartItem } from './types/cart';
 function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  const handleAddSampleItems = (items: CartItem[]) => {
-    setCartItems(items);
+  const handleAddSampleItems = (newItems: CartItem[]) => {
+    setCartItems(prevItems => [...prevItems, ...newItems]);
   };
 
   const handleResetStock = () => {

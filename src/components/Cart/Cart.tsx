@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -18,14 +18,42 @@ interface CartProps {
   items: CartItem[];
 }
 
-const Cart: React.FC<CartProps> = ({ items }) => {
-  const tableEndRef = useRef<HTMLDivElement>(null);
+export default function Cart({ items }: CartProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
 
+  // Auto scroll to bottom when items change
   useEffect(() => {
-    if (tableEndRef.current) {
-      tableEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (containerRef.current && items.length > 0) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [items]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setStartY(e.pageY - (containerRef.current?.offsetTop || 0));
+    setScrollTop(containerRef.current?.scrollTop || 0);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    
+    const y = e.pageY - (containerRef.current?.offsetTop || 0);
+    const walk = (y - startY) * 2; // Scroll speed multiplier
+    if (containerRef.current) {
+      containerRef.current.scrollTop = scrollTop - walk;
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
 
   return (
     <Paper 
@@ -37,6 +65,8 @@ const Cart: React.FC<CartProps> = ({ items }) => {
         overflow: 'hidden',
         border: 1,
         borderColor: 'divider',
+        borderRadius: 2,
+        cursor: isDragging ? 'grabbing' : 'grab',
       }}
     >
       <Box
@@ -60,21 +90,32 @@ const Cart: React.FC<CartProps> = ({ items }) => {
       </Box>
       
       <TableContainer 
+        ref={containerRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
         sx={{
           flex: 1,
           overflow: 'auto',
+          userSelect: 'none', // Prevent text selection while dragging
           '&::-webkit-scrollbar': {
-            width: '8px',
+            width: '18px',
+            height: '12px', 
           },
           '&::-webkit-scrollbar-track': {
-            backgroundColor: theme => alpha(theme.palette.primary.main, 0.3),
-            borderRadius: '4px',
+            backgroundColor: theme => alpha(theme.palette.grey[200], 0.8),
+            borderRadius: '6px',
+            margin: 1,
           },
           '&::-webkit-scrollbar-thumb': {
-            backgroundColor: theme => alpha(theme.palette.primary.main, 0.5),
-            borderRadius: '4px',
+            backgroundColor: theme => alpha(theme.palette.primary.light, 0.5),
+            borderRadius: '8px',
+            border: '5px solid transparent',
+            backgroundClip: 'padding-box',
             '&:hover': {
-              backgroundColor: theme => alpha(theme.palette.primary.main, 0.8),
+              backgroundColor: theme => alpha(theme.palette.primary.light, 0.9),
+              border: '6px solid transparent',
             },
           },
         }}
@@ -126,7 +167,7 @@ const Cart: React.FC<CartProps> = ({ items }) => {
               </StyledTableRow>
             ))}
             <TableRow>
-              <StyledTableCell colSpan={9} sx={{ border: 0, p: 0.5 }} ref={tableEndRef} />
+              <StyledTableCell colSpan={9} sx={{ border: 0, p: 0.5 }} />
             </TableRow>
           </TableBody>
         </Table>
@@ -134,5 +175,3 @@ const Cart: React.FC<CartProps> = ({ items }) => {
     </Paper>
   );
 };
-
-export default Cart;

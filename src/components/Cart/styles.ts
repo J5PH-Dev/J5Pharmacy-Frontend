@@ -2,6 +2,7 @@ import { TableCell, TableRow, styled, alpha } from '@mui/material';
 
 export const StyledTableCell = styled(TableCell)(({ theme }) => ({
   padding: theme.spacing(0.75),
+  whiteSpace: 'nowrap',
   '&.MuiTableCell-head': {
     backgroundColor: theme.palette.primary.light,
     color: theme.palette.common.white,
@@ -26,5 +27,7 @@ export const StyledTableRow = styled(TableRow)(({ theme }) => ({
   },
   '& td': {
     borderBottom: `1px solid ${theme.palette.divider}`,
-  }
+    padding: theme.spacing(0.5, 0.75),
+  },
+  height: theme.spacing(4.5), // Add fixed height for consistent row sizing
 }));

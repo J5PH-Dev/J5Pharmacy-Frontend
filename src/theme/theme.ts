@@ -4,10 +4,10 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#FFF8F5', // Slightly darker white-peach for header
-      dark: '#1B75BB', // Blue from logo
-      light: '#29ABE2', // Light blue from logo
-      contrastText: '#1B75BB', // Using the blue for text
+      main: '#FFFFFF', // White background for header
+      dark: '#145C94', // Darker blue
+      light: '#7DCFF3', // Softer light blue
+      contrastText: '#1B75BB', // Logo blue for text
     },
     secondary: {
       main: '#26A9E0', // Another shade of blue from logo
