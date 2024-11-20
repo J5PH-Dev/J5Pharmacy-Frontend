@@ -3,24 +3,29 @@
 A modern, user-friendly pharmacy point of sale system built with React and Material-UI.
 
 ## Version
-Beta 0.2.1
+Current Version: Beta 0.2.2
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history and updates.
 
 ## Description
 J5 Pharmacy POS is a comprehensive web application designed to streamline pharmacy operations. It features a clean, intuitive interface and robust functionality to handle various pharmacy transactions and inventory management tasks.
 
 ## Tech Stack
-- React 18
+- React
 - TypeScript
-- Material-UI (MUI)
-- Emotion (CSS-in-JS)
+- Material-UI
 - date-fns
 
 ## Features
-- Modern, responsive UI
-- Dynamic function key shortcuts
-- Real-time transaction management
-- Comprehensive error handling
-- Role-based access control (upcoming)
+- Modern, intuitive user interface
+- Real-time transaction processing
+- Comprehensive discount system
+  - Senior Citizen (20%)
+  - PWD (20%)
+  - Employee (10%)
+  - Custom percentage
+- Star Points rewards system
+- Development tools for testing
 
 ## Project Structure
 ```
@@ -31,13 +36,22 @@ j5pharmacy/
 │   │   └── images/
 │   │       └── logo.png
 │   ├── components/
+│   │   ├── ActionButtons/
+│   │   ├── Cart/
+│   │   ├── DiscountDialog/
+│   │   ├── FunctionKeys/
 │   │   ├── Header/
 │   │   ├── TransactionInfo/
-│   │   ├── FunctionKeys/
-│   │   └── Cart/
+│   │   └── TransactionSummary/
+│   ├── contexts/
 │   ├── devtools/
+│   ├── hooks/
+│   ├── layouts/
+│   ├── services/
 │   ├── theme/
 │   ├── types/
+│   ├── utils/
+│   │   └── calculations.ts
 │   └── App.tsx
 └── package.json
 ```
@@ -59,84 +73,7 @@ j5pharmacy/
    npm start
    ```
 
-## Development Log
-
-### Beta 0.2.1 (Current)
-#### Enhanced Cart Component
-- Added scroll-on-drag functionality
-  - Intuitive mouse drag scrolling
-  - Visual cursor feedback
-  - Smooth scrolling behavior
-- Implemented auto-scroll to latest item
-- Optimized scrollbar styling
-  - Custom scrollbar design
-  - Improved visibility and interaction
-  - Theme-consistent colors
-
-#### DevTools Improvements
-- Streamlined item addition
-  - Single item addition feature
-  - Maintains existing cart items
-  - Automatic cart updates
-- Enhanced development workflow
-  - Clear cart functionality
-  - Reset stock placeholder
-  - Improved tool accessibility
-
-#### UI/UX Enhancements
-- Refined color palette
-  - Improved header contrast
-  - Softer interaction states
-  - Better visual hierarchy
-- Enhanced component spacing
-- Improved responsive behavior
-
-### Beta 0.2.0
-#### Implemented Components
-- Cart Component
-  - Fixed height container
-  - Responsive design
-  - Custom scrollbar
-  - Item management
-- DevTools Component
-  - Development utilities
-  - Sample data generation
-  - Cart manipulation tools
-
-#### Added
-- Cart state management
-- Dummy data generation
-- Development utilities
-- Component integration
-
-### Beta 0.1.0
-#### Initial Components
-- Header Component
-  - Dynamic time-based greeting
-  - Logo display
-  - Username display
-  - Responsive design
-
-- Transaction Info Component
-  - Dynamic transaction ID
-  - Real-time clock
-  - Date formatting
-  - Transaction ID format: {BranchID}-{YYMMDD}-XXXXX
-
-- Function Keys Component
-  - Keyboard shortcuts (F1-F9, F12)
-  - Visual feedback on hover
-  - Icon integration
-  - Responsive layout
-
-#### Foundation
-- Material-UI theme configuration
-- Custom color palette
-- Responsive grid layout
-- Type definitions
-- Component architecture
-
-#### Upcoming
+### Upcoming
 - [ ] User authentication
 - [ ] Transaction processing
 - [ ] Inventory management

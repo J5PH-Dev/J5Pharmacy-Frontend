@@ -56,19 +56,7 @@ export default function Cart({ items }: CartProps) {
   };
 
   return (
-    <Paper 
-      elevation={2}
-      sx={{ 
-        height: { xs: '60vh', sm: '75vh', md: '85vh' },
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        border: 1,
-        borderColor: 'divider',
-        borderRadius: 2,
-        cursor: isDragging ? 'grabbing' : 'grab',
-      }}
-    >
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box
         sx={{
           py: 1,
@@ -159,7 +147,7 @@ export default function Cart({ items }: CartProps) {
                 </StyledTableCell>
                 <StyledTableCell align="right">{item.quantity}</StyledTableCell>
                 <StyledTableCell align="right">
-                  {item.amount.toLocaleString('en-US', {
+                  {(item.price * item.quantity).toLocaleString('en-US', {
                     style: 'currency',
                     currency: 'PHP'
                   })}
@@ -172,6 +160,6 @@ export default function Cart({ items }: CartProps) {
           </TableBody>
         </Table>
       </TableContainer>
-    </Paper>
+    </Box>
   );
-};
+}

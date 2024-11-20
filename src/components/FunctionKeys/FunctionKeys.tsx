@@ -60,9 +60,23 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
   transition: theme.transitions.create(['background-color', 'transform', 'box-shadow'], {
     duration: theme.transitions.duration.short,
   }),
-  '& .MuiListItemText-primary, & .MuiListItemText-secondary, & .MuiSvgIcon-root, & .KeyText': {
-    color: theme.palette.common.white,
-    transition: theme.transitions.create('color'),
+  '& .MuiListItemText-primary': {
+    color: theme.palette.grey[900],
+    fontSize: '0.95rem',
+    fontWeight: 600,
+  },
+  '& .MuiListItemText-secondary': {
+    color: theme.palette.grey[800],
+    fontSize: '0.8rem',
+  },
+  '& .MuiSvgIcon-root': {
+    color: theme.palette.grey[900],
+    fontSize: '1.3rem',
+  },
+  '& .KeyText': {
+    color: theme.palette.grey[900],
+    fontWeight: 700,
+    fontSize: '1rem',
   },
   '&:hover': {
     backgroundColor: theme.palette.primary.dark,
@@ -70,9 +84,6 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
     boxShadow: theme.shadows[4],
     '& .MuiListItemText-primary, & .MuiListItemText-secondary, & .MuiSvgIcon-root, & .KeyText': {
       color: theme.palette.common.white,
-    },
-    '& .MuiListItemText-secondary': {
-      color: theme.palette.grey[100],
     }
   },
   '&:active': {
@@ -82,7 +93,8 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
 }));
 
 const KeyText = styled(Typography)(({ theme }) => ({
-  fontWeight: 600,
+  fontWeight: 700,
+  fontSize: '1rem',
   marginRight: theme.spacing(1),
   whiteSpace: 'nowrap',
 }));
@@ -92,7 +104,7 @@ const IconWrapper = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   '& .MuiSvgIcon-root': {
-    fontSize: '1.2rem',
+    fontSize: '1.3rem',
   },
 }));
 
