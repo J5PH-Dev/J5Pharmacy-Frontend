@@ -1,46 +1,128 @@
-# Getting Started with Create React App
+# J5 Pharmacy Point of Sale System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern, user-friendly pharmacy point of sale system built with React and Material-UI.
+
+## Version
+Beta 0.1.0
+
+## Description
+J5 Pharmacy POS is a comprehensive web application designed to streamline pharmacy operations. It features a clean, intuitive interface and robust functionality to handle various pharmacy transactions and inventory management tasks.
+
+## Tech Stack
+- React 18
+- TypeScript
+- Material-UI (MUI)
+- Emotion (CSS-in-JS)
+- date-fns
+
+## Features
+- Modern, responsive UI
+- Dynamic function key shortcuts
+- Real-time transaction management
+- Comprehensive error handling
+- Role-based access control (upcoming)
+
+## Project Structure
+```
+j5pharmacy/
+├── public/
+├── src/
+│   ├── assets/
+│   │   └── images/
+│   │       └── logo.png
+│   ├── components/
+│   │   ├── Header/
+│   │   ├── TransactionInfo/
+│   │   ├── FunctionKeys/
+│   │   └── (future components)
+│   ├── theme/
+│   ├── types/
+│   └── App.tsx
+└── package.json
+```
+
+## Getting Started
+
+### Prerequisites
+- Node.js (v14 or higher)
+- npm or yarn
+
+### Installation
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm start
+   ```
+
+## Development Log
+
+### Beta 0.1.0 (Current)
+
+#### Implemented Components
+- Header Component
+  - Dynamic time-based greeting
+  - Logo display
+  - Username display
+  - Responsive design
+
+- Transaction Info Component
+  - Dynamic transaction ID
+  - Real-time clock
+  - Date formatting
+  - Transaction ID format: {BranchID}-{YYMMDD}-XXXXX
+
+- Function Keys Component
+  - Keyboard shortcuts (F1-F9, F12)
+  - Visual feedback on hover
+  - Icon integration
+  - Responsive layout
+
+#### Added
+- Material-UI theme configuration
+- Custom color palette
+- Responsive grid layout
+- Type definitions
+- Component architecture
+
+#### Changes
+- Improved button hover states
+- Enhanced color contrast
+- Added transition animations
+- Optimized component spacing
+
+#### Upcoming
+- [ ] User authentication
+- [ ] Transaction processing
+- [ ] Inventory management
+- [ ] Sales reporting
+- [ ] Print functionality
+- [ ] Settings management
 
 ## Available Scripts
 
-In the project directory, you can run:
-
 ### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+Runs the app in development mode at [http://localhost:3000](http://localhost:3000)
 
 ### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Launches the test runner
 
 ### `npm run build`
+Builds the app for production
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Contributing
+1. Create a feature branch
+2. Commit your changes
+3. Push to the branch
+4. Create a Pull Request
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## License
+This project is proprietary software. All rights reserved.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Acknowledgments
+- Material-UI team for the component library
+- React team for the framework
+- All contributors to the project
