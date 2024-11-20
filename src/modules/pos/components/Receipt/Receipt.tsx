@@ -1,5 +1,5 @@
 import React from 'react';
-import { format } from 'date-fns';
+import format from 'date-fns/format';
 import { Box, Typography, Divider, Table, TableBody, TableCell, TableRow, useTheme } from '@mui/material';
 import { ReceiptProps } from './types';
 
@@ -71,13 +71,13 @@ export const Receipt: React.FC<ReceiptProps> = ({
             <TableRow key={index}>
               <TableCell sx={{ border: 'none', py: 0.5, pl: 0 }}>
                 <Typography variant="body2">
-                  {item.name}
+                  {item.productName}
                   <br />
                   {item.quantity} x ₱{item.price.toFixed(2)}
                 </Typography>
               </TableCell>
               <TableCell align="right" sx={{ border: 'none', py: 0.5, pr: 0 }}>
-                <Typography variant="body2">₱{item.total.toFixed(2)}</Typography>
+                <Typography variant="body2">₱{(item.price * item.quantity).toFixed(2)}</Typography>
               </TableCell>
             </TableRow>
           ))}
@@ -165,7 +165,7 @@ export const Receipt: React.FC<ReceiptProps> = ({
       </Box>
 
       {/* StarPoints */}
-      {starPointsEarned > 0 && (
+      {starPointsEarned !== undefined && starPointsEarned > 0 && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
             StarPoints Earned: {starPointsEarned}

@@ -1,6 +1,6 @@
 # J5 Pharmacy POS System Changelog
 
-## [Beta 0.2.6] - 2024-01-XX
+## [Beta 0.2.4-c] - 2024-00-20
 
 ### Changed
 - Redesigned Header component with new logo and greeting system
@@ -25,7 +25,7 @@
 - Component prop type definitions
 - File organization and import paths
 
-## [Beta 0.2.5] - 2024-01-XX
+## [Beta 0.2.4-b] - 2024-09-20
 
 ### Added
 - Multiple payment methods support (Cash, GCash, Maya)
@@ -43,7 +43,7 @@
 - Enhanced receipt information display
 - Modified transaction ID generation system
 
-## [Beta 0.2.4] - 2024-09-20
+## [Beta 0.2.4-a] - 2024-09-20
 
 ### Added
 - Implemented Checkout Dialog with payment processing

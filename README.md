@@ -1,121 +1,172 @@
-# J5 Pharmacy Point of Sale System
+# J5 Pharmacy Management System
 
-A modern, user-friendly pharmacy point of sale system built with React and Material-UI.
+A comprehensive pharmacy management solution built with React, TypeScript, and Material-UI. This system provides a complete suite of tools for managing pharmacy operations, from point of sale to inventory management.
 
-## Version
-Current Version: Beta 0.2.4-c
+## Module Versions
+- POS: Beta 0.2.4-c
+- Admin: Beta 0.1.0
+- Analytics: Beta 0.1.0
+- Attendance: Beta 0.1.0
+- Branch: Beta 0.1.0
+- Customers: Beta 0.1.0
+- Dashboard: Beta 0.1.0
+- Inventory: Beta 0.1.0
 
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history and updates.
+See individual module CHANGELOG.md files in their respective directories for detailed version history and updates.
 
-## Description
-J5 Pharmacy POS is a comprehensive web application designed to streamline pharmacy operations. It features a clean, intuitive interface and robust functionality to handle various pharmacy transactions and inventory management tasks.
+## System Overview
+
+### Core Modules
+
+#### 1. Point of Sale (POS)
+- Multiple payment methods (Cash, GCash, Maya)
+- QR code payment integration
+- Receipt generation and printing
+- Transaction management
+- Real-time inventory updates
+
+#### 2. Inventory Management
+- Stock tracking and alerts
+- Product categorization
+- Batch processing
+- Expiry date monitoring
+- Supplier management
+
+#### 3. Customer Management
+- Customer profiles
+- Loyalty program
+- Purchase history
+- Prescription tracking
+- Points system
+
+#### 4. Admin Dashboard
+- User management
+- Role-based access control
+- System settings
+- Audit logging
+- Security controls
+
+#### 5. Analytics
+- Sales reports
+- Inventory analytics
+- Customer insights
+- Performance metrics
+- Data visualization
+
+#### 6. Branch Management
+- Multi-branch support
+- Branch-specific settings
+- Performance tracking
+- Resource allocation
+
+#### 7. Attendance System
+- Employee time tracking
+- Schedule management
+- Leave requests
+- Attendance reports
+
+#### 8. Dashboard
+- Real-time metrics
+- Key performance indicators
+- Quick access features
+- System notifications
 
 ## Tech Stack
-- React
-- TypeScript
-- Material-UI
-- date-fns
+- **Frontend**: React, TypeScript
+- **UI Framework**: Material-UI
+- **State Management**: React Context
+- **Charts**: Chart.js
+- **Date Handling**: date-fns
+- **HTTP Client**: Axios
+- **Testing**: Jest, React Testing Library
+- **Build Tool**: Vite
+- **Package Manager**: npm
 
-## Features
-### Current Features (Beta 0.2.4-c)
-- Modern and intuitive user interface built with Material-UI
-- Real-time transaction processing
-- Multiple payment methods support (Cash, GCash, Maya)
-- Digital payment integration with QR codes
-- Dynamic product search and filtering
-- Discount management system
-- Receipt generation and printing
-- Transaction history tracking
-- UUID-based transaction ID system
+## System Requirements
+- Node.js v18.0.0 or higher
+- npm v9.0.0 or higher
+- Modern web browser
+- Minimum 4GB RAM
+- 1GB free disk space
 
-### Planned Features
-- Branch Management System
-- Inventory Management
-- Medicine and Products Management
-- Customer Management
-- Attendance System
-- Analytics and Sales Reports
-- Role-based Access Control
-  - Admin Dashboard
-  - Manager Dashboard
-  - Pharmacist POS Interface
+## Getting Started
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Start development server: `npm run dev`
+4. Build for production: `npm run build`
 
-## Technology Stack
-- React
-- TypeScript
-- Material-UI
-- Local Storage for data persistence
+For detailed setup and development guidelines, see:
+- [GUIDE.md](GUIDE.md) - Development and implementation guide
+- [TEAM.md](TEAM.md) - Team structure and work distribution
 
 ## Project Structure
 ```
 j5pharmacy/
-├── public/
 ├── src/
-│   ├── assets/
-│   │   └── images/
-│   │       └── logo.png
-│   ├── components/
-│   │   ├── ActionButtons/
-│   │   ├── Cart/
-│   │   ├── DiscountDialog/
-│   │   ├── FunctionKeys/
-│   │   ├── Header/
-│   │   ├── TransactionInfo/
-│   │   └── TransactionSummary/
-│   ├── contexts/
-│   ├── devtools/
-│   ├── hooks/
-│   ├── layouts/
-│   ├── services/
-│   ├── theme/
-│   ├── types/
-│   ├── utils/
-│   │   └── calculations.ts
-│   └── App.tsx
-└── package.json
+│   ├── modules/           # Feature modules
+│   ├── common/           # Shared components
+│   ├── contexts/         # React contexts
+│   ├── hooks/           # Custom hooks
+│   ├── services/        # API services
+│   ├── types/           # TypeScript types
+│   ├── utils/           # Utility functions
+│   └── styles/          # Global styles
+├── public/              # Static assets
+├── docs/               # Documentation
+└── tests/              # Test files
 ```
 
-## Getting Started
-
-### Prerequisites
-- Node.js (v14 or higher)
-- npm or yarn package manager
-
-### Installation
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm start
-   ```
-
-## Development Status
-Currently in Beta phase (v0.2.4-c) with focus on core POS functionality. The system is being expanded to include comprehensive pharmacy management features.
+## Development Guidelines
+- Follow TypeScript best practices
+- Write unit tests for new features
+- Update module CHANGELOG.md
+- Follow commit message conventions
+- Create pull requests for review
 
 ## Available Scripts
+```bash
+# Development
+npm run dev
 
-### `npm start`
-Runs the app in development mode at [http://localhost:3000](http://localhost:3000)
+# Testing
+npm run test
+npm run test:coverage
 
-### `npm test`
-Launches the test runner
+# Building
+npm run build
 
-### `npm run build`
-Builds the app for production
+# Linting
+npm run lint
+npm run lint:fix
+
+# Type Checking
+npm run type-check
+```
+
+## Documentation
+- [CHANGELOG.md](CHANGELOG.md) - Project changelog
+- [GUIDE.md](GUIDE.md) - Development guide
+- [TEAM.md](TEAM.md) - Team information
+- API Documentation (Coming Soon)
+- User Manual (Coming Soon)
 
 ## Contributing
 1. Create a feature branch
-2. Commit your changes
-3. Push to the branch
-4. Create a Pull Request
+2. Make your changes
+3. Write/update tests
+4. Update documentation
+5. Submit pull request
+
+## Support
+For support and questions:
+- Check documentation
+- Create an issue
+- Contact team lead
 
 ## License
-Proprietary software. All rights reserved.
+[License Type] - See LICENSE file for details
 
 ## Acknowledgments
-- Material-UI team for the component library
-- React team for the framework
-- All contributors to the project
+- Material-UI team
+- React community
+- All contributors

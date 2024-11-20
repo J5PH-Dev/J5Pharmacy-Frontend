@@ -10,7 +10,7 @@ import {
   Paper,
 } from '@mui/material';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
-import { CartItem } from '../../types';
+import { CartItem } from '../../types/cart';
 import { StyledTableCell, StyledTableRow } from './styles';
 import { alpha } from '@mui/material/styles';
 

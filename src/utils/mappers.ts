@@ -1,9 +1,8 @@
-import { CartItem } from '../types/cart';
-import { ReceiptItem } from '../components/Receipt/types';
+import { CartItem } from '../modules/pos/types/cart';
 
-export const cartItemToReceiptItem = (cartItem: CartItem): ReceiptItem => ({
-  name: `${cartItem.productName} ${cartItem.dosage}`,
-  price: cartItem.price,
-  quantity: cartItem.quantity,
-  total: cartItem.price * cartItem.quantity,
+export const mapCartItemToReceiptItem = (cartItem: CartItem) => ({
+  ...cartItem,
+  subtotal: cartItem.price * cartItem.quantity,
+  discountAmount: cartItem.discount || 0,
+  total: (cartItem.price * cartItem.quantity) - (cartItem.discount || 0)
 });

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Stack } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { format } from 'date-fns';
+import format from 'date-fns/format';
 
 const InfoContainer = styled(Box)(({ theme }) => ({
   display: 'flex',

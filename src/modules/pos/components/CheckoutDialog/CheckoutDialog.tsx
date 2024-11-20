@@ -16,16 +16,17 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon, Print as PrintIcon } from '@mui/icons-material';
 import { Receipt } from '../Receipt/Receipt';
-import { ReceiptItem } from '../Receipt/types';
 import { generateTransactionId } from '../../utils/transactions';
 import { PaymentQRDialog } from '../PaymentQRDialog/PaymentQRDialog';
+import { CartItem } from '../../types/cart';
+import { DiscountType } from '../TransactionSummary/types';
 
 type PaymentMethod = 'CASH' | 'GCASH' | 'MAYA';
 
 interface CheckoutDialogProps {
   open: boolean;
   onClose: () => void;
-  items: ReceiptItem[];
+  items: CartItem[];
   subtotal: number;
   discountType: string;
   discountAmount: number;
@@ -63,7 +64,7 @@ export const CheckoutDialog: React.FC<CheckoutDialogProps> = ({
 
   useEffect(() => {
     if (open) {
-      setCurrentTransactionId(generateTransactionId('B001'));
+      setCurrentTransactionId(generateTransactionId());
     }
   }, [open]);
 
@@ -369,19 +370,20 @@ export const CheckoutDialog: React.FC<CheckoutDialogProps> = ({
               </Box>
               <Receipt
                 transactionId={currentTransactionId}
+                timestamp={new Date()}
+                cashierName="ADMIN"
                 customerName={customerName || undefined}
                 starPointsId={starPointsId || undefined}
                 items={items}
                 subtotal={subtotal}
-                discountType={discountType}
+                discountType={discountType as any}
                 discountAmount={discountAmount}
                 discountedSubtotal={discountedSubtotal}
                 vat={vat}
                 total={total}
                 starPointsEarned={starPointsEarned}
-                timestamp={new Date()}
                 paymentMethod={paymentMethod}
-                amountTendered={paymentMethod === 'CASH' ? parseFloat(amountTendered) : undefined}
+                amountTendered={paymentMethod === 'CASH' ? Number(amountTendered) : undefined}
                 change={paymentMethod === 'CASH' ? getChange() : undefined}
                 paymentReferenceId={paymentReferenceId || undefined}
               />

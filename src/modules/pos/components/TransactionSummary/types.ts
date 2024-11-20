@@ -12,8 +12,6 @@ export interface TransactionSummaryProps {
   vat: number;
   total: number;
   customValue?: number;
-}
-
-export interface TransactionSummaryData extends TransactionSummaryProps {
-  starPointsEarned: number;
+  onDiscountChange?: (type: DiscountType, customValue?: number) => void;
+  currentDiscount?: DiscountType;
 }

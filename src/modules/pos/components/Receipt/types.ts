@@ -1,28 +1,24 @@
-export interface ReceiptItem {
-  name: string;
-  quantity: number;
-  price: number;
-  total: number;
-}
+import { CartItem } from '../../types/cart';
+import { DiscountType } from '../TransactionSummary/types';
 
 export interface ReceiptProps {
   transactionId: string;
+  timestamp: Date;
+  cashierName: string;
   customerName?: string;
   starPointsId?: string;
-  items: ReceiptItem[];
+  items: CartItem[];
   subtotal: number;
-  discountType?: string;
+  discountType: DiscountType;
   discountAmount: number;
   discountedSubtotal: number;
   vat: number;
   total: number;
-  starPointsEarned: number;
-  timestamp: Date;
-  paymentMethod: 'CASH' | 'GCASH' | 'MAYA';
   amountTendered?: number;
   change?: number;
+  starPointsEarned?: number;
+  paymentMethod?: 'CASH' | 'GCASH' | 'MAYA';
   paymentReferenceId?: string;
-  cashierName?: string;
   branchId?: string;
   branchAddress?: string;
   branchContact?: string;

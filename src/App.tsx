@@ -1,270 +1,119 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
-import Paper from '@mui/material/Paper';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import theme from './theme/theme';
-import Header from './components/Header';
-import TransactionInfo from './components/TransactionInfo';
-import FunctionKeys from './components/FunctionKeys';
-import Cart from './components/Cart';
-import DevTools from './devtools/DevTools';
-import ActionButtons from './components/ActionButtons';
-import DiscountDialog from './components/DiscountDialog';
-import { CartItem } from './types/cart';
-import { DiscountType } from './components/TransactionSummary/types';
-import TransactionSummary from './components/TransactionSummary/TransactionSummary';
-import { calculateTotals } from './utils/calculations';
-import { format } from 'date-fns';
-import { CheckoutDialog } from './components/CheckoutDialog/CheckoutDialog';
-import { cartItemToReceiptItem } from './utils/mappers';
+import { AuthProvider } from './core/contexts/AuthContext';
+import { ProtectedRoute } from './routes/ProtectedRoute';
+import { DashboardLayout } from './layouts/DashboardLayout/DashboardLayout';
+import { UserRole } from './core/types/roles';
 
-const generateTransactionId = (branchId: string = 'B001'): string => {
-  const now = new Date();
-  const dateStr = format(now, 'yyMMdd');
-  // In a real application, this number would come from a database or counter service
-  const sequenceNumber = '00001';
-  return `${branchId}-${dateStr}-${sequenceNumber}`;
-};
+// Import pages
+import POSPage from './modules/pos/pages/POSPage';
+import LoginPage from './core/components/LoginPage';
+import DashboardPage from './modules/dashboard/pages/DashboardPage';
+import BranchManagementPage from './modules/branch/pages/BranchManagementPage';
+import InventoryPage from './modules/inventory/pages/InventoryPage';
+import CustomersPage from './modules/customers/pages/CustomersPage';
+import AnalyticsPage from './modules/analytics/pages/AnalyticsPage';
+import UserManagementPage from './modules/admin/pages/UserManagementPage';
 
 function App() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [transactionId] = useState<string>(() => generateTransactionId());
-  const [customerId, setCustomerId] = useState<string>();
-  const [customerName, setCustomerName] = useState<string>();
-  const [starPointsId, setStarPointsId] = useState<string>();
-  const [discountType, setDiscountType] = useState<DiscountType>('None');
-  const [heldTransactions, setHeldTransactions] = useState<{
-    id: string;
-    items: CartItem[];
-    customerId?: string;
-    customerName?: string;
-    starPointsId?: string;
-    discountType: DiscountType;
-  }[]>([]);
-  const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
-  const [customDiscountValue, setCustomDiscountValue] = useState<number>();
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [starPointsEarned, setStarPointsEarned] = useState(0);
-
-  const handleAddSampleItems = (newItems: CartItem[]) => {
-    setCartItems(prevItems => [...prevItems, ...newItems]);
-  };
-
-  const handleResetStock = () => {
-    // TODO: Implement stock reset functionality
-    console.log('Reset stock clicked');
-  };
-
-  const handleCheckout = () => {
-    if (cartItems.length === 0) {
-      return;
-    }
-    setIsCheckoutOpen(true);
-  };
-
-  const handleCheckoutComplete = () => {
-    setIsCheckoutOpen(false);
-    setCartItems([]); // Clear the cart
-  };
-
-  const handleVoid = () => {
-    // TODO: Implement void logic
-    setCartItems([]);
-    setCustomerId(undefined);
-    setCustomerName(undefined);
-    setStarPointsId(undefined);
-    setDiscountType('None');
-  };
-
-  const handlePrint = () => {
-    // TODO: Implement print logic
-    console.log('Print clicked');
-  };
-
-  const handleHoldTransaction = () => {
-    const heldTransaction = {
-      id: `HOLD-${format(new Date(), 'yyyyMMdd-HHmmss')}`,
-      items: cartItems,
-      customerId,
-      customerName,
-      starPointsId,
-      discountType
-    };
-    setHeldTransactions([...heldTransactions, heldTransaction]);
-    handleVoid(); // Clear current transaction
-    console.log('Transaction held:', heldTransaction);
-  };
-
-  const handleCustomerInfo = () => {
-    // TODO: Implement customer info dialog
-    console.log('Opening customer info dialog', {
-      customerId,
-      customerName,
-      starPointsId
-    });
-  };
-
-  const handleDiscountClick = () => {
-    setDiscountDialogOpen(true);
-  };
-
-  const handleDiscountSelect = (type: DiscountType, customValue?: number) => {
-    setDiscountType(type);
-    setCustomDiscountValue(customValue);
-  };
-
-  // Calculate transaction totals
-  const {
-    subtotal,
-    discountAmount,
-    discountedSubtotal,
-    vat,
-    total,
-    items: itemsWithDiscounts
-  } = calculateTotals(cartItems, discountType, customDiscountValue);
-
-  // Calculate star points: 1 point per 200 PHP
-  const calculateStarPoints = (total: number): number => {
-    return Math.floor(total / 200);
-  };
-
-  useEffect(() => {
-    const totals = calculateTotals(cartItems, discountType, customDiscountValue);
-    setStarPointsEarned(calculateStarPoints(totals.total));
-  }, [cartItems, discountType, customDiscountValue]);
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', p: 1.5, bgcolor: 'background.default' }}>
-        {/* Top Bar */}
-        <Grid container spacing={1.5} sx={{ mb: 1.5, height: '85px' }}>
-          {/* Header Section - 1/3 width */}
-          <Grid item xs={4}>
-            <Paper 
-              elevation={2}
-              sx={{ 
-                height: '100%',
-                overflow: 'hidden',
-              }}
-            >
-              <Header />
-            </Paper>
-          </Grid>
-          {/* Transaction Info Section - 2/3 width */}
-          <Grid item xs={8}>
-            <Paper 
-              elevation={2}
-              sx={{ 
-                height: '100%',
-                overflow: 'hidden',
-              }}
-            >
-              <TransactionInfo />
-            </Paper>
-          </Grid>
-        </Grid>
-        
-        {/* Main Content Area */}
-        <Grid container spacing={1.5} sx={{ flexGrow: 1 }}>
-          {/* Function Keys */}
-          <Grid item xs={2}>
-            <Paper 
-              elevation={2}
-              sx={{ height: '100%', overflow: 'hidden' }}
-            >
-              <FunctionKeys />
-            </Paper>
-          </Grid>
-          {/* Cart Section */}
-          <Grid item xs={7}>
-            <Paper 
-              elevation={2}
-              sx={{ 
-                p: 2, 
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden'
-              }}
-            >
-              <Cart 
-                items={cartItems}
-                setItems={setCartItems}
-              />
-            </Paper>
-          </Grid>
-          {/* Right Side - Transaction Summary & Action Buttons */}
-          <Grid item xs={3}>
-            <Grid container direction="column" spacing={1.5} sx={{ height: '100%' }}>
-              <Grid item xs>
-                <Paper 
-                  elevation={2}
-                  sx={{ p: 2, height: '100%' }}
-                >
-                  <TransactionSummary
-                    transactionId={transactionId}
-                    customerId={customerId}
-                    customerName={customerName}
-                    starPointsId={starPointsId}
-                    subtotal={subtotal}
-                    discountType={discountType}
-                    discountAmount={discountAmount}
-                    discountedSubtotal={discountedSubtotal}
-                    vat={vat}
-                    total={total}
-                    customValue={customDiscountValue}
-                  />
-                </Paper>
-              </Grid>
-              <Grid item>
-                <Paper 
-                  elevation={2}
-                  sx={{ p: 2 }}
-                >
-                  <ActionButtons
-                    onCheckout={handleCheckout}
-                    onVoid={handleVoid}
-                    onPrint={handlePrint}
-                    onDiscount={handleDiscountClick}
-                    onCustomerInfo={handleCustomerInfo}
-                    isCartEmpty={cartItems.length === 0}
-                    currentDiscount={discountType}
-                  />
-                </Paper>
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
-      </Box>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={<LoginPage />} />
+            
+            {/* Redirect root to appropriate page */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
 
-      {/* Developer Tools */}
-      <DevTools 
-        onAddSampleItems={handleAddSampleItems} 
-        onResetStock={() => {}} 
-        onClearCart={() => setCartItems([])}
-      />
-      <DiscountDialog
-        open={discountDialogOpen}
-        onClose={() => setDiscountDialogOpen(false)}
-        onSelect={handleDiscountSelect}
-        currentDiscount={discountType}
-      />
-      <CheckoutDialog
-        open={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        items={cartItems.map(cartItemToReceiptItem)}
-        subtotal={subtotal}
-        discountType={discountType}
-        discountAmount={discountAmount}
-        discountedSubtotal={discountedSubtotal}
-        vat={vat}
-        total={total}
-        starPointsEarned={starPointsEarned}
-        onCheckout={handleCheckoutComplete}
-        onClearCart={() => setCartItems([])}
-      />
+            {/* POS Route - Accessible by all roles */}
+            <Route
+              path="/pos"
+              element={
+                <ProtectedRoute>
+                  <POSPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Dashboard Routes - Protected by role */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
+                  <DashboardLayout>
+                    <DashboardPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Only Routes */}
+            <Route
+              path="/branches/*"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+                  <DashboardLayout>
+                    <BranchManagementPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/users/*"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+                  <DashboardLayout>
+                    <UserManagementPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin and Manager Routes */}
+            <Route
+              path="/inventory/*"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
+                  <DashboardLayout>
+                    <InventoryPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/customers/*"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
+                  <DashboardLayout>
+                    <CustomersPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/analytics/*"
+              element={
+                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
+                  <DashboardLayout>
+                    <AnalyticsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Catch all - redirect to appropriate dashboard */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
