@@ -1,31 +1,36 @@
 import React, { createContext, useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContextType, AuthState, UserRole } from '../types/auth.types';
+import { authService } from '../services/authService';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Mock user database - replace with actual backend integration
-const MOCK_USERS: Record<number, { employeeId: number; role: UserRole }> = {
-  123: { employeeId: 123, role: UserRole.ADMIN },
-  456: { employeeId: 456, role: UserRole.MANAGER },
-  678: { employeeId: 678, role: UserRole.PHARMACIST },
+const MOCK_USERS: Record<number, { employeeId: number; role: UserRole; name: string }> = {
+  123: { employeeId: 123, role: UserRole.ADMIN, name: 'Admin User' },
+  456: { employeeId: 456, role: UserRole.MANAGER, name: 'Manager User' },
+  678: { employeeId: 678, role: UserRole.PHARMACIST, name: 'Pharmacist User' },
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
-  const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
-    user: null,
-    isLoading: false,
-    error: null,
+  const [authState, setAuthState] = useState<AuthState>(() => {
+    // Clear any existing session on app start
+    localStorage.removeItem('user');
+    return {
+      isAuthenticated: false,
+      user: null,
+      isLoading: false,
+      error: null,
+    };
   });
 
   const getInitialRouteForRole = (role: UserRole): string => {
     switch (role) {
       case UserRole.ADMIN:
-        return '/dashboard';
+        return '/admin/dashboard';
       case UserRole.MANAGER:
-        return '/dashboard';
+        return '/admin/dashboard';
       case UserRole.PHARMACIST:
         return '/pos';
       default:
@@ -48,6 +53,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Invalid credentials');
       }
 
+      // Store user in localStorage
+      localStorage.setItem('user', JSON.stringify(mockUser));
+
       setAuthState({
         isAuthenticated: true,
         user: mockUser,
@@ -69,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    localStorage.removeItem('user');
     setAuthState({
       isAuthenticated: false,
       user: null,

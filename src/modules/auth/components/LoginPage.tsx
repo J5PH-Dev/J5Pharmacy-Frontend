@@ -11,7 +11,6 @@ import {
   alpha,
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/icon.png';
 
@@ -21,7 +20,6 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +33,7 @@ const LoginPage: React.FC = () => {
     
     try {
       await login(employeeId, password);
-      navigate('/dashboard');
+      // Navigation is handled by AuthContext
     } catch (err) {
       setError('Invalid Employee ID or password');
     }

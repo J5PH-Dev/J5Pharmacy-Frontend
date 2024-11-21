@@ -6,11 +6,10 @@ import theme from './theme';
 import { AuthProvider } from './modules/auth/contexts/AuthContext';
 import LoginPage from './modules/auth/components/LoginPage';
 import ForgotPassword from './modules/auth/components/ForgotPassword/ForgotPassword';
-import { DashboardLayout } from './layouts/DashboardLayout/DashboardLayout';
-import Dashboard from './modules/dashboard/components/Dashboard';
 import POSPage from './modules/pos/pages/POSPage';
 import { UserRole } from './modules/auth/types/auth.types';
 import { useAuth } from './modules/auth/contexts/AuthContext';
+import AdminRoutes from './routes/AdminRoutes';
 
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
@@ -27,55 +26,53 @@ const ProtectedRoute: React.FC<{
     switch (user.role) {
       case UserRole.PHARMACIST:
         return <Navigate to="/pos" />;
+      case UserRole.ADMIN:
+        return <Navigate to="/admin/dashboard" />;
       default:
-        return <Navigate to="/dashboard" />;
+        return <Navigate to="/admin/dashboard" />;
     }
   }
 
   return <>{children}</>;
 };
 
-const AppRoutes = () => {
+const AppRoutes: React.FC = () => {
+  const { user } = useAuth();
+
   return (
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      
+      {/* Admin Routes */}
+      <Route path="/admin/*" element={
+        <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+          <AdminRoutes />
+        </ProtectedRoute>
+      } />
 
-      {/* Protected Routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
-            <DashboardLayout>
-              <Dashboard />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
+      {/* POS Routes */}
+      <Route path="/pos" element={
+        <ProtectedRoute allowedRoles={[UserRole.PHARMACIST]}>
+          <POSPage />
+        </ProtectedRoute>
+      } />
 
-      {/* POS Route - Accessible by Manager and Pharmacist */}
-      <Route
-        path="/pos"
-        element={
-          <ProtectedRoute allowedRoles={[UserRole.MANAGER, UserRole.PHARMACIST]}>
-            <POSPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Default Route */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Navigate to="/dashboard" />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Catch all - redirect to login */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      {/* Redirect root to appropriate dashboard based on role */}
+      <Route path="/" element={
+        user ? (
+          user.role === UserRole.ADMIN ? (
+            <Navigate to="/admin/dashboard" replace />
+          ) : user.role === UserRole.PHARMACIST ? (
+            <Navigate to="/pos" replace />
+          ) : (
+            <Navigate to="/admin/dashboard" replace />
+          )
+        ) : (
+          <Navigate to="/login" replace />
+        )
+      } />
     </Routes>
   );
 };

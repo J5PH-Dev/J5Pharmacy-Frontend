@@ -1,4 +1,4 @@
-import { User, UserRole } from '../types/auth.types';
+import { User, UserRole, UserWithoutPassword } from '../types/User';
 
 // Mock user database - replace with actual backend integration
 const mockUsers: User[] = [
@@ -6,21 +6,24 @@ const mockUsers: User[] = [
     employeeId: 123,
     role: UserRole.ADMIN,
     password: 'admin123',
+    name: 'Admin User',
   },
   {
     employeeId: 456,
     role: UserRole.MANAGER,
     password: 'manager123',
+    name: 'Manager User',
   },
   {
     employeeId: 678,
     role: UserRole.PHARMACIST,
     password: 'pharm123',
+    name: 'Pharmacist User',
   },
 ];
 
 export const authService = {
-  login: async (employeeId: string, password: string): Promise<User> => {
+  login: async (employeeId: string, password: string): Promise<UserWithoutPassword> => {
     const numericEmployeeId = parseInt(employeeId, 10);
     const user = mockUsers.find(u => u.employeeId === numericEmployeeId && u.password === password);
 
@@ -31,27 +34,23 @@ export const authService = {
     // For pharmacists, redirect directly to POS
     if (user.role === UserRole.PHARMACIST) {
       window.location.href = '/pos';
+    } else if (user.role === UserRole.ADMIN) {
+      window.location.href = '/admin/dashboard';
     }
 
     // Remove password before returning the user
     const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    return userWithoutPassword as UserWithoutPassword;
   },
 
   logout: async (): Promise<void> => {
-    // TODO: Implement actual API call
-    return Promise.resolve();
+    // Clear any stored user data
+    localStorage.removeItem('user');
+    window.location.href = '/login';
   },
 
-  resetPassword: async (employeeId: string): Promise<void> => {
-    const numericEmployeeId = parseInt(employeeId, 10);
-    const user = mockUsers.find(u => u.employeeId === numericEmployeeId);
-
-    if (!user) {
-      throw new Error('Employee not found');
-    }
-
-    // In a real application, this would trigger a password reset email
-    console.log(`Password reset requested for employee ${employeeId}`);
+  getCurrentUser: (): User | null => {
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : null;
   },
 };

@@ -9,10 +9,17 @@ A comprehensive pharmacy management solution built with React, TypeScript, and M
 - Attendance: Beta 0.1.0
 - Branch: Beta 0.1.0
 - Customers: Beta 0.1.0
-- Dashboard: Beta 0.1.0
+- Dashboard: Beta 0.2.0
 - Inventory: Beta 0.1.0
+- Authentication: Beta 0.1.0
 
-See individual module CHANGELOG.md files in their respective directories for detailed version history and updates.
+## Current Development
+Currently implementing the Owner Dashboard with the following features:
+- Multi-branch performance overview
+- Advanced analytics integration
+- Real-time metrics display
+- Custom widget system
+- Interactive data visualizations
 
 ## System Overview
 
