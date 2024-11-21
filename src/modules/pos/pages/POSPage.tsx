@@ -4,8 +4,11 @@ import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import { format } from 'date-fns';
 
+// Import auth context
+import { useAuth } from '../../../modules/auth/contexts/AuthContext';
+
 // Import POS components
-import Header from '../../../core/components/Header';
+import Header from '../components/Header';
 import TransactionInfo from '../components/TransactionInfo';
 import FunctionKeys from '../components/FunctionKeys';
 import Cart from '../components/Cart';
@@ -30,6 +33,7 @@ const generateTransactionId = (branchId: string = 'B001'): string => {
 };
 
 const POSPage: React.FC = () => {
+  const { logout } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [transactionId] = useState<string>(() => generateTransactionId());
   const [customerId, setCustomerId] = useState<string>();
@@ -49,52 +53,13 @@ const POSPage: React.FC = () => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [starPointsEarned, setStarPointsEarned] = useState(0);
 
-  const handleAddSampleItems = (newItems: CartItem[]) => {
-    setCartItems(prevItems => [...prevItems, ...newItems]);
-  };
-
-  const handleCheckout = () => {
-    if (cartItems.length === 0) return;
-    setIsCheckoutOpen(true);
-  };
-
-  const handleCheckoutComplete = () => {
-    setIsCheckoutOpen(false);
-    setCartItems([]); // Clear the cart
-  };
-
-  const handleVoid = () => {
-    setCartItems([]);
-    setCustomerId(undefined);
-    setCustomerName(undefined);
-    setStarPointsId(undefined);
-    setDiscountType('None');
-  };
-
-  const handlePrint = () => {
-    console.log('Print clicked');
-  };
-
-  const handleHoldTransaction = () => {
-    const heldTransaction = {
-      id: `HOLD-${format(new Date(), 'yyyyMMdd-HHmmss')}`,
-      items: cartItems,
-      customerId,
-      customerName,
-      starPointsId,
-      discountType
-    };
-    setHeldTransactions([...heldTransactions, heldTransaction]);
-    handleVoid();
-  };
-
-  const handleCustomerInfo = () => {
-    console.log('Opening customer info dialog', {
-      customerId,
-      customerName,
-      starPointsId
-    });
-  };
+  const {
+    subtotal,
+    discountAmount,
+    discountedSubtotal,
+    vat,
+    total
+  } = calculateTotals(cartItems, discountType, customDiscountValue);
 
   const handleDiscountClick = () => {
     setDiscountDialogOpen(true);
@@ -103,23 +68,72 @@ const POSPage: React.FC = () => {
   const handleDiscountSelect = (type: DiscountType, customValue?: number) => {
     setDiscountType(type);
     setCustomDiscountValue(customValue);
+    setDiscountDialogOpen(false);
   };
 
-  const handleDiscountChange = (discountType: DiscountType) => {
-    setDiscountType(discountType);
+  const handleDiscountChange = (type: DiscountType) => {
+    setDiscountType(type);
   };
 
-  // Calculate transaction totals
-  const {
-    subtotal,
-    discountAmount,
-    discountedSubtotal,
-    vat,
-    total,
-    items: itemsWithDiscounts
-  } = calculateTotals(cartItems, discountType, customDiscountValue);
+  const handleCustomerInfo = () => {
+    // TODO: Implement customer info dialog
+  };
 
-  // Calculate star points: 1 point per 200 PHP
+  const handleCheckout = () => {
+    setIsCheckoutOpen(true);
+  };
+
+  const handleCheckoutComplete = () => {
+    setCartItems([]);
+    setDiscountType('None');
+    setCustomDiscountValue(undefined);
+    setCustomerId(undefined);
+    setCustomerName(undefined);
+    setStarPointsId(undefined);
+    setIsCheckoutOpen(false);
+  };
+
+  const handleVoid = () => {
+    setCartItems([]);
+    setDiscountType('None');
+    setCustomDiscountValue(undefined);
+  };
+
+  const handlePrint = () => {
+    // TODO: Implement receipt printing
+    console.log('Printing receipt...');
+  };
+
+  const handleAddSampleItems = () => {
+    const sampleItems: CartItem[] = [
+      {
+        id: '1',
+        itemCode: 'MED001',
+        productName: 'Paracetamol 500mg',
+        price: 5.99,
+        quantity: 2,
+        unit: 'tablet',
+        category: 'Pain Relief',
+        brand: 'PharmaCo',
+        dosage: '500mg',
+        requiresPrescription: false
+      },
+      {
+        id: '2',
+        itemCode: 'MED002',
+        productName: 'Amoxicillin 250mg',
+        price: 12.99,
+        quantity: 1,
+        unit: 'capsule',
+        category: 'Antibiotics',
+        brand: 'MediCorp',
+        dosage: '250mg',
+        requiresPrescription: true
+      }
+    ];
+    setCartItems([...cartItems, ...sampleItems]);
+  };
+
   useEffect(() => {
     const totals = calculateTotals(cartItems, discountType, customDiscountValue);
     setStarPointsEarned(Math.floor(totals.total / 200));
@@ -148,7 +162,7 @@ const POSPage: React.FC = () => {
         {/* Function Keys */}
         <Grid item xs={2}>
           <Paper elevation={2} sx={{ height: '100%', overflow: 'hidden' }}>
-            <FunctionKeys />
+            <FunctionKeys onLogout={logout} />
           </Paper>
         </Grid>
         {/* Cart Section */}

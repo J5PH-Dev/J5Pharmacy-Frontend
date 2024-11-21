@@ -10,8 +10,8 @@ const HeaderContainer = styled(Box)(({ theme }) => ({
   height: '100%',
   padding: theme.spacing(1, 2),
   gap: theme.spacing(2),
-  backgroundColor: theme.palette.primary.main,
-  color: theme.palette.primary.contrastText,
+  backgroundColor: theme.palette.background.paper,
+  color: theme.palette.primary.main,
   boxShadow: '0 1px 3px rgba(0,0,0,0.08)', // Softer shadow
 }));
 
@@ -36,7 +36,7 @@ const GreetingText = styled(Typography)<TypographyProps>(({ theme }) => ({
   textOverflow: 'ellipsis',
   fontSize: '1.1rem',
   lineHeight: 1.2,
-  color: theme.palette.primary.contrastText,
+  color: theme.palette.text.primary,
   marginLeft: theme.spacing(1), // Added margin for better spacing
 }));
 

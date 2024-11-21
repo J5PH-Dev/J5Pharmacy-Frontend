@@ -4,10 +4,10 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#FFFFFF', // White background for header
+      main: '#1B75BB', // Changed to logo blue for better visibility
       dark: '#145C94', // Darker blue
       light: '#7DCFF3', // Softer light blue
-      contrastText: '#1B75BB', // Logo blue for text
+      contrastText: '#FFFFFF', // Changed to white for better contrast
     },
     secondary: {
       main: '#26A9E0', // Another shade of blue from logo
@@ -36,8 +36,8 @@ const theme = createTheme({
       dark: '#087F23',
     },
     background: {
-      default: '#FFF5F0', // Lighter white-peach for main background
-      paper: '#FFF8F5', // Matching primary.main
+      default: '#F5F8FA', // Changed to a lighter blue-gray
+      paper: '#FFFFFF', // Changed to pure white for better contrast
     },
     text: {
       primary: '#1B75BB', // Using logo blue for primary text

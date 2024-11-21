@@ -134,6 +134,182 @@ export class ServiceName {
 - Add leave request system
 - Include attendance reports
 
+## Authentication Module
+
+### Overview
+The authentication system provides a secure and user-friendly login experience with password reset capabilities. The system is built using React, TypeScript, and Material-UI, following modern design principles and best practices.
+
+### Component Structure
+```
+src/
+└── core/
+    └── components/
+        ├── LoginPage.tsx           # Main login interface
+        └── ForgotPassword/         # Password reset functionality
+            └── ForgotPassword.tsx
+```
+
+### Login Implementation
+```typescript
+// Example usage of LoginPage component
+import LoginPage from './core/components/LoginPage';
+
+// In your route configuration
+<Route path="/login" element={<LoginPage />} />
+```
+
+Key features:
+- Employee ID and password authentication
+- Password visibility toggle
+- Error handling and validation
+- Responsive design
+- Consistent styling
+
+### Password Reset Flow
+```typescript
+// Example usage of ForgotPassword component
+import ForgotPassword from './core/components/ForgotPassword/ForgotPassword';
+
+// In your route configuration
+<Route path="/forgot-password" element={<ForgotPassword />} />
+```
+
+Features:
+- Employee ID and email validation
+- Real-time error feedback
+- Success messaging
+- Auto-redirect after success
+
+### Styling Guidelines
+Use the following color scheme for consistency:
+```typescript
+const colors = {
+  primary: '#2563eb',      // Primary buttons and links
+  hover: '#1d4ed8',        // Hover states
+  active: '#1e40af',       // Active states
+  error: '#dc2626',        // Error messages
+  success: '#16a34a',      // Success messages
+  background: '#f8fafc',   // Page background
+  footer: '#1e293b',       // Footer background
+  text: {
+    primary: '#1e293b',    // Primary text
+    secondary: '#475569',  // Secondary text
+    light: '#f8fafc',      // Light text (on dark backgrounds)
+  }
+};
+```
+
+### Error Handling
+Implement error handling following this pattern:
+```typescript
+const [error, setError] = useState<string | null>(null);
+const [fieldErrors, setFieldErrors] = useState({
+  fieldName: '',
+});
+
+// Field validation
+const validateFields = () => {
+  const errors = { fieldName: '' };
+  let isValid = true;
+
+  if (!fieldValue) {
+    errors.fieldName = 'Field is required';
+    isValid = false;
+  }
+
+  setFieldErrors(errors);
+  return isValid;
+};
+
+// Error display
+{error && (
+  <Typography 
+    sx={{ 
+      bgcolor: alpha('#ef4444', 0.1),
+      color: '#dc2626',
+      py: 1,
+      px: 2,
+      borderRadius: 1,
+      width: '100%',
+      textAlign: 'center',
+    }}
+  >
+    {error}
+  </Typography>
+)}
+```
+
+### Best Practices
+1. Form Validation
+   - Validate fields in real-time
+   - Provide clear error messages
+   - Clear errors when user starts typing
+
+2. Security
+   - Never store sensitive data in local storage
+   - Implement proper session management
+   - Use HTTPS for all requests
+
+3. User Experience
+   - Provide feedback for all actions
+   - Use consistent styling
+   - Implement proper loading states
+
+4. Code Organization
+   - Keep components focused and single-purpose
+   - Maintain consistent file structure
+   - Follow TypeScript best practices
+
+### Future Enhancements
+1. Authentication
+   - Multi-factor authentication
+   - Remember me functionality
+   - Password strength requirements
+
+2. Security
+   - Rate limiting
+   - CAPTCHA integration
+   - Enhanced audit logging
+
+3. User Experience
+   - Internationalization
+   - Accessibility improvements
+   - Enhanced error messaging
+
+## Module Integration
+When integrating the authentication module with other parts of the system:
+
+1. Protected Routes
+```typescript
+import { ProtectedRoute } from './routes/ProtectedRoute';
+
+<Route
+  path="/protected"
+  element={
+    <ProtectedRoute>
+      <ProtectedComponent />
+    </ProtectedRoute>
+  }
+/>
+```
+
+2. Authentication Context
+```typescript
+import { useAuth } from '../contexts/AuthContext';
+
+const Component = () => {
+  const { login, logout, user } = useAuth();
+  // Use authentication functions
+};
+```
+
+3. Role-Based Access
+```typescript
+<ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+  <AdminComponent />
+</ProtectedRoute>
+```
+
 ## State Management
 ```typescript
 // Example Context

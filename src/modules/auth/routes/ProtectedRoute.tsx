@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../core/contexts/AuthContext';
-import { UserRole } from '../core/types/roles';
+import { useAuth } from '../hooks/useAuth';
+import { UserRole } from '../types/auth.types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -19,12 +19,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
-    // Redirect to appropriate dashboard based on role
-    if (user.role === UserRole.PHARMACIST) {
-      return <Navigate to="/pos" replace />;
-    }
-    return <Navigate to="/dashboard" replace />;
+  if (allowedRoles.length > 0 && user?.role && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return <>{children}</>;

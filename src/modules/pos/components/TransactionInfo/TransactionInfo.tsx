@@ -9,8 +9,8 @@ const InfoContainer = styled(Box)(({ theme }) => ({
   justifyContent: 'center',
   height: '100%',
   padding: theme.spacing(1, 3),
-  backgroundColor: theme.palette.primary.main,
-  color: theme.palette.primary.contrastText,
+  backgroundColor: theme.palette.background.paper,
+  color: theme.palette.text.primary,
 }));
 
 const InfoRow = styled(Box)({
@@ -32,6 +32,7 @@ const TimeText = styled(Typography)(({ theme }) => ({
   fontSize: '1.6rem',
   letterSpacing: '0.5px',
   lineHeight: 1,
+  color: theme.palette.primary.main,
   [theme.breakpoints.up('sm')]: {
     fontSize: '1.8rem',
   },
@@ -43,6 +44,7 @@ const DateText = styled(Typography)(({ theme }) => ({
   letterSpacing: '0.5px',
   opacity: 0.9,
   lineHeight: 1,
+  color: theme.palette.text.secondary,
   [theme.breakpoints.up('sm')]: {
     fontSize: '1.4rem',
   },

@@ -3,7 +3,7 @@
 A comprehensive pharmacy management solution built with React, TypeScript, and Material-UI. This system provides a complete suite of tools for managing pharmacy operations, from point of sale to inventory management.
 
 ## Module Versions
-- POS: Beta 0.2.4-c
+- POS: Beta 0.2.4-d
 - Admin: Beta 0.1.0
 - Analytics: Beta 0.1.0
 - Attendance: Beta 0.1.0
@@ -90,9 +90,15 @@ See individual module CHANGELOG.md files in their respective directories for det
 - 1GB free disk space
 
 ## Getting Started
+
+### Prerequisites
+- Node.js (v14 or higher)
+- npm or yarn
+
+### Installation
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Start development server: `npm run dev`
+3. Start development server: `npm start`
 4. Build for production: `npm run build`
 
 For detailed setup and development guidelines, see:
@@ -102,6 +108,7 @@ For detailed setup and development guidelines, see:
 ## Project Structure
 ```
 j5pharmacy/
+├── public/
 ├── src/
 │   ├── modules/           # Feature modules
 │   ├── common/           # Shared components
@@ -126,7 +133,7 @@ j5pharmacy/
 ## Available Scripts
 ```bash
 # Development
-npm run dev
+npm start
 
 # Testing
 npm run test

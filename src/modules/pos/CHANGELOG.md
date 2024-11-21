@@ -1,5 +1,27 @@
 # J5 Pharmacy POS System Changelog
 
+## [Beta 0.2.4-d] - 2024-00-21
+
+### Changed
+- Relocated Header component to POS module for better organization
+- Updated function key styling with subtle background colors
+- Enhanced visibility of all interactive elements
+- Improved header and logo contrast
+- Reorganized asset management within POS module
+
+### Added
+- New background color system for function keys (2% base opacity)
+- Enhanced hover states for better interaction feedback (8% opacity)
+- Clear active states for user feedback (12% opacity)
+- Distinct error-themed styling for logout button
+- Smooth transition animations for all interactive elements
+
+### Fixed
+- Logo import path in Header component
+- Function key visibility issues
+- Component organization structure
+- Asset management consistency
+
 ## [Beta 0.2.4-c] - 2024-00-20
 
 ### Changed
