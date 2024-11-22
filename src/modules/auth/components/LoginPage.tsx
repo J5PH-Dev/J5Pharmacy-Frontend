@@ -1,273 +1,151 @@
-import React, { useState } from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-  TextField,
-  Button,
-  IconButton,
-  Link,
-  InputAdornment,
-  alpha,
-} from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
-import logo from '../assets/icon.png';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Footer from './Footer';
+import logoJ5Pharmacy from '../assets/icon.png';
+import { TextField, InputAdornment, IconButton } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material'; // Importing icons
+import { useAuth } from '../contexts/AuthContext'; // Import your AuthContext
 
-const LoginPage: React.FC = () => {
+const Login = () => {
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const { login } = useAuth();
+  const [error, setError] = useState({ employeeId: '', password: '', general: '' });
+  const navigate = useNavigate(); // Initialize the navigate hook
+  const { login } = useAuth(); // Assuming login function comes from AuthContext
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    // Validate employee ID is a number
-    if (!/^\d+$/.test(employeeId)) {
-      setError('Employee ID must be a number');
-      return;
-    }
-    
-    try {
-      await login(employeeId, password);
-      // Navigation is handled by AuthContext
-    } catch (err) {
-      setError('Invalid Employee ID or password');
-    }
-  };
-
-  const handleClickShowPassword = () => {
+  // Toggle Password Visibility
+  const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
 
+  // Handle Continue button click
+  const handleContinueClick = async (e: { preventDefault: () => void; }) => {
+    e.preventDefault();
+    setError({ employeeId: '', password: '', general: '' }); // Clear previous errors
+
+    // Check if fields are empty and set error messages
+    let valid = true;
+    if (!employeeId) {
+      setError((prevError) => ({ ...prevError, employeeId: 'Employee ID is required' }));
+      valid = false;
+    }
+
+    if (!password) {
+      setError((prevError) => ({ ...prevError, password: 'Password is required' }));
+      valid = false;
+    }
+
+    if (!valid) return; // Stop form submission if validation fails
+
+    try {
+      // Attempt login with employeeId and password
+      await login(employeeId, password);
+      navigate("/dashboard"); // Navigate to LoadingPage if login is successful
+    } catch (err) {
+      setError((prevError) => ({ ...prevError, general: 'Incorrect Employee ID or Password' }));
+    }
+  };
+
+  const handleForgotPassword = () => {
+    navigate("/forgot-password");
+  };
+
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        bgcolor: '#f8fafc',  // Light background with slight blue tint
-      }}
-    >
-      <Container
-        maxWidth="sm"
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          py: 4,
-        }}
-      >
-        <Box
-          component="img"
-          src={logo}
-          alt="J5 Pharmacy Logo"
-          sx={{
-            width: 55,
-            height: 75,
-            mb: 3,
-          }}
-        />
+    <div className="bg-[#FCFCFC] flex flex-col min-h-screen">
+      <div className="flex flex-col justify-center items-center my-auto px-4 sm:px-6 lg:px-8">
+        {/* Logo */}
+        <div className="relative mb-6">
+          <img
+            src={logoJ5Pharmacy}
+            alt="Logo"
+            className="w-[80px] h-[80px] object-contain"
+          />
+        </div>
 
-        <Typography 
-          variant="h4" 
-          component="h1" 
-          gutterBottom
-          sx={{
-            color: '#1e293b',  // Darker text for better contrast
-            fontWeight: 600,
-          }}
-        >
-          Sign In
-        </Typography>
+        {/* Heading */}
+        <h1 className="text-3xl font-bold text-gray-800">Sign In</h1>
+        <p className="text-base text-gray-600 mt-1 mb-6">Access your account to manage the system</p>
 
-        <Typography
-          variant="subtitle1"
-          color="text.secondary"
-          align="center"
-          gutterBottom
-          sx={{ 
-            mb: 4,
-            color: '#475569',  // Medium contrast for subtitle
-          }}
-        >
-          Access your account to manage the system
-        </Typography>
-
-        {error && (
-          <Typography 
-            color="error" 
-            sx={{ 
-              mb: 2,
-              bgcolor: alpha('#ef4444', 0.1),  // Light red background
-              color: '#dc2626',  // Darker red text
-              py: 1,
-              px: 2,
-              borderRadius: 1,
-              width: '100%',
-              textAlign: 'center',
-            }}
-          >
-            {error}
-          </Typography>
+        {/* Error Message Box */}
+        {error.general && (
+          <div className="w-full max-w-sm mb-4 px-4 py-2 bg-red-100 text-red-600 rounded-md border border-red-300">
+            {error.general}
+          </div>
         )}
 
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          sx={{
-            width: '100%',
-            maxWidth: 400,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2,
-          }}
-        >
+        {/* Form */}
+        <div className="w-full max-w-sm">
+          {/* Employee ID Input */}
           <TextField
+            sx={{ marginBottom: 2 }}
             fullWidth
             id="employeeId"
             label="Employee ID"
             value={employeeId}
             onChange={(e) => setEmployeeId(e.target.value)}
             autoComplete="username"
-            error={!!error}
+            error={!!error.employeeId || !!error.general} // Red border for empty or incorrect fields
             type="number"
-            inputProps={{ 
+            inputProps={{
               pattern: '[0-9]*',
-              inputMode: 'numeric'
+              inputMode: 'numeric',
             }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                '&:hover fieldset': {
-                  borderColor: '#64748b',  // Darker border on hover
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: '#2563eb',  // Blue border when focused
-                },
-                bgcolor: 'white',  // White background for input
-              },
-              '& .MuiInputLabel-root': {
-                color: '#64748b',  // Darker label color
-                '&.Mui-focused': {
-                  color: '#2563eb',  // Blue label when focused
-                },
-              },
-            }}
+            variant="outlined"
+            helperText={error.employeeId} // Display error message beneath input
           />
 
+          {/* Password Field with visibility toggle */}
           <TextField
-            fullWidth
             id="password"
             label="Password"
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            fullWidth
+            variant="outlined"
+            className="mb-3" // Adds margin-bottom 3 to the input field
             autoComplete="current-password"
-            error={!!error}
+            error={!!error.password || !!error.general} // Red border for empty or incorrect fields
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
                   <IconButton
-                    aria-label="toggle password visibility"
-                    onClick={handleClickShowPassword}
+                    onClick={togglePasswordVisibility}
                     edge="end"
-                    sx={{
-                      color: '#64748b',
-                      '&:hover': {
-                        bgcolor: alpha('#64748b', 0.1),
-                      },
-                    }}
                   >
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
               ),
             }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                '&:hover fieldset': {
-                  borderColor: '#64748b',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: '#2563eb',
-                },
-                bgcolor: 'white',
-              },
-              '& .MuiInputLabel-root': {
-                color: '#64748b',
-                '&.Mui-focused': {
-                  color: '#2563eb',
-                },
-              },
-            }}
+            helperText={error.password} // Display error message beneath input
           />
 
-          <Button
+          {/* Continue Button */}
+          <button
             type="submit"
-            variant="contained"
-            size="large"
-            fullWidth
-            sx={{
-              mt: 2,
-              bgcolor: '#2563eb',  // Primary blue
-              color: 'white',
-              textTransform: 'none',
-              fontSize: '1rem',
-              py: 1.5,
-              '&:hover': {
-                bgcolor: '#1d4ed8',  // Darker blue on hover
-              },
-              '&:active': {
-                bgcolor: '#1e40af',  // Even darker when clicked
-              },
-            }}
+            className="w-full mt-4 py-3 bg-[#2563eb] text-white rounded-lg font-semibold hover:bg-[#1d4ed8] active:bg-[#1e40af] transition-colors mb-3"
+            onClick={handleContinueClick}
           >
             Continue
-          </Button>
+          </button>
 
-          <Box sx={{ textAlign: 'center', mt: 2 }}>
-            <Link 
-              href="/forgot-password"
-              sx={{
-                underline: 'hover',
-                color: '#2563eb',
-                '&:hover': {
-                  color: '#1d4ed8',
-                },
-                cursor: 'pointer',
-              }}
-            >
-              Forgot Password?
-            </Link>
-          </Box>
-        </Box>
-      </Container>
-      <Box
-        component="footer"
-        sx={{
-          py: 2,
-          textAlign: 'center',
-          borderTop: 1,
-          borderColor: '#e2e8f0',
-          bgcolor: '#1e293b',  // Dark blue-gray background
-        }}
-      >
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            color: '#f8fafc',
-          }}
-        >
-          J'5 Pharmacy Management System 2024
-        </Typography>
-      </Box>
-    </Box>
+          {/* Forgot Password link */}
+          <button
+            type="button"
+            className="w-full text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors"
+            onClick={handleForgotPassword}
+          >
+            Forgot Password?
+          </button>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <Footer />
+    </div>
   );
 };
 
-export default LoginPage;
+export default Login;
