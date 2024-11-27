@@ -1,15 +1,9 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Link,
-  alpha,
-} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { TextField, Button } from '@mui/material';
+import Footer from '../Footer';
 import logo from '../../assets/icon.png';
+import CloseIcon from '@mui/icons-material/Close';
 
 const ForgotPassword: React.FC = () => {
   const [employeeId, setEmployeeId] = useState('');
@@ -19,7 +13,6 @@ const ForgotPassword: React.FC = () => {
     employeeId: '',
     email: '',
   });
-  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
   const validateFields = () => {
@@ -29,7 +22,6 @@ const ForgotPassword: React.FC = () => {
     };
     let isValid = true;
 
-    // Employee ID validation
     if (!employeeId) {
       errors.employeeId = 'Employee ID is required';
       isValid = false;
@@ -38,7 +30,6 @@ const ForgotPassword: React.FC = () => {
       isValid = false;
     }
 
-    // Email validation
     if (!email) {
       errors.email = 'Email is required';
       isValid = false;
@@ -53,29 +44,23 @@ const ForgotPassword: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setSuccess('');
-    
+    setError(null); // Clear any previous errors
+
     if (!validateFields()) {
-      return;
+      return; // Don't submit the form if there are validation errors
     }
 
     try {
-      // TODO: Implement actual password reset logic here
-      // For now, simulate an API call with validation
-      if (employeeId === '12345') {  // Example validation
-        setSuccess('Password reset instructions have been sent to your email.');
-        // Clear fields after success
-        setEmployeeId('');
-        setEmail('');
-        setFieldErrors({ employeeId: '', email: '' });
-        
-        // Automatically redirect to login after 3 seconds
-        setTimeout(() => {
-          navigate('/login');
-        }, 3000);
+      if (employeeId === '12345') { // Example check for valid employee ID
+        if (email === 'user@example.com') { // Example check for valid email
+          navigate('/email-verification-code'); // Navigate only if both ID and email are correct
+        } else {
+          setError('Email not found in our system.');
+          setFieldErrors((prev) => ({ ...prev, email: 'Email not found' }));
+        }
       } else {
         setError('Employee ID not found in our system.');
+        setFieldErrors((prev) => ({ ...prev, employeeId: 'Employee ID not found' }));
       }
     } catch (err) {
       setError('Unable to process your request. Please try again later.');
@@ -83,234 +68,87 @@ const ForgotPassword: React.FC = () => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        bgcolor: '#f8fafc',
-      }}
-    >
-      <Container
-        maxWidth="sm"
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          py: 4,
-        }}
-      >
-        <Box
-          component="img"
-          src={logo}
-          alt="J5 Pharmacy Logo"
-          sx={{
-            width: 55,
-            height: 75,
-            mb: 3,
-          }}
-        />
+    <div className="min-h-screen flex flex-col bg-[#FCFCFC]">
+      <div className="flex flex-1 mt-[-50px] flex-col items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
+        <div className="mt-3 pb-14 px-4 py-2 flex justify-between items-center w-full max-w-[1345px]">
+          <div className="w-[43px] h-[60.52px]">
+            <img src={logo} alt="J5 Pharmacy Logo" className="w-full h-full object-contain" />
+          </div>
+          <button
+            className="border-0 bg-transparent cursor-pointer"
+            onClick={() => navigate('/login')}
+          >
+            <CloseIcon className="text-[32px] text-gray-500 hover:text-gray-700" />
+          </button>
+        </div>
 
-        <Typography 
-          variant="h4" 
-          component="h1" 
-          gutterBottom
-          sx={{
-            color: '#1e293b',
-            fontWeight: 600,
-          }}
-        >
-          Reset Password
-        </Typography>
-
-        <Typography
-          variant="subtitle1"
-          align="center"
-          gutterBottom
-          sx={{ 
-            mb: 4,
-            color: '#475569',
-          }}
-        >
+        <h1 className="text-3xl font-bold text-gray-800">Reset Password</h1>
+        <p className="text-gray-600 mt-2 text-center">
           Enter your Employee ID and email to reset your password
-        </Typography>
+        </p>
 
+        {/* Error Message Box */}
         {error && (
-          <Typography 
-            sx={{ 
-              mb: 2,
-              bgcolor: alpha('#ef4444', 0.1),
-              color: '#dc2626',
-              py: 1,
-              px: 2,
-              borderRadius: 1,
-              width: '100%',
-              textAlign: 'center',
-            }}
-          >
+          <div className="w-full max-w-md mt-5 px-4 py-2 bg-red-100 text-red-600 rounded-md border border-red-300">
             {error}
-          </Typography>
+          </div>
         )}
 
-        {success && (
-          <Typography 
-            sx={{ 
-              mb: 2,
-              bgcolor: alpha('#22c55e', 0.1),
-              color: '#16a34a',
-              py: 1,
-              px: 2,
-              borderRadius: 1,
-              width: '100%',
-              textAlign: 'center',
-            }}
-          >
-            {success}
-          </Typography>
-        )}
-
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          sx={{
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2,
-          }}
-        >
+        <form onSubmit={handleSubmit} className="mt-6 w-full max-w-md flex flex-col gap-4">
           <TextField
-            fullWidth
             id="employeeId"
             label="Employee ID"
+            type="number"
             value={employeeId}
             onChange={(e) => {
               setEmployeeId(e.target.value);
-              setFieldErrors(prev => ({ ...prev, employeeId: '' }));
-              setError(null);
+              setFieldErrors((prev) => ({ ...prev, employeeId: '' }));
+              setError(null); // Clear error when user starts typing
             }}
-            autoComplete="username"
-            error={!!fieldErrors.employeeId}
+            fullWidth
+            variant="outlined"
+            error={!!fieldErrors.employeeId || !!error}
             helperText={fieldErrors.employeeId}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                '&:hover fieldset': {
-                  borderColor: '#64748b',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: '#2563eb',
-                },
-                bgcolor: 'white',
-              },
-              '& .MuiInputLabel-root': {
-                color: '#64748b',
-                '&.Mui-focused': {
-                  color: '#2563eb',
-                },
-              },
-            }}
           />
 
           <TextField
-            fullWidth
             id="email"
             label="Email Address"
             type="email"
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
-              setFieldErrors(prev => ({ ...prev, email: '' }));
+              setFieldErrors((prev) => ({ ...prev, email: '' }));
               setError(null);
             }}
-            autoComplete="email"
-            error={!!fieldErrors.email}
+            fullWidth
+            variant="outlined"
+            error={!!fieldErrors.email || !!error}
             helperText={fieldErrors.email}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                '&:hover fieldset': {
-                  borderColor: '#64748b',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: '#2563eb',
-                },
-                bgcolor: 'white',
-              },
-              '& .MuiInputLabel-root': {
-                color: '#64748b',
-                '&.Mui-focused': {
-                  color: '#2563eb',
-                },
-              },
-            }}
           />
 
-          <Button
+          {/* Reset Password Button */}
+          <button
             type="submit"
-            variant="contained"
-            size="large"
-            fullWidth
-            sx={{
-              mt: 2,
-              bgcolor: '#2563eb',
-              color: 'white',
-              textTransform: 'none',
-              fontSize: '1rem',
-              py: 1.5,
-              '&:hover': {
-                bgcolor: '#1d4ed8',
-              },
-              '&:active': {
-                bgcolor: '#1e40af',
-              },
-            }}
+            className="w-full mt-1 py-3 bg-[#2563eb] text-white rounded-lg font-semibold hover:bg-[#1d4ed8] active:bg-[#1e40af] transition-colors mb-1"
           >
             Reset Password
-          </Button>
+          </button>
+        </form>
 
-          <Box sx={{ textAlign: 'center', mt: 2 }}>
-            <Link 
-              href="#" 
-              onClick={(e) => {
-                e.preventDefault();
-                navigate('/login');
-              }}
-              underline="hover"
-              sx={{
-                color: '#2563eb',
-                '&:hover': {
-                  color: '#1d4ed8',
-                },
-                cursor: 'pointer',
-              }}
-            >
-              Back to Login
-            </Link>
-          </Box>
-        </Box>
-      </Container>
+        <div className="text-center mt-2">
+          <button
+            onClick={() => navigate('/login')}
+            type="button"
+            className="w-full text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            Back to Login
+          </button>
+        </div>
+      </div>
 
-      <Box
-        component="footer"
-        sx={{
-          py: 2,
-          textAlign: 'center',
-          borderTop: 1,
-          borderColor: '#e2e8f0',
-          bgcolor: '#1e293b',
-        }}
-      >
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            color: '#f8fafc',
-          }}
-        >
-          J'5 Pharmacy Management System 2024
-        </Typography>
-      </Box>
-    </Box>
+      <Footer />
+    </div>
   );
 };
 
