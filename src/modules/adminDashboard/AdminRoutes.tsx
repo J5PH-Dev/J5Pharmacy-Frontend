@@ -9,7 +9,9 @@ import InventoryPage from './components/pages/InventoryPage'; // Assuming this i
 import NotificationPage from './components/pages/NotificationPage'; // Assuming this is your dashboard component
 import ReportsPage from './components/pages/ReportsPage'; // Assuming this is your dashboard component
 import SettingsPage from './components/pages/SettingsPage'; // Assuming this is your dashboard component
-
+import MedicinesAvailablePage from './components/pages/InventorySubPages/MedicinesAvailablePage';
+import ViewMedicineDescription  from './components/pages/InventorySubPages/VIewMedicineDescription';
+import MedicineGroupPage from './components/pages/InventorySubPages/MedicineGroupPage';
 
 const AdminRoutes: React.FC = () => {
   return (
@@ -18,12 +20,22 @@ const AdminRoutes: React.FC = () => {
       <Route path="/" element={<AdminLayout />}>
         {/* Default route redirects to dashboard */}
         <Route index element={<Navigate to="dashboard" replace />} /> {/* index is the default route */}
-        
+
         {/* Admin nested routes */}
         <Route path="dashboard" element={<DashboardPage />} />
+
+
         <Route path="inventory" element={<InventoryPage />} />
+
+        {/* Dynamic Routes for Item Details */}
+        <Route path="inventory/view-medicines-available" element={<MedicinesAvailablePage />} />
+        <Route path="inventory/view-medicines-description/:medicineName" element={<ViewMedicineDescription />} />
+
+        <Route path="inventory/view-medicines-group" element={<MedicineGroupPage />} />
+
+
         <Route path="branches" element={<BranchesPage />} />
-        <Route path="reports" element={<ReportsPage />} />        
+        <Route path="reports" element={<ReportsPage />} />
         <Route path="employee-staff" element={<EmployeeStaffPage />} />
         <Route path="customer-info" element={<CustomerInfoPage />} />
         <Route path="settings" element={<SettingsPage />} />

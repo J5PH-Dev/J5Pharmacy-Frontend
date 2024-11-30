@@ -1,17 +1,215 @@
-import { Box } from '@mui/material';
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Box, Grid, Paper, Typography, Button, Breadcrumbs, Link } from '@mui/material';
+import { Medication, Group, Warning } from '@mui/icons-material'; // Material icons
+import AddIcon from '@mui/icons-material/Add'; // Import Material UI Add icon
+import { useNavigate } from 'react-router-dom';
+
+// Define border colors and content for each container in an array of objects
+const contentData = [
+  {
+    borderColor: '#03A9F5',
+    icon: <Medication sx={{ fontSize: 40 }} />,
+    title: '367',
+    subtitle: 'Medicines Available',
+    buttonText: 'View Full Details',
+    breadcrumbTitle: 'Medicines Available',
+    pageTitle: 'Medicines Available',
+    pageSubtitle: 'List of medicines available for sales..',
+  },
+  {
+    borderColor: '#01A768',
+    icon: <Group sx={{ fontSize: 40 }} />,
+    title: '2',
+    subtitle: 'Medicines Group',
+    buttonText: 'View Groups >>',
+    breadcrumbTitle: 'Medicine Groups',
+    pageTitle: 'Medicine Groups Overview',
+    pageSubtitle: 'List and details of all available groups of medicines.',
+  },
+  {
+    borderColor: '#F0483E',
+    icon: <Warning sx={{ fontSize: 40 }} />,
+    title: '01',
+    subtitle: 'Medicine Shortage',
+    buttonText: 'Resolve Now >>',
+    breadcrumbTitle: 'Shortages',
+    pageTitle: 'Medicine Shortages',
+    pageSubtitle: 'Current shortages and actions to resolve them.',
+  },
+];
 
 const InventoryPage = () => {
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const navigate = useNavigate(); // Initialize the navigate hook
+
+  const HandleViewMedicine = (item: any) => {
+    setSelectedItem(item);
+    navigate(`/admin/inventory/view-${item.subtitle.toLowerCase().replace(/\s+/g, '-')}`); // Navigate with dynamic URL
+  };
+
+  const HandleViewMedicineGroup = (item: any) => {
+    setSelectedItem(item);
+    
+    // Check if the clicked item is "Medicines Group"
+    if (item.subtitle === 'Medicines Group') {
+      navigate(`/admin/inventory/view-medicines-group`); // Navigate to the medicines group route
+    } else {
+      // Otherwise, navigate to the dynamic route based on the subtitle
+      navigate(`/admin/inventory/view-${item.subtitle.toLowerCase().replace(/\s+/g, '-')}`);
+    }
+  };
+
+  const handleBreadcrumbClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent the default link behavior
+    setSelectedItem(null); // Reset selected item, returning to the initial inventory view
+  };
+
   return (
-<div className='ml-72'>
-  <h1>InventoryPage</h1>
-  <Link to="/dashboard">
-    <button>Go to Dashboard</button>
-  </Link>
-</div>
+    <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3}}>
+      {/* Conditionally render Breadcrumbs only if selectedItem is not null */}
+      {selectedItem && (
+        <Breadcrumbs
+          aria-label="breadcrumb"
+          sx={{
+            marginBottom: '16px',
+            display: 'flex',
+            justifyContent: { xs: 'center', sm: 'flex-start' }, // Center on small screens, left-align on larger screens
+            textAlign: { xs: 'center', sm: 'left' }, // Align text center on small screens, left-align on larger screens
+            width: '100%', // Ensure it takes full width for centering on small screens
+          }}
+        >
+          <Link color="inherit" href="/" onClick={handleBreadcrumbClick}>
+            Inventory
+          </Link>
+          {selectedItem && (
+            <Typography color="text.primary">
+              {selectedItem.breadcrumbTitle}
+            </Typography>
+          )}
+        </Breadcrumbs>
+      )}
 
+      {/* Title and Button Container with Centered Content */}
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
+            {selectedItem ? selectedItem.pageTitle : 'Inventory'}
+          </Typography>
+          <Typography variant="body1" sx={{ mt: -1 }}>
+            {selectedItem ? selectedItem.pageSubtitle : 'List of medicines available for sales..'}
+          </Typography>
+        </Box>
+        <Box sx={{ mt: { xs: '27px', sm: 0 }, textAlign: 'center' }}>
+          <Button
+            variant="contained"
+            sx={{
+              backgroundColor: '#01A768', // Green background color
+              color: '#fff', // White text
+              fontWeight: 'medium',
+              textTransform: 'none', // Prevent text from being uppercased
+              '&:hover': {
+                backgroundColor: '#017F4A', // Darker green on hover for more color
+              },
+              display: 'flex', // Flexbox for icon and text
+              alignItems: 'center', // Vertically center icon and text
+              gap: 1, // Space between icon and text
+              justifyContent: 'center', // Center the button content
+              mt: { xs: '-10px', sm: '0px' }, // Negative margin-top for small screens
+            }}
+          >
+            <AddIcon /> {/* Add the icon */}
+            Add New Item {/* Button text */}
+          </Button>
+        </Box>
 
+      </Box>
+
+      {/* Grid for the containers */}
+      {!selectedItem && (
+        <Grid item xs={12}>
+          <Grid container spacing={3} sx={{ justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+            {contentData.map((content, index) => (
+              <Grid key={index} item>
+                <Paper
+                  sx={(theme) => ({
+                    height: 220,
+                    width: 272,
+                    backgroundColor: '#fff',
+                    border: `1px solid ${content.borderColor}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: theme.spacing(0),
+                    transition: 'transform 0.3s ease',
+                    '&:hover': {
+                      transform: 'scale(1.01)',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                    },
+                  })}
+                  onClick={() => {
+                    // Check if the item is for Medicines Group
+                    if (content.subtitle === 'Medicines Group') {
+                      HandleViewMedicineGroup(content); // Call HandleViewMedicineGroup
+                    } else {
+                      HandleViewMedicine(content); // Call HandleViewMedicine for other items
+                    }
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      flex: 1,
+                    }}
+                  >
+                    <div>{React.cloneElement(content.icon, { sx: { fontSize: 40, color: content.borderColor } })}</div>
+                    <div>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+                        {content.title}
+                      </Typography>
+                      <Typography variant="body2" sx={{ textAlign: 'center' }}>
+                        {content.subtitle}
+                      </Typography>
+                    </div>
+                  </div>
+
+                  <Button
+                    sx={{
+                      backgroundColor: content.borderColor,
+                      color: '#fff',
+                      width: '100%',
+                      textTransform: 'none',
+                      borderRadius: 1,
+                      marginTop: 'auto',
+                      '&:hover': {
+                        backgroundColor: `${content.borderColor}99`,
+                      },
+                    }}
+                  >
+                    {content.buttonText}
+                  </Button>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Grid>
+      )}
+      
+      {/* Placeholder for detailed content - Display only when an item is selected */}
+      {selectedItem && (
+        <Box sx={{ mt: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            {selectedItem.title} - Full Details
+          </Typography>
+          <Typography variant="body1">
+            {selectedItem.subtitle} {/* Replace with actual content later */}
+          </Typography>
+        </Box>
+      )}
+    </Box>
   );
 };
 
