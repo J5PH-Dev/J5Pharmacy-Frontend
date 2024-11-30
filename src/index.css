@@ -15,3 +15,47 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+
+
+/* Loading Page */
+.loader {
+  margin-left: 10px;
+  display: block;
+  position: relative;
+  height: 10px; /* Height of the loading bar */
+  width: 287px; /* Width of the loading bar */
+  background-color: #D9D9D9; /* Background color of the bar */
+  border-radius: 50px;
+  overflow: hidden;
+  margin-top: 20px; /* Optional: Adds space between text and loading bar */
+}
+
+.loader:after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0; /* Start width is 0 */
+  border-radius: 50px; /* Makes the moving bar rounded as well */
+  background: linear-gradient(to right, #89C15E 0%, #4DA7ED 50%, #B02138 100%); /* Linear gradient */
+  animation: prog 5s ease-in-out forwards; /* Animation duration matches the loading time */
+}
+
+@keyframes prog {
+  to {
+      width: 100%; /* Fills the bar to 100% */
+  }
+}
+
+.titleNameLoading {
+  background: linear-gradient(to right, #89C15E 0%, #4DA7ED 50%, #B02138 100%);
+  -webkit-background-clip: text; /* wag tanggalin */
+  color: transparent;
+  font-size: 28px; /* Adjust font size as needed */
+  font-weight: bold; /* Optional: Bold text */
+  font-family: 'Poppins', sans-serif;
+  margin-left: -13px;
+}
+

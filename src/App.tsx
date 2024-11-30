@@ -11,7 +11,8 @@ import ForgotPassword from './modules/auth/components/ForgotPassword/ForgotPassw
 import EmailVerification from './modules/auth/components/ForgotPassword/EmailCodeVerification';
 import POSPage from './modules/pos/pages/POSPage';
 import NotFoundPage from './modules/auth/components/NotfoundPage';
-import AdminRoutes from './routes/AdminRoutes';
+import AdminRoutes from './modules/adminDashboard/AdminRoutes';
+import LoadingPage from './modules/auth/components/LoadingPage';
 import { UserRole } from './modules/auth/types/auth.types';
 
 // ProtectedRoute component
@@ -55,6 +56,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/email-verification-code" element={<EmailVerification />} />
       <Route path="/create-new-password" element={<CreateNewPassword />} />
       <Route path="/created-new-password" element={<CreatedNewPassword />} />
+      <Route path="/loading-screen" element={<LoadingPage />} />
+      
 
       {/* Admin Routes */}
       <Route

@@ -41,7 +41,7 @@ const Login = () => {
     try {
       // Attempt login with employeeId and password
       await login(employeeId, password);
-      navigate("/admin/dashboard"); // Navigate to LoadingPage if login is successful
+      navigate("/loading-screen"); // Navigate to LoadingPage if login is successful
     } catch (err) {
       setError((prevError) => ({ ...prevError, general: 'Incorrect Employee ID or Password' }));
     }
