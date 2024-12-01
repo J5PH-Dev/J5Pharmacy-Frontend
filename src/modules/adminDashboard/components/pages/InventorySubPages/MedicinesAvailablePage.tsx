@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add'; // Add Material UI icon
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -136,7 +136,7 @@ const MedicinesAvailablePage = () => {
         <Link color="inherit" href="/" onClick={handleBreadcrumbClick}>
           Inventory
         </Link>
-        <Typography color="text.primary">Medicines Available</Typography>
+        <Typography color="text.primary">List of Medicine</Typography>
       </Breadcrumbs>
 
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -199,37 +199,89 @@ const MedicinesAvailablePage = () => {
         </FormControl>
       </Box>
 
-      <TableContainer component={Paper} sx={{ boxShadow: 'none', border: '1px solid #ddd' }}>
+      <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: 'auto', boxShadow: 'none' }}>
         <Table aria-label="medicines-table">
-          <TableHead>
+          <TableHead sx={{ backgroundColor: 'white', zIndex: 1}}>
             <TableRow>
-              <TableCell onClick={() => handleSort('medicineName')} style={{ cursor: 'pointer' }}>
+              <TableCell
+                onClick={() => handleSort('medicineName')}
+                sx={{
+                  fontWeight: 'bold',
+                  position: 'sticky',
+                  top: 0,
+                  backgroundColor: 'white',
+                  cursor: 'pointer',
+                  zIndex: 2,
+                }}
+              >
                 Medicine Name
                 {sortConfig.key === 'medicineName' && (
                   sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
                 )}
               </TableCell>
-              <TableCell onClick={() => handleSort('medicineID')} style={{ cursor: 'pointer' }}>
+              <TableCell
+                onClick={() => handleSort('medicineID')}
+                sx={{
+                  fontWeight: 'bold',
+                  position: 'sticky',
+                  top: 0,
+                  backgroundColor: 'white',
+                  cursor: 'pointer',
+                  zIndex: 2,
+                }}
+              >
                 Medicine ID
                 {sortConfig.key === 'medicineID' && (
                   sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
                 )}
               </TableCell>
-              <TableCell onClick={() => handleSort('groupName')} style={{ cursor: 'pointer' }}>
+              <TableCell
+                onClick={() => handleSort('groupName')}
+                sx={{
+                  fontWeight: 'bold',
+                  position: 'sticky',
+                  top: 0,
+                  backgroundColor: 'white',
+                  cursor: 'pointer',
+                  zIndex: 2,
+                }}
+              >
                 Category
                 {sortConfig.key === 'groupName' && (
                   sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
                 )}
               </TableCell>
-              <TableCell onClick={() => handleSort('stockQty')} style={{ cursor: 'pointer' }}>
+              <TableCell
+                onClick={() => handleSort('stockQty')}
+                sx={{
+                  fontWeight: 'bold',
+                  position: 'sticky',
+                  top: 0,
+                  backgroundColor: 'white',
+                  cursor: 'pointer',
+                  zIndex: 2,
+                }}
+              >
                 Stock Quantity
                 {sortConfig.key === 'stockQty' && (
                   sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
                 )}
               </TableCell>
-              <TableCell>Action</TableCell>
+              <TableCell
+                sx={{
+                  fontWeight: 'bold',
+                  position: 'sticky',
+                  top: 0,
+                  backgroundColor: 'white',
+                  zIndex: 2,
+                }}
+              >
+                Action
+              </TableCell>
             </TableRow>
           </TableHead>
+
+
           <TableBody>
             {filteredRows.map((row) => (
               <TableRow key={row.medicineID}>

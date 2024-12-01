@@ -74,6 +74,8 @@ const MedicineGroupPage = () => {
   const [existingGroups, setExistingGroups] = useState(rows);
   const [successMessage, setSuccessMessage] = useState('');
   const [modalSuccessMessage, setModalSuccessMessage] = useState(''); // Modal-specific success message
+  const tableContainerRef = useRef<HTMLDivElement>(null); // Reference for the table container
+  const [isNewItemAdded, setIsNewItemAdded] = useState(false); // Track if a new item is added
 
   const navigate = useNavigate();
 
@@ -131,18 +133,6 @@ const MedicineGroupPage = () => {
   };
 
   const handleSaveMedicineGroup = () => {
-    // Check if any of the selected groups already exist
-    const existingMedicineGroups = selectedMedicine.filter(medicine =>
-      existingGroups.some(group => group.groupName === medicine)
-    );
-
-    // If there are existing groups, show the error message inside the modal
-    if (existingMedicineGroups.length > 0) {
-      setModalSuccessMessage(`Medicines "${existingMedicineGroups.join(', ')}" are already in the group.`);  // Ensure this is a string
-      return;
-    }
-
-    // Add the new groups to the existingGroups
     const newGroups = selectedMedicine
       .map(medicine => {
         const selectedMedicineData = mockMedicines.find(
@@ -157,17 +147,21 @@ const MedicineGroupPage = () => {
         }
         return null;
       })
-      .filter((group): group is { groupName: string; noOfMedicine: string } => group !== null); // Type guard to remove nulls
+      .filter((group): group is { groupName: string; noOfMedicine: string } => group !== null);
 
-    // Add the new groups to the existingGroups
     setExistingGroups([...existingGroups, ...newGroups]);
-
-    // Set success message with selected medicines (global success message)
+    setIsNewItemAdded(true); // Indicate that a new item has been added
+    setModalOpen(false); // Close the modal
     setSuccessMessage(`Medicines "${selectedMedicine.join(', ')}" have been added to the group.`);
-
-    setModalOpen(false); // Close the modal after adding the group
   };
 
+  // Scroll to bottom only when a new item is added
+  useEffect(() => {
+    if (isNewItemAdded && tableContainerRef.current) {
+      tableContainerRef.current.scrollTop = tableContainerRef.current.scrollHeight;
+      setIsNewItemAdded(false); // Reset the flag after scrolling
+    }
+  }, [existingGroups, isNewItemAdded]);
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
   };
@@ -200,15 +194,6 @@ const MedicineGroupPage = () => {
     }
   }, [successMessage, successMessageFromGroupDeletion]);
 
-  const tableContainerRef = useRef<HTMLDivElement>(null); // Reference for the table container
-
-  // Handle scrolling after rows are updated
-  useEffect(() => {
-    if (tableContainerRef.current) {
-      // Scroll to the bottom of the table container
-      tableContainerRef.current.scrollTop = tableContainerRef.current.scrollHeight;
-    }
-  }, [existingGroups]); // Runs when existingGroups is updated
 
   return (
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
@@ -406,9 +391,8 @@ const MedicineGroupPage = () => {
       />
 
       {/* Table Section */}
-      {/* Table Section */}
-      <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: 'auto' }} ref={tableContainerRef}>
-        <Table sx={{ minWidth: 650 }} aria-label="simple table">
+      <TableContainer component={Paper} sx={{  maxHeight: 500, overflow: 'auto' }} ref={tableContainerRef}>
+        <Table  aria-label="simple table">
           <TableHead>
             <TableRow>
               <TableCell
