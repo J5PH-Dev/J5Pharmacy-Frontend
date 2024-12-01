@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add'; // Add Material UI icon
 import { useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-
 
 function createData(
   medicineName: string,
@@ -30,19 +29,6 @@ const rows = [
   createData('Salbutamol', 'MED010', 'Asthma', 130),
 ];
 
-const topRecentSearch = [
-  { title: 'Paracetamol', category: 'Pain Reliever' },
-  { title: 'Amoxicillin', category: 'Antibiotic' },
-  { title: 'Ibuprofen', category: 'Anti-inflammatory' },
-  { title: 'Aspirin', category: 'Pain Reliever' },
-  { title: 'Metformin', category: 'Diabetes' },
-  { title: "Lisinopril", category: "Blood Pressure" },
-  { title: 'Omeprazole', category: 'Antacid' },
-  { title: 'Cetirizine', category: 'Antihistamine' },
-  { title: 'Fluoxetine', category: 'Antidepressant' },
-  { title: 'Salbutamol', category: 'Asthma' },
-];
-
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
 const MenuProps = {
@@ -53,7 +39,6 @@ const MenuProps = {
     },
   },
 };
-
 
 const names = [
   'Pain Relievers',
@@ -80,10 +65,11 @@ function getStyles(name: string, personName: string[], theme: Theme) {
 }
 
 const MedicinesAvailablePage = () => {
-
   const theme = useTheme();
   const [personName, setPersonName] = React.useState<string[]>([]);
   const [sortedRows, setSortedRows] = React.useState(rows);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredRows, setFilteredRows] = useState(rows);
   const [sortConfig, setSortConfig] = React.useState<{ key: RowKey; direction: 'asc' | 'desc' }>({
     key: 'medicineName', direction: 'asc'
   });
@@ -93,7 +79,6 @@ const MedicinesAvailablePage = () => {
       target: { value },
     } = event;
     setPersonName(
-      // On autofill we get a stringified value.
       typeof value === 'string' ? value.split(',') : value,
     );
   };
@@ -102,12 +87,11 @@ const MedicinesAvailablePage = () => {
 
   const handleBreadcrumbClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigate('/admin/inventory'); // Go back to the Inventory Page
+    navigate('/admin/inventory');
   };
 
   const handleAddNewItemClick = () => {
-    // Navigate to the page where users can add a new item
-    navigate('/admin/inventory/add-new-item'); // Modify this path according to your routing
+    navigate('/admin/inventory/add-new-item');
   };
 
   const handleSort = (key: RowKey) => {
@@ -122,37 +106,40 @@ const MedicinesAvailablePage = () => {
   };
 
   const handleViewDetails = (medicineName: string) => {
-    // Navigate to the new URL with the medicine name
     navigate(`/admin/inventory/view-medicines-description/${medicineName}`);
-};
+  };
+
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const query = event.target.value;
+    setSearchQuery(query);
+  };
+
+  useEffect(() => {
+    let filteredData = rows;
+
+    if (searchQuery !== '') {
+      filteredData = filteredData.filter(row =>
+        row.medicineName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (personName.length > 0) {
+      filteredData = filteredData.filter(row => personName.includes(row.groupName));
+    }
+
+    setFilteredRows(filteredData);
+  }, [searchQuery, personName]);
+
   return (
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
-      {/* Breadcrumbs */}
-      <Breadcrumbs
-        aria-label="breadcrumb"
-        sx={{
-          marginBottom: '16px',
-          display: 'flex',
-          justifyContent: { xs: 'center', sm: 'flex-start' },
-        }}
-      >
+      <Breadcrumbs aria-label="breadcrumb" sx={{ marginBottom: '16px', display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
         <Link color="inherit" href="/" onClick={handleBreadcrumbClick}>
           Inventory
         </Link>
         <Typography color="text.primary">Medicines Available</Typography>
       </Breadcrumbs>
 
-      {/* Page Title and Add New Item Button Container */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 1,
-        }}
-      >
-        {/* Title Section */}
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
         <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
           <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
             Medicines Available
@@ -162,82 +149,46 @@ const MedicinesAvailablePage = () => {
           </Typography>
         </Box>
 
-        {/* Button Section */}
         <Box sx={{ mt: { xs: '27px', sm: 0 }, textAlign: 'center' }}>
-          <Button
-            variant="contained"
-            sx={{
-              backgroundColor: '#01A768',
-              color: '#fff',
-              fontWeight: 'medium',
-              textTransform: 'none',
-              '&:hover': { backgroundColor: '#017F4A' },
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              justifyContent: 'center',
-            }}
-            onClick={handleAddNewItemClick}
-          >
+          <Button variant="contained" sx={{ backgroundColor: '#01A768', color: '#fff', fontWeight: 'medium', textTransform: 'none', '&:hover': { backgroundColor: '#017F4A' }, display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }} onClick={handleAddNewItemClick}>
             <AddIcon />
             Add New Item
           </Button>
         </Box>
       </Box>
 
-      {/* Search Input and Select in Flex Row with Space Between */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },  // Column on small screens, row on larger screens
-          justifyContent: 'space-between',  // Space between items
-          alignItems: 'center',
-          mb: 3,
-          mt: 2,
-        }}
-      >
-        {/* Search Input */}
-        <Autocomplete
-          freeSolo
-          id="search-input"
-          disableClearable
-          options={topRecentSearch.map((option) => option.title)}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Search Medicine Inventory"
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiInputBase-root': { alignItems: 'center' },
-                '& .MuiInputBase-input': { padding: '8px', height: '13px' },
-                width: '390px', // Set width to control spacing
-                backgroundColor: 'white',
-                marginBottom: { xs: '10px', sm: 0 },  // Adjust margin for small screens
-              }}
-            />
-          )}
+
+
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 3, mt: 2 }}>
+        <TextField
+          label="Search Medicine Inventory"
+          value={searchQuery}
+          onChange={handleSearch}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            backgroundColor: '#fff',
+            borderRadius: '4px',
+            width: '400px',
+            boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
+            flexShrink: 0,
+          }}
         />
 
-        {/* Category Filter */}
-        <FormControl sx={{ width: '270px', mt: { xs: 1, sm: 0 } }}>
-          <InputLabel>Filter by Category</InputLabel>
+        <FormControl sx={{ width: '250px', sm: 0, backgroundColor: 'white' }}>
+          <InputLabel>- Select Group -</InputLabel>
           <Select
             value={personName}
+            label="Filter by Category"
             onChange={handleChange}
-            input={<OutlinedInput label="Filter by Category" />}
             MenuProps={MenuProps}
-            renderValue={(selected) => selected.join(', ') || 'Filter by Category'}
-            inputProps={{
-              'aria-label': 'Without label',
-              sx: { padding: '8px', height: '18px', backgroundColor: 'white' },
-            }}
+            multiple
+            input={<OutlinedInput label="Filter by Category" />}
           >
             {names.map((name) => (
               <MenuItem key={name} value={name} style={getStyles(name, personName, theme)}>
@@ -248,107 +199,47 @@ const MedicinesAvailablePage = () => {
         </FormControl>
       </Box>
 
-      {/* Table Section */}
-      <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: 'auto' }}>
-        <Table sx={{ minWidth: 650 }} aria-label="simple table">
+      <TableContainer component={Paper} sx={{ boxShadow: 'none', border: '1px solid #ddd' }}>
+        <Table aria-label="medicines-table">
           <TableHead>
             <TableRow>
-              <TableCell
-                sx={{
-                  fontWeight: 'bold',
-                  textAlign: 'left',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'white',  // Ensure the header has a background
-                  zIndex: 1  // Make sure it appears above other content when scrolling
-                }}
-              >
-                <Stack direction="row" alignItems="center" onClick={() => handleSort('medicineName')}>
-                  Medicine Name
-                  {sortConfig.key === 'medicineName' && (sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />)}
-                </Stack>
+              <TableCell onClick={() => handleSort('medicineName')} style={{ cursor: 'pointer' }}>
+                Medicine Name
+                {sortConfig.key === 'medicineName' && (
+                  sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
+                )}
               </TableCell>
-              <TableCell
-                align="left"
-                sx={{
-                  fontWeight: 'bold',
-                  textAlign: 'left',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'white',
-                  zIndex: 1
-                }}
-              >
-                <Stack direction="row" alignItems="center" onClick={() => handleSort('medicineID')}>
-                  Medicine ID
-                  {sortConfig.key === 'medicineID' && (sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />)}
-                </Stack>
+              <TableCell onClick={() => handleSort('medicineID')} style={{ cursor: 'pointer' }}>
+                Medicine ID
+                {sortConfig.key === 'medicineID' && (
+                  sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
+                )}
               </TableCell>
-              <TableCell
-                align="left"
-                sx={{
-                  fontWeight: 'bold',
-                  textAlign: 'left',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'white',
-                  zIndex: 1
-                }}
-              >
-                <Stack direction="row" alignItems="center" onClick={() => handleSort('groupName')}>
-                  Group Name
-                  {sortConfig.key === 'groupName' && (sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />)}
-                </Stack>
+              <TableCell onClick={() => handleSort('groupName')} style={{ cursor: 'pointer' }}>
+                Category
+                {sortConfig.key === 'groupName' && (
+                  sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
+                )}
               </TableCell>
-              <TableCell
-                align="left"
-                sx={{
-                  fontWeight: 'bold',
-                  textAlign: 'left',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'white',
-                  zIndex: 1
-                }}
-              >
-                <Stack direction="row" alignItems="center" onClick={() => handleSort('stockQty')}>
-                  Stock in Qty
-                  {sortConfig.key === 'stockQty' && (sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />)}
-                </Stack>
+              <TableCell onClick={() => handleSort('stockQty')} style={{ cursor: 'pointer' }}>
+                Stock Quantity
+                {sortConfig.key === 'stockQty' && (
+                  sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
+                )}
               </TableCell>
-              <TableCell
-                align="left"
-                sx={{
-                  fontWeight: 'bold',
-                  textAlign: 'left',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'white',  // Ensure the background is consistent
-                  zIndex: 1  // Make sure it stays on top of other content
-                }}
-              >
-                Action
-              </TableCell>
+              <TableCell>Action</TableCell>
             </TableRow>
           </TableHead>
-
           <TableBody>
-            {sortedRows.map((row) => (
-              <TableRow
-                key={row.medicineName}
-                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-              >
-                <TableCell component="th" scope="row" sx={{ textAlign: 'left' }}>
-                  {row.medicineName}
-                </TableCell>
-                <TableCell align="left" sx={{ textAlign: 'left' }}>{row.medicineID}</TableCell>
-                <TableCell align="left" sx={{ textAlign: 'left' }}>{row.groupName}</TableCell>
-                <TableCell align="left" sx={{ textAlign: 'left' }}>{row.stockQty}</TableCell>
-                <TableCell align="left" sx={{ textAlign: 'left' }}>
-                  <Button variant="text" style={{ color: 'black' }}
-                    onClick={() => handleViewDetails(row.medicineName)}
-                  >
-                    View Full Detail &gt;&gt;
+            {filteredRows.map((row) => (
+              <TableRow key={row.medicineID}>
+                <TableCell>{row.medicineName}</TableCell>
+                <TableCell>{row.medicineID}</TableCell>
+                <TableCell>{row.groupName}</TableCell>
+                <TableCell>{row.stockQty}</TableCell>
+                <TableCell>
+                  <Button variant="text" onClick={() => handleViewDetails(row.medicineName)}>
+                    View Details
                   </Button>
                 </TableCell>
               </TableRow>
@@ -356,7 +247,6 @@ const MedicinesAvailablePage = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
     </Box>
   );
 };

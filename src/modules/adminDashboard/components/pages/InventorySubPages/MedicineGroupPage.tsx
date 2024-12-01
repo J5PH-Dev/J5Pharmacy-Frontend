@@ -1,10 +1,12 @@
-import React from 'react';
-import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper } from '@mui/material';
+import React, { useEffect, useRef, useState } from 'react';
+import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Alert, DialogActions, DialogContent, Dialog, DialogTitle } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add'; // Add Material UI icon
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import CheckIcon from '@mui/icons-material/Check';
+
 
 function createData(
   groupName: string,
@@ -13,9 +15,23 @@ function createData(
   return { groupName, noOfMedicine };
 }
 
+// Mock Data for the Autocomplete
+const mockMedicines = [
+  { label: 'Cold and Flu Medications', noOfMedicine: '10' },
+  { label: 'Heart Medications', noOfMedicine: '06' },
+  { label: 'Severe Allergy Medications', noOfMedicine: '05' },
+  { label: 'Sleep Aids', noOfMedicine: '07' },
+  { label: 'Anticoagulants', noOfMedicine: '04' },
+  { label: 'Fertility Medications', noOfMedicine: '02' },
+  { label: 'Skin Care Medications', noOfMedicine: '08' },
+  { label: 'Neurological Medications', noOfMedicine: '06' },
+  { label: 'Anti-nausea Medications', noOfMedicine: '03' },
+  { label: 'Antiviral Medications', noOfMedicine: '05' }
+];
+
 // Example data rows
 const rows = [
-  createData('Pain Relievers', '10'),
+  createData('Pain Relievers', '3'),
   createData('Antibiotics', '8'),
   createData('Anti-inflammatories', '12'),
   createData('Diabetes Medications', '6'),
@@ -25,19 +41,6 @@ const rows = [
   createData('Antidepressants', '9'),
   createData('Asthma Medications', '3'),
   createData('Vitamins and Supplements', '15'),
-];
-
-const topRecentSearch = [
-  { title: 'Paracetamol', category: 'Pain Reliever' },
-  { title: 'Amoxicillin', category: 'Antibiotic' },
-  { title: 'Ibuprofen', category: 'Anti-inflammatory' },
-  { title: 'Aspirin', category: 'Pain Reliever' },
-  { title: 'Metformin', category: 'Diabetes' },
-  { title: "Lisinopril", category: "Blood Pressure" },
-  { title: 'Omeprazole', category: 'Antacid' },
-  { title: 'Cetirizine', category: 'Antihistamine' },
-  { title: 'Fluoxetine', category: 'Antidepressant' },
-  { title: 'Salbutamol', category: 'Asthma' },
 ];
 
 const ITEM_HEIGHT = 48;
@@ -51,77 +54,281 @@ const MenuProps = {
   },
 };
 
-const names = [
-  'Pain Relievers',
-  'Antibiotics',
-  'Anti-inflammatories',
-  'Diabetes Medications',
-  'Blood Pressure Medications',
-  'Antacids',
-  'Antihistamines',
-  'Antidepressants',
-  'Asthma Medications',
-  'Vitamins and Supplements',
-];
-
 // Define a type for the row keys
 type RowKey = 'groupName' | 'noOfMedicine';
 
-function getStyles(name: string, personName: string[], theme: Theme) {
-  return {
-    fontWeight: personName.includes(name)
-      ? theme.typography.fontWeightMedium
-      : theme.typography.fontWeightRegular,
-  };
-}
 
-const MedicinesAvailablePage = () => {
-
+const MedicineGroupPage = () => {
   const theme = useTheme();
   const [personName, setPersonName] = React.useState<string[]>([]);
   const [sortedRows, setSortedRows] = React.useState(rows);
+  const [searchQuery, setSearchQuery] = React.useState('');
   const [sortConfig, setSortConfig] = React.useState<{ key: RowKey; direction: 'asc' | 'desc' }>({
-    key: 'groupName', direction: 'asc'
+    key: 'groupName',
+    direction: 'asc',
   });
+  const location = useLocation();
+  const successMessageFromGroupDeletion = location.state?.successMessage;
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [selectedMedicine, setSelectedMedicine] = useState<string[]>([]); // Multiple groups allowed
+  const [existingGroups, setExistingGroups] = useState(rows);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [modalSuccessMessage, setModalSuccessMessage] = useState(''); // Modal-specific success message
+
+  const navigate = useNavigate();
 
   const handleChange = (event: SelectChangeEvent<typeof personName>) => {
     const {
       target: { value },
     } = event;
-    setPersonName(
-      typeof value === 'string' ? value.split(',') : value,
-    );
+    setPersonName(typeof value === 'string' ? value.split(',') : value);
   };
-
-  const navigate = useNavigate();
 
   const handleBreadcrumbClick = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate('/admin/inventory'); // Go back to the Inventory Page
   };
 
-  const handleAddNewItemClick = () => {
-    navigate('/admin/inventory/add-new-item'); // Modify this path according to your routing
-  };
-
   const handleSort = (key: RowKey) => {
-    const direction = sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
-    const sortedData = [...rows].sort((a, b) => {
+    const direction =
+      sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
+
+    const filteredData = existingGroups.filter((row) =>
+      row.groupName && row.groupName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const sortedData = [...filteredData].sort((a, b) => {
+      if (key === 'noOfMedicine') {
+        return direction === 'asc'
+          ? parseInt(a[key], 10) - parseInt(b[key], 10)
+          : parseInt(b[key], 10) - parseInt(a[key], 10);
+      }
+
       if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
       if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
       return 0;
     });
-    setSortedRows(sortedData);
+
     setSortConfig({ key, direction });
+    setSortedRows(sortedData);
   };
 
+
   const handleViewDetails = (groupName: string) => {
-    // Navigate to the new URL with the group name
-    navigate(`/admin/inventory/view-medicines-description/${groupName}`);
+    navigate(`/admin/inventory/view-medicines-group/${groupName}`);
   };
+
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setSelectedMedicine([]);
+    setModalSuccessMessage(''); // Reset success message when modal closes
+  };
+
+  const handleAddMedicineGroup = () => {
+    setSelectedMedicine([]); // Reset selected medicine when opening the modal
+    setModalOpen(true);
+  };
+
+  const handleSaveMedicineGroup = () => {
+    // Check if any of the selected groups already exist
+    const existingMedicineGroups = selectedMedicine.filter(medicine =>
+      existingGroups.some(group => group.groupName === medicine)
+    );
+
+    // If there are existing groups, show the error message inside the modal
+    if (existingMedicineGroups.length > 0) {
+      setModalSuccessMessage(`Medicines "${existingMedicineGroups.join(', ')}" are already in the group.`);  // Ensure this is a string
+      return;
+    }
+
+    // Add the new groups to the existingGroups
+    const newGroups = selectedMedicine
+      .map(medicine => {
+        const selectedMedicineData = mockMedicines.find(
+          (medicineData) => medicineData.label === medicine
+        );
+
+        if (selectedMedicineData) {
+          return {
+            groupName: selectedMedicineData.label,
+            noOfMedicine: selectedMedicineData.noOfMedicine,
+          };
+        }
+        return null;
+      })
+      .filter((group): group is { groupName: string; noOfMedicine: string } => group !== null); // Type guard to remove nulls
+
+    // Add the new groups to the existingGroups
+    setExistingGroups([...existingGroups, ...newGroups]);
+
+    // Set success message with selected medicines (global success message)
+    setSuccessMessage(`Medicines "${selectedMedicine.join(', ')}" have been added to the group.`);
+
+    setModalOpen(false); // Close the modal after adding the group
+  };
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const filteredRows = sortedRows.filter((row) =>
+    row.groupName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleInputChange = () => {
+    // Clear the modal success message when the user interacts
+    setModalSuccessMessage('');
+  };
+
+  useEffect(() => {
+    // Set timeout for hiding the success message after 3 seconds
+    if (successMessage) {
+      const timeout = setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+
+      return () => clearTimeout(timeout); // Cleanup the timeout when the component unmounts or the success message changes
+    }
+
+    if (successMessageFromGroupDeletion) {
+      const timeout = setTimeout(() => {
+        successMessageFromGroupDeletion('');
+      }, 3000);
+
+      return () => clearTimeout(timeout); // Cleanup the timeout
+    }
+  }, [successMessage, successMessageFromGroupDeletion]);
+
+  const tableContainerRef = useRef<HTMLDivElement>(null); // Reference for the table container
+
+  // Handle scrolling after rows are updated
+  useEffect(() => {
+    if (tableContainerRef.current) {
+      // Scroll to the bottom of the table container
+      tableContainerRef.current.scrollTop = tableContainerRef.current.scrollHeight;
+    }
+  }, [existingGroups]); // Runs when existingGroups is updated
 
   return (
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
+
+      {/* Check if a success message exists */}
+      {successMessageFromGroupDeletion && (
+        <Alert
+          icon={<CheckIcon fontSize="inherit" />}
+          severity="success"
+          sx={{
+            position: 'fixed',
+            bottom: 20,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1201, // Ensure it's above other content
+          }}
+        >
+          {successMessageFromGroupDeletion}
+        </Alert>
+      )}
+
+      {/* Check if a success message exists from adding a new group */}
+      {successMessage && (
+        <Alert
+          icon={<CheckIcon fontSize="inherit" />}
+          severity="success"
+          sx={{
+            position: 'fixed',
+            bottom: 20,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1201, // Ensure it's above other content
+          }}
+        >
+          {successMessage}
+        </Alert>
+      )}
+
+      {/* Modal for Adding Medicine Group */}
+      <Dialog
+        open={isModalOpen}
+        onClose={(event, reason) => {
+          if (reason !== 'backdropClick') {
+            setModalOpen(false);
+          }
+        }}
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            padding: 2,
+            boxShadow: 5,
+            maxWidth: "567px",
+          },
+        }}
+      >
+        <DialogTitle>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', textAlign: 'center', mb: 1 }}>
+            Add New Medicine Group
+          </Typography>
+          <Typography variant="body2" sx={{ textAlign: 'center', color: 'text.secondary' }}>
+            Select the group(s) to which the medicines will be added          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Autocomplete
+            multiple
+            value={selectedMedicine}
+            onChange={(e, newValue) => {
+              setSelectedMedicine(newValue);
+              handleInputChange(); // Clear the modal success message when the user interacts
+            }}
+            options={mockMedicines.map((medicine) => medicine.label)}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Medicine Group"
+                variant="outlined"
+                fullWidth
+                sx={{ marginTop: '5px' }}
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props}>{option}</li>
+            )}
+          />
+
+          {/* Display success or error message inside the modal */}
+          {modalSuccessMessage && (
+            <Typography color="error" sx={{ textAlign: 'center', mt: 2 }}>
+              {modalSuccessMessage}
+            </Typography>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: 'space-between', padding: 2 }}>
+          <Button
+            onClick={handleModalClose}
+            variant="outlined"
+            color="secondary"
+            sx={{ borderRadius: 2, padding: '10px 20px' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveMedicineGroup}
+            variant="contained"
+            color="primary"
+            sx={{
+              borderRadius: 2,
+              padding: '10px 20px',
+              backgroundColor: '#01A768',
+              '&:hover': { backgroundColor: '#017F4A' },
+            }}
+          >
+            Add Medicine
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
       {/* Breadcrumbs */}
       <Breadcrumbs
         aria-label="breadcrumb"
@@ -134,7 +341,7 @@ const MedicinesAvailablePage = () => {
         <Link color="inherit" href="/" onClick={handleBreadcrumbClick}>
           Inventory
         </Link>
-        <Typography color="text.primary">Medicines Available</Typography>
+        <Typography color="text.primary">Medicines Group</Typography>
       </Breadcrumbs>
 
       {/* Page Title and Add New Item Button Container */}
@@ -152,7 +359,7 @@ const MedicinesAvailablePage = () => {
             Medicines Group
           </Typography>
           <Typography variant="body1" sx={{ mt: -1 }}>
-          List of medicines groups.
+            List of medicines groups.
           </Typography>
         </Box>
 
@@ -170,57 +377,37 @@ const MedicinesAvailablePage = () => {
               gap: 1,
               justifyContent: 'center',
             }}
-            onClick={handleAddNewItemClick}
+            onClick={handleAddMedicineGroup}
           >
             <AddIcon />
-            Add New Item
+            Add New Group
           </Button>
         </Box>
       </Box>
 
-      {/* Search Input and Category Filter */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 3,
-          mt: 2,
+      {/* Search Input */}
+      <TextField
+        label="Search Medicine Groups"
+        value={searchQuery}
+        onChange={handleSearchChange}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <SearchIcon />
+            </InputAdornment>
+          ),
         }}
-      >
-        {/* Search Input */}
-        <Autocomplete
-          freeSolo
-          id="search-input"
-          disableClearable
-          options={topRecentSearch.map((option) => option.title)}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Search Medicine Groups"
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiInputBase-root': { alignItems: 'center' },
-                '& .MuiInputBase-input': { padding: '8px', height: '13px' },
-                width: '390px',
-                backgroundColor: 'white',
-                marginBottom: { xs: '10px', sm: 0 },
-              }}
-            />
-          )}
-        />
-      </Box>
+        fullWidth
+        sx={{
+          mb: 3,
+          maxWidth: { sm: '390px' },
+          backgroundColor: 'white'
+        }}
+      />
 
       {/* Table Section */}
-      <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: 'auto' }}>
+      {/* Table Section */}
+      <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: 'auto' }} ref={tableContainerRef}>
         <Table sx={{ minWidth: 650 }} aria-label="simple table">
           <TableHead>
             <TableRow>
@@ -282,13 +469,13 @@ const MedicinesAvailablePage = () => {
           </TableHead>
 
           <TableBody>
-            {sortedRows.map((row) => (
+            {filteredRows.map((row) => (
               <TableRow key={row.groupName} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                 <TableCell component="th" scope="row">{row.groupName}</TableCell>
                 <TableCell align="left">{row.noOfMedicine}</TableCell>
                 <TableCell align="left">
-                  <Button variant="text" style={{ color: 'black' }} onClick={() => handleViewDetails(row.groupName)}>
-                    View Full Detail &gt;&gt;
+                  <Button variant="text" onClick={() => handleViewDetails(row.groupName)}>
+                    View Detail
                   </Button>
                 </TableCell>
               </TableRow>
@@ -300,4 +487,4 @@ const MedicinesAvailablePage = () => {
   );
 };
 
-export default MedicinesAvailablePage;
+export default MedicineGroupPage;

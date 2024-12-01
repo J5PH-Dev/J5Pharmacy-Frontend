@@ -12,6 +12,7 @@ import SettingsPage from './components/pages/SettingsPage'; // Assuming this is 
 import MedicinesAvailablePage from './components/pages/InventorySubPages/MedicinesAvailablePage';
 import ViewMedicineDescription  from './components/pages/InventorySubPages/VIewMedicineDescription';
 import MedicineGroupPage from './components/pages/InventorySubPages/MedicineGroupPage';
+import ViewGroupDetails from './components/pages/InventorySubPages/ViewGroupDetails';
 
 const AdminRoutes: React.FC = () => {
   return (
@@ -32,6 +33,7 @@ const AdminRoutes: React.FC = () => {
         <Route path="inventory/view-medicines-description/:medicineName" element={<ViewMedicineDescription />} />
 
         <Route path="inventory/view-medicines-group" element={<MedicineGroupPage />} />
+        <Route path="inventory/view-medicines-group/:groupName" element={<ViewGroupDetails />} />
 
 
         <Route path="branches" element={<BranchesPage />} />
