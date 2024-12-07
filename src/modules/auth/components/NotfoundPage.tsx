@@ -17,6 +17,9 @@ const NotFound: React.FC = () => {
         case 'ADMIN':
           navigate('/admin/dashboard');
           break;
+        case 'MANAGER':
+          navigate('/manager/dashboard');
+          break;
         case 'PHARMACIST':
           navigate('/pos');
           break;

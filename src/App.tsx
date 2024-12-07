@@ -12,6 +12,7 @@ import EmailVerification from './modules/auth/components/ForgotPassword/EmailCod
 import POSPage from './modules/pos/pages/POSPage';
 import NotFoundPage from './modules/auth/components/NotfoundPage';
 import AdminRoutes from './modules/adminDashboard/AdminRoutes';
+import ManagerRoutes from './modules/managerDashboard/ManagerRoutes';
 import LoadingPage from './modules/auth/components/LoadingPage';
 import { UserRole } from './modules/auth/types/auth.types';
 
@@ -34,6 +35,8 @@ const ProtectedRoute: React.FC<{
         return <Navigate to="/pos" />;
       case UserRole.ADMIN:
         return <Navigate to="/admin/dashboard" />;
+      case UserRole.MANAGER:
+        return <Navigate to="/manager/dashboard" />;
       default:
         return <Navigate to="/admin/dashboard" />;
     }
@@ -78,6 +81,16 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+        {/* Manager Routes */}
+        <Route
+        path="/manager/*"
+        element={
+          <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
+            <ManagerRoutes />
+          </ProtectedRoute>
+        }
+      />
+
 
       {/* Redirect root to appropriate dashboard based on role */}
       <Route
@@ -86,16 +99,19 @@ const AppRoutes: React.FC = () => {
           user ? (
             user.role === UserRole.ADMIN ? (
               <Navigate to="/admin/dashboard" replace />
+            ) : user.role === UserRole.MANAGER ? (
+              <Navigate to="/manager/dashboard" replace />
             ) : user.role === UserRole.PHARMACIST ? (
               <Navigate to="/pos" replace />
             ) : (
-              <Navigate to="/admin/dashboard" replace />
+              <Navigate to="/login" replace />
             )
           ) : (
             <Navigate to="/login" replace />
           )
         }
       />
+
 
       {/* Catch-all route for undefined paths */}
       <Route path="*" element={<NotFoundPage />} />
