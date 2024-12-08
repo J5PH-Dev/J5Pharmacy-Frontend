@@ -30,7 +30,12 @@ export const authService = {
     if (!user) {
       throw new Error('Invalid credentials');
     }
-
+    if (user.role === UserRole.MANAGER) {
+      window.location.href = '/manager/dashboard';
+    } else if (user.role === UserRole.ADMIN) {
+      window.location.href = '/admin/dashboard';
+    }
+    
     // For pharmacists, redirect directly to POS
     if (user.role === UserRole.PHARMACIST) {
       window.location.href = '/pos';
