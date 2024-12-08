@@ -16,6 +16,7 @@ import {
   Divider,
   useTheme,
   useMediaQuery,
+  ButtonBase,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -30,7 +31,7 @@ import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useAuth } from '../../../auth/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const drawerWidth = 280;
 
@@ -102,14 +103,14 @@ const navigationItems: NavigationItem[] = [
   {
     title: 'Dashboard',
     icon: <DashboardIcon />,
-    path: '/dashboard',
+    path: '/manager/dashboard',
   },
   {
     title: 'Inventory',
     icon: <InventoryIcon />,
-    path: '/inventory',
+    path: '/manager/inventory',
     children: [
-      { title: 'List of Items', path: '/inventory/list' },
+      { title: 'List of Items', path: '/manager/inventory' },
       { title: 'Item', path: '/inventory/item' },
       { title: 'Encode Items', path: '/inventory/encode' },
     ],
@@ -117,6 +118,7 @@ const navigationItems: NavigationItem[] = [
   {
     title: 'Branches',
     icon: <BusinessIcon />,
+    path: '/manager/branches',
     children: [
       { title: 'Manage Branch', path: '/branches/manage' },
       { title: 'Add a Branch', path: '/branches/add' },
@@ -125,6 +127,7 @@ const navigationItems: NavigationItem[] = [
   {
     title: 'Reports',
     icon: <AssessmentIcon />,
+    path: '/manager/reports',
     children: [
       { title: 'Statistics', path: '/reports/statistics' },
       { title: 'Sales', path: '/reports/sales' },
@@ -136,6 +139,7 @@ const navigationItems: NavigationItem[] = [
   {
     title: 'Employee & Staff',
     icon: <PeopleIcon />,
+    path: '/manager/employee-staff',
     children: [
       { title: 'Manage Staff', path: '/staff/manage' },
       { title: 'Add Staff', path: '/staff/add' },
@@ -144,6 +148,7 @@ const navigationItems: NavigationItem[] = [
   {
     title: 'Customer Info',
     icon: <PersonIcon />,
+    path: '/manager/customer-info',
     children: [
       { title: 'Customer List', path: '/customers/list' },
       { title: 'StarPoints', path: '/customers/starpoints' },
@@ -152,11 +157,12 @@ const navigationItems: NavigationItem[] = [
   {
     title: 'Settings',
     icon: <SettingsIcon />,
-    path: '/settings',
+    path: '/manager/settings',
   },
   {
     title: 'Notifications',
     icon: <NotificationsIcon />,
+    path: '/manager/notifications',
     children: [
       { title: 'Announcements', path: '/notifications/announcements' },
       { title: 'Message Board', path: '/notifications/messages' },
@@ -169,20 +175,15 @@ const Sidebar: React.FC = () => {
   const { logout } = useAuth();
   const [openItems, setOpenItems] = useState<string[]>([]);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
-  const navigate = useNavigate();
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const handleItemClick = (item: NavigationItem) => {
-    if (item.children) {
-      setOpenItems((prev) =>
-        prev.includes(item.title)
-          ? prev.filter((title) => title !== item.title)
-          : [...prev, item.title]
-      );
-    } else if (item.path) {
-      navigate(item.path);
-    }
+  const handleItemClick = (title: string) => {
+    setOpenItems((prev) =>
+      prev.includes(title)
+        ? prev.filter((item) => item !== title)
+        : [...prev, title]
+    );
   };
 
   const handleUserMenuClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -209,17 +210,20 @@ const Sidebar: React.FC = () => {
           },
         }}
         open={!isMobile}
-        onClose={() => {}}
+        onClose={() => { }}
         ModalProps={{
           keepMounted: true,
         }}
       >
         {/* User Section */}
         <UserSection>
-          <Avatar sx={{ width: 48, height: 48 }} src="/path-to-user-image.jpg" />
+          <Avatar
+            sx={{ width: 48, height: 48 }}
+            src="/path-to-user-image.jpg"
+          />
           <UserInfo>
-            <Typography className="MuiTypography-name">Janeth</Typography>
-            <Typography className="MuiTypography-role">Owner</Typography>
+            <Typography className="MuiTypography-name">Bea Lugtu</Typography>
+            <Typography className="MuiTypography-role">Manager</Typography>
           </UserInfo>
           <IconButton onClick={handleUserMenuClick}>
             <MoreVertIcon />
@@ -241,21 +245,44 @@ const Sidebar: React.FC = () => {
           {navigationItems.map((item) => (
             <React.Fragment key={item.title}>
               <ListItem disablePadding>
-                <ListItemButton onClick={() => handleItemClick(item)}>
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.title} />
-                  {item.children && (
-                    openItems.includes(item.title) ? <ExpandLess /> : <ExpandMore />
-                  )}
-                </ListItemButton>
+                {/* Conditionally render Link only if 'path' is defined */}
+                {item.path ? (
+                  <Link
+                    to={item.path}  // Only render Link if path is defined
+                    style={{ width: '100%', textDecoration: 'none' }}
+                  >
+                    <ListItemButton onClick={() => item.children && handleItemClick(item.title)}>
+                      <ListItemIcon>{item.icon}</ListItemIcon>
+                      <ListItemText primary={item.title} />
+                      {item.children && (
+                        openItems.includes(item.title) ? <ExpandLess /> : <ExpandMore />
+                      )}
+                    </ListItemButton>
+                  </Link>
+                ) : (
+                  // If no path is provided, render just the ListItemButton (no Link)
+                  <ListItemButton onClick={() => item.children && handleItemClick(item.title)}>
+                    <ListItemIcon>{item.icon}</ListItemIcon>
+                    <ListItemText primary={item.title} />
+                    {item.children && (
+                      openItems.includes(item.title) ? <ExpandLess /> : <ExpandMore />
+                    )}
+                  </ListItemButton>
+                )}
               </ListItem>
               {item.children && (
                 <Collapse in={openItems.includes(item.title)} timeout="auto" unmountOnExit>
                   <List component="div" disablePadding>
                     {item.children.map((child) => (
-                      <ListItemButton key={child.title} sx={{ pl: 4 }} onClick={() => navigate(child.path)}>
-                        <ListItemText primary={child.title} />
-                      </ListItemButton>
+                      <Link
+                        key={child.title}
+                        to={child.path}  // Only render Link if path is defined
+                        style={{ width: '100%', textDecoration: 'none' }}
+                      >
+                        <ListItemButton sx={{ pl: 4 }}>
+                          <ListItemText primary={child.title} />
+                        </ListItemButton>
+                      </Link>
                     ))}
                   </List>
                 </Collapse>
@@ -263,6 +290,7 @@ const Sidebar: React.FC = () => {
             </React.Fragment>
           ))}
         </List>
+
 
         {/* Footer */}
         <Footer>

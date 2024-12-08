@@ -30,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       case UserRole.ADMIN:
         return '/admin/dashboard';
       case UserRole.MANAGER:
-        return '/admin/dashboard';
+        return '/manager/dashboard';
       case UserRole.PHARMACIST:
         return '/pos';
       default:

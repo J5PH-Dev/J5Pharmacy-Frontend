@@ -41,7 +41,7 @@ const Login = () => {
     try {
       // Attempt login with employeeId and password
       await login(employeeId, password);
-      navigate("/dashboard"); // Navigate to LoadingPage if login is successful
+      navigate("/loading-screen"); // Navigate to LoadingPage if login is successful
     } catch (err) {
       setError((prevError) => ({ ...prevError, general: 'Incorrect Employee ID or Password' }));
     }
@@ -134,7 +134,7 @@ const Login = () => {
           {/* Forgot Password link */}
           <button
             type="button"
-            className="w-full text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors"
+            className=" w-full  text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors"
             onClick={handleForgotPassword}
           >
             Forgot Password?
