@@ -96,32 +96,9 @@ const InventoryPage = () => {
             {selectedItem ? selectedItem.pageTitle : 'Inventory'}
           </Typography>
           <Typography variant="body1" sx={{ mt: -1 }}>
-            {selectedItem ? selectedItem.pageSubtitle : 'List of medicines available for sales..'}
+            {selectedItem ? selectedItem.pageSubtitle : 'List of medicines available for sales.'}
           </Typography>
         </Box>
-        <Box sx={{ mt: { xs: '27px', sm: 0 }, textAlign: 'center' }}>
-          <Button
-            variant="contained"
-            sx={{
-              backgroundColor: '#01A768', // Green background color
-              color: '#fff', // White text
-              fontWeight: 'medium',
-              textTransform: 'none', // Prevent text from being uppercased
-              '&:hover': {
-                backgroundColor: '#017F4A', // Darker green on hover for more color
-              },
-              display: 'flex', // Flexbox for icon and text
-              alignItems: 'center', // Vertically center icon and text
-              gap: 1, // Space between icon and text
-              justifyContent: 'center', // Center the button content
-              mt: { xs: '-10px', sm: '0px' }, // Negative margin-top for small screens
-            }}
-          >
-            <AddIcon /> {/* Add the icon */}
-            Add New Item {/* Button text */}
-          </Button>
-        </Box>
-
       </Box>
 
       {/* Grid for the containers */}
