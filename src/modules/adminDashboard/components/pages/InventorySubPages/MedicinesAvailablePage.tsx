@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper } from '@mui/material';
+import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Alert } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add'; // Add Material UI icon
 import { useNavigate, useParams } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import { useLocation } from 'react-router-dom';
+import CheckIcon from '@mui/icons-material/Check';
+
 
 function createData(
   medicineName: string,
@@ -73,6 +76,9 @@ const MedicinesAvailablePage = () => {
   const [sortConfig, setSortConfig] = React.useState<{ key: RowKey; direction: 'asc' | 'desc' }>({
     key: 'medicineName', direction: 'asc'
   });
+  const location = useLocation();
+  const successMessageFromDeletion = location.state?.successMessage;
+  const [successMessage, setSuccessMessage] = useState<string | null>(successMessageFromDeletion);
 
   const handleChange = (event: SelectChangeEvent<typeof personName>) => {
     const {
@@ -91,7 +97,7 @@ const MedicinesAvailablePage = () => {
   };
 
   const handleAddNewItemClick = () => {
-    navigate('/admin/inventory/add-new-item');
+
   };
 
   const handleSort = (key: RowKey) => {
@@ -129,6 +135,16 @@ const MedicinesAvailablePage = () => {
 
     setFilteredRows(filteredData);
   }, [searchQuery, personName]);
+
+  useEffect(() => {
+    if (successMessage) {
+      const timeout = setTimeout(() => {
+        setSuccessMessage(null); // Clear the message after 3 seconds
+      }, 3000);
+
+      return () => clearTimeout(timeout); // Cleanup the timeout
+    }
+  }, [successMessage]);
 
   return (
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
@@ -201,7 +217,7 @@ const MedicinesAvailablePage = () => {
 
       <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: 'auto', boxShadow: 'none' }}>
         <Table aria-label="medicines-table">
-          <TableHead sx={{ backgroundColor: 'white', zIndex: 1}}>
+          <TableHead sx={{ backgroundColor: 'white', zIndex: 1 }}>
             <TableRow>
               <TableCell
                 onClick={() => handleSort('medicineName')}
@@ -299,6 +315,25 @@ const MedicinesAvailablePage = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Medicine Deleted Alert Message */}
+      <Box>
+        {successMessage && (
+          <Alert
+            icon={<CheckIcon fontSize="inherit" />}
+            severity="success"
+            sx={{
+              position: 'fixed',
+              bottom: 20,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1201, // Ensure it's above other content
+            }}
+          >
+            {successMessage}
+          </Alert>
+        )}
+      </Box>
     </Box>
   );
 };

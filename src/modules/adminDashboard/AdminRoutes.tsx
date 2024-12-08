@@ -13,6 +13,7 @@ import MedicinesAvailablePage from './components/pages/InventorySubPages/Medicin
 import ViewMedicineDescription  from './components/pages/InventorySubPages/VIewMedicineDescription';
 import MedicineGroupPage from './components/pages/InventorySubPages/MedicineGroupPage';
 import ViewGroupDetails from './components/pages/InventorySubPages/ViewGroupDetails';
+import EditMedicineDescription from './components/pages/InventorySubPages/EditMedicineDescription';
 
 const AdminRoutes: React.FC = () => {
   return (
@@ -31,10 +32,10 @@ const AdminRoutes: React.FC = () => {
         {/* Dynamic Routes for Item Details */}
         <Route path="inventory/view-medicines-available" element={<MedicinesAvailablePage />} />
         <Route path="inventory/view-medicines-description/:medicineName" element={<ViewMedicineDescription />} />
+        <Route path="inventory/view-medicines-description/:medicineName/edit-details" element={<EditMedicineDescription />} />
 
         <Route path="inventory/view-medicines-group" element={<MedicineGroupPage />} />
         <Route path="inventory/view-medicines-group/:groupName" element={<ViewGroupDetails />} />
-
 
         <Route path="branches" element={<BranchesPage />} />
         <Route path="reports" element={<ReportsPage />} />

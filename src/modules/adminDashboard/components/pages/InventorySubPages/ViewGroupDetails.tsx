@@ -373,7 +373,19 @@ const ViewGroupDetails = () => {
       </Dialog>
 
       {/* Delete Group Button */}
-      <Button variant="contained" onClick={handleDeleteGroup} sx={{ marginTop: '22px', backgroundColor: '#FFFFFF', color: '#F0483E', padding: '12px 25px', border: '1px solid #F0483E', display: 'flex', alignItems: 'center', '&:hover': { backgroundColor: '#F0483E', color: 'white', border: '1px solid #F0483E' }, '&:hover svg': { color: 'white' } }}>
+      <Button variant="contained" onClick={handleDeleteGroup}
+        sx={{
+          marginTop: '30px',
+          backgroundColor: 'white',
+          color: '#F0483E',
+          padding: '15px 24px',
+          border: '1px solid #F0483E',
+          textTransform: 'none', // Optional: Disable uppercase text
+          fontWeight: 'bold',
+          '&:hover': {
+            backgroundColor: '#FFF5F5', // Light background on hover
+          },
+        }}>
         <DeleteOutlineIcon sx={{ paddingRight: '5px' }} /> Delete Group
       </Button>
 
