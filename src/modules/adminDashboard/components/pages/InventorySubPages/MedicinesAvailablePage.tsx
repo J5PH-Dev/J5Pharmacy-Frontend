@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Alert, DialogTitle, DialogContent, Dialog, FormControlLabel, DialogActions, Checkbox } from '@mui/material';
+import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Alert, DialogTitle, DialogContent, Dialog, FormControlLabel, DialogActions, Checkbox, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add'; // Add Material UI icon
 import { useNavigate, useParams } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
@@ -7,7 +7,8 @@ import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { useLocation } from 'react-router-dom';
 import CheckIcon from '@mui/icons-material/Check';
-
+import { Edit, Delete, Visibility } from '@mui/icons-material';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 function createData(
   medicineName: string,
@@ -73,6 +74,8 @@ const MedicinesAvailablePage = () => {
   const [sortedRows, setSortedRows] = React.useState(rows);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredRows, setFilteredRows] = useState(rows);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set()); // To store selected row ids (medicineID)
+  const [selectAll, setSelectAll] = useState<boolean>(false); // To track the "select all" checkbox state
   const [sortConfig, setSortConfig] = React.useState<{ key: RowKey; direction: 'asc' | 'desc' }>({
     key: 'medicineName', direction: 'asc'
   });
@@ -90,6 +93,12 @@ const MedicinesAvailablePage = () => {
     'Diabetes',
     // Add other groups here
   ];
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [medicineToDelete, setMedicineToDelete] = useState<string | null>(null);
+  // New state for confirmation modal
+  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
+  const [medicinesToDelete, setMedicinesToDelete] = useState<string[]>([]); // For multiple selected medicines
+
 
   const [newMedicineData, setNewMedicineData] = useState({
     medicineName: '',
@@ -200,6 +209,57 @@ const MedicinesAvailablePage = () => {
     navigate(`/admin/inventory/view-medicines-description/${medicineName}`);
   };
 
+  const handleEditItem = (medicineName: string) => {
+    navigate(`/admin/inventory/view-medicines-description/${medicineName}/edit-details`);
+  };
+
+  const handleDeleteItem = (medicineName: string) => {
+    setMedicineToDelete(medicineName); // Set the medicine name to be deleted
+    setIsDeleteModalOpen(true); // Open the confirmation modal
+  };
+
+  const handleDeleteItemMultiple = () => {
+    // Open the confirmation modal
+    setIsConfirmDeleteModalOpen(true);
+  };
+
+
+  const handleConfirmDelete = () => {
+    // Get the list of selected medicine names based on the selected rows' IDs
+    const medicinesToDelete = Array.from(selectedRows).map(
+      (selectedID) => filteredRows.find((row) => row.medicineID === selectedID)?.medicineName
+    ).filter(Boolean); // Remove any undefined values in case some IDs were invalid
+
+    // If there are selected medicines to delete
+    if (medicinesToDelete.length > 0) {
+      // Remove selected medicines from sortedRows and filteredRows
+      const updatedRows = sortedRows.filter(
+        (row) => !medicinesToDelete.includes(row.medicineName)
+      );
+      const updatedFilteredRows = filteredRows.filter(
+        (row) => !medicinesToDelete.includes(row.medicineName)
+      );
+
+      // Update the state with the new rows
+      setSortedRows(updatedRows);
+      setFilteredRows(updatedFilteredRows);
+
+      // Set success message
+      setSuccessMessage(`${medicinesToDelete.join(', ')} deleted successfully!`);
+      setSelectedRows(new Set()); // Clear the selected rows
+    }
+
+    // Close the confirmation modal after deletion
+    setIsConfirmDeleteModalOpen(false);
+  };
+
+
+  // Function to handle cancel delete
+  const cancelDelete = () => {
+    setMedicinesToDelete([]); // Clear the selected medicines
+    setIsConfirmDeleteModalOpen(false); // Close the modal
+  };
+
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     const query = event.target.value;
     setSearchQuery(query);
@@ -250,6 +310,26 @@ const MedicinesAvailablePage = () => {
     });
   };
 
+  const handleRowSelect = (medicineID: string) => {
+    const newSelectedRows = new Set(selectedRows);
+    if (newSelectedRows.has(medicineID)) {
+      newSelectedRows.delete(medicineID);
+    } else {
+      newSelectedRows.add(medicineID);
+    }
+    setSelectedRows(newSelectedRows);
+    setSelectAll(newSelectedRows.size === filteredRows.length);
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedRows(new Set());
+    } else {
+      const allRowIDs = new Set(filteredRows.map((row) => row.medicineID));
+      setSelectedRows(allRowIDs);
+    }
+    setSelectAll(!selectAll);
+  };
 
   return (
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
@@ -479,6 +559,22 @@ const MedicinesAvailablePage = () => {
           <TableHead sx={{ backgroundColor: 'white', zIndex: 1 }}>
             <TableRow>
               <TableCell
+                padding="checkbox"
+                sx={{
+                  fontWeight: 'bold',
+                  position: 'sticky',
+                  top: 0,
+                  backgroundColor: 'white',
+                  zIndex: 3, // Ensure it's above other headers
+                }}
+              >
+                <Checkbox
+                  checked={selectAll}
+                  onChange={handleSelectAll}
+                  color="primary"
+                />
+              </TableCell>
+              <TableCell
                 onClick={() => handleSort('medicineName')}
                 sx={{
                   fontWeight: 'bold',
@@ -556,24 +652,88 @@ const MedicinesAvailablePage = () => {
             </TableRow>
           </TableHead>
 
-
           <TableBody>
             {filteredRows.map((row) => (
               <TableRow key={row.medicineID}>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={selectedRows.has(row.medicineID)}
+                    onChange={() => handleRowSelect(row.medicineID)}
+                    color="primary"
+                  />
+                </TableCell>
                 <TableCell>{row.medicineName}</TableCell>
                 <TableCell>{row.medicineID}</TableCell>
                 <TableCell>{row.groupName}</TableCell>
                 <TableCell>{row.stockQty}</TableCell>
                 <TableCell>
-                  <Button variant="text" onClick={() => handleViewDetails(row.medicineName)}>
-                    View Details
-                  </Button>
+                  <div className='flex flex-row'>
+                    <IconButton onClick={() => handleViewDetails(row.medicineName)} sx={{ color: '#2BA3B6', mr: 0 }}>
+                      <Visibility sx={{ fontSize: 24 }} />
+                    </IconButton>
+                    <IconButton onClick={() => handleEditItem(row.medicineName)} sx={{ color: '#1D7DFA', mr: 0 }}>
+                      <Edit sx={{ fontSize: 24 }} />
+                    </IconButton>
+                    <IconButton onClick={() => handleDeleteItem(row.medicineName)} sx={{ color: '#D83049' }}>
+                      <Delete sx={{ fontSize: 24 }} />
+                    </IconButton>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
+
+      {selectedRows.size > 0 && (
+        <Button
+          variant="contained"
+          sx={{
+            backgroundColor: 'white',
+            color: '#F0483E',
+            padding: '15px 24px',
+            border: '1px solid #F0483E',
+            marginTop: '20px',
+            textTransform: 'none', // Optional: Disable uppercase text
+            fontWeight: 'bold',
+            '&:hover': {
+              backgroundColor: '#FFF5F5', // Light background on hover
+            },
+          }}
+          onClick={handleDeleteItemMultiple}
+          startIcon={<DeleteIcon sx={{ color: '#F0483E' }} />}
+        >
+          Delete Medicine
+        </Button>
+      )}
+
+      {/* Confirmation Modal */}
+      <Dialog
+        open={isConfirmDeleteModalOpen}
+        onClose={cancelDelete}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the following medicine(s)?
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold' }}>
+            {medicinesToDelete.join(', ')}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelDelete} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDelete} variant="contained" color="error">
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
 
       {/* Medicine Deleted Alert Message */}
       <Box>

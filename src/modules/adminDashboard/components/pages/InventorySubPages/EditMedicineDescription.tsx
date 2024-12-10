@@ -93,121 +93,126 @@ const EditMedicineDescription = () => {
             </Box>
 
             {/* Content Section */}
-            {/* Content Section with two columns */}
-            <Box sx={{ display: 'flex', flexDirection: 'row', gap: 5, mt: 6 }}>
-                {/* First Column */}
-                <Box sx={{ flex: 1 }}>
-                    <div className='flex flex-row flex-wrap gap-5'>
-                        <TextField
-                            id="outlined-basic"
-                            label="Medicine Name"
-                            value={medicineName}
-                            variant="outlined"
-                            sx={{ width: 340, backgroundColor: 'white' }}
-                        />
-                        <TextField
-                            id="outlined-basic"
-                            label="Medicine ID"
-                            value="1023_1"  // Pre-filled value
-                            variant="outlined"
-                            sx={{ width: 340, backgroundColor: 'white' }}
-                        />
-                    </div>
+            <div className='flex flex-row flex-wrap gap-5 mt-11'>
+                <TextField
+                    id="outlined-basic"
+                    label="Medicine Name"
+                    value={medicineName}
+                    variant="outlined"
+                    sx={{ width: 340, backgroundColor: 'white' }}
+                />
+                <TextField
+                    id="outlined-basic"
+                    label="Medicine ID"
+                    value="1023_1"  // Pre-filled value
+                    variant="outlined"
+                    sx={{ width: 340, backgroundColor: 'white' }}
+                />
+            </div>
 
-                    <div className='flex flex-row flex-wrap gap-5 mt-6'>
-                        {/* Medicine Group Selection */}
-                        <FormControl fullWidth sx={{ width: 340, backgroundColor: 'white' }}>
-                            <InputLabel id="medicine-group-label">Medicine Group</InputLabel>
-                            <Select
-                                labelId="medicine-group-label"
-                                id="medicine-group"
-                                label="Medicine Group"
-                                value={selectedGroup}  // Bind the selected value here
-                                onChange={handleGroupChange} // Pass the updated event handler here
-                            >
-                                {medicineGroups.map((group) => (
-                                    <MenuItem key={group} value={group}>
-                                        {group}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                        <TextField
-                            id="outlined-basic"
-                            label="Quantity in Number"
-                            value={100}  // Pre-filled value
-                            variant="outlined"
-                            sx={{ width: 340, backgroundColor: 'white' }}
-                        />
-                    </div>
+            <div className='flex flex-row flex-wrap gap-5 mt-6'>
+                {/* Medicine Group Selection */}
+                <FormControl fullWidth sx={{ width: 340, backgroundColor: 'white' }}>
+                    <InputLabel id="medicine-group-label">Medicine Group</InputLabel>
+                    <Select
+                        labelId="medicine-group-label"
+                        id="medicine-group"
+                        label="Medicine Group"
+                        value={selectedGroup}  // Bind the selected value here
+                        onChange={handleGroupChange} // Pass the updated event handler here
+                    >
+                        {medicineGroups.map((group) => (
+                            <MenuItem key={group} value={group}>
+                                {group}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+                <TextField
+                    id="outlined-basic"
+                    label="Quantity in Number"
+                    value={100}  // Pre-filled value
+                    variant="outlined"
+                    sx={{ width: 340, backgroundColor: 'white' }}
+                />
+            </div>
 
-                    <div className='flex flex-col flex-wrap gap-5 mt-6 mb-7'>
-                        <TextField
-                            id="outlined-multiline-static"
-                            label="How to use"
-                            value="Take this medication by mouth with or without food as directed by your doctor, usually once daily."  // Pre-filled value
-                            multiline
-                            rows={4}
-                            sx={{ width: 700, backgroundColor: 'white' }}
-                        />
-                        <TextField
-                            id="outlined-multiline-static"
-                            label="Side Effects"
-                            value="Dizziness, lightheadedness, drowsiness, nausea, vomiting, tiredness, excess saliva/drooling, blurred vision, weight gain, constipation, headache, and trouble sleeping may occur. If any of these effects persist or worsen, consult your doctor."  // Pre-filled value
-                            multiline
-                            rows={4}
-                            sx={{ width: 700, backgroundColor: 'white' }}
-                        />
-                    </div>
+            <div className="flex flex-col gap-5 mt-6 mb-7">
+                <TextField
+                    id="outlined-multiline-static"
+                    label="How to use"
+                    value="Take this medication by mouth with or without food as directed by your doctor, usually once daily." // Pre-filled value
+                    multiline
+                    rows={4}
+                    sx={{
+                        width: '100%', // Full width on all screen sizes
+                        backgroundColor: 'white',
+                    }}
+                />
+                <TextField
+                    id="outlined-multiline-static"
+                    label="Side Effects"
+                    value="Dizziness, lightheadedness, drowsiness, nausea, vomiting, tiredness, excess saliva/drooling, blurred vision, weight gain, constipation, headache, and trouble sleeping may occur. If any of these effects persist or worsen, consult your doctor." // Pre-filled value
+                    multiline
+                    rows={4}
+                    sx={{
+                        width: '100%', // Full width on all screen sizes
+                        backgroundColor: 'white',
+                    }}
+                />
+            </div>
 
 
-                    <div className='flex flex-row flex-wrap gap-5 mt-6 mb-7 w-[700px] justify-between'>
-                        <FormControlLabel
-                            control={<Checkbox defaultChecked sx={{ color: 'black', '&.Mui-checked': { color: 'black' }, }} />}
-                            label="Requires Prescription"
-                            style={{ marginBottom: '14px' }}
+            <div className="flex flex-col sm:flex-row md:flex-row flex-wrap gap-5 mt-6 mb-7 w-full sm:w-auto md:w-auto justify-start sm:justify-between items-start sm:items-center">
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            defaultChecked
                             sx={{
-                                '& .MuiFormControlLabel-label': {
-                                    fontWeight: 600, // Medium weight
-                                },
+                                color: 'black',
+                                '&.Mui-checked': { color: 'black' },
                             }}
                         />
-                    </div>
-                </Box>
+                    }
+                    label="Requires Prescription"
+                    sx={{
+                        '& .MuiFormControlLabel-label': {
+                            fontWeight: 600, // Medium weight
+                        },
+                    }}
+                />
 
-                {/* Second Column */}
-                <Box sx={{ flex: 1 }}>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                        Additional Information
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 2 }}>
-                        This section could include additional instructions, warnings, or any relevant data for this medicine. You can update this text as per your requirements.
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 2 }}>
-                        It may also provide the latest updates regarding new research, studies, or other important information that needs to be noted.
-                    </Typography>
-                </Box>
-            </Box>
-
-            {/* Action Buttons */}
-            <div className='flex flex-row flex-wrap gap-5 mt-6 mr-14 mb-7 justify-end'>
-                <div>
+                <div className="flex flex-col sm:flex-row md:flex-row gap-4 mt-4 sm:mt-0">
                     <Button
                         variant="contained"
                         onClick={() => handleDialogOpen('cancel')}
-                        sx={{ backgroundColor: '#6F6F6F', padding: '13px 26px', color: '#fff', '&:hover': { backgroundColor: '#9F9F9F' } }}
+                        sx={{
+                            backgroundColor: '#6F6F6F',
+                            padding: '13px 26px',
+                            color: '#fff',
+                            '&:hover': { backgroundColor: '#9F9F9F' },
+                        }}
                     >
                         Cancel
                     </Button>
                     <Button
                         variant="contained"
                         onClick={() => handleDialogOpen('save')}
-                        sx={{ backgroundColor: '#01A768', padding: '13px 26px', marginLeft: '18px', color: '#fff', '&:hover': { backgroundColor: '#017F4A' } }}
+                        sx={{
+                            backgroundColor: '#01A768',
+                            padding: '13px 26px',
+                            color: '#fff',
+                            '&:hover': { backgroundColor: '#017F4A' },
+                        }}
                     >
                         Save Details
                     </Button>
                 </div>
             </div>
+
+
+
+
 
 
 

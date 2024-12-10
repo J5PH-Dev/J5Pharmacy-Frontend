@@ -7,7 +7,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckIcon from '@mui/icons-material/Check';
 
-
 const VIewMedicineDescription = () => {
     const navigate = useNavigate();
     const { medicineName } = useParams<{ medicineName: string }>();
@@ -15,6 +14,10 @@ const VIewMedicineDescription = () => {
     const [openDialog, setOpenDialog] = useState(false);  // State for the confirmation dialog
     const [deleteType, setDeleteType] = useState<'item' | 'group'>('item'); // Type of deletion (item or group)
     const location = useLocation();
+    const [openModal, setOpenModal] = useState(false); // State for the modal
+    const [branch1Inventory, setBranch1Inventory] = useState(50);  // Branch 1 inventory state
+    const [branch2Inventory, setBranch2Inventory] = useState(25);  // Branch 2 inventory state
+    const [branch3Inventory, setBranch3Inventory] = useState(43);  // Branch 3 inventory state
 
     const successMessageFromDeletion = location.state?.successMessage;
     const [successMessage, setSuccessMessage] = useState<string | null>(successMessageFromDeletion);
@@ -39,6 +42,7 @@ const VIewMedicineDescription = () => {
     };
 
 
+
     const handleAddMedicineToGroup = () => {
         // Close modal and reset state
         setOpenAddMedicineModal(false);
@@ -50,14 +54,44 @@ const VIewMedicineDescription = () => {
         setOpenDialog(true);  // Show the dialog
     };
 
-    const confirmDelete = () => {
-        // Delete logic here
-        console.log("Medicine deleted");
+    const handleSaveChanges = () => {
+        // Logic to save the changes (e.g., updating the inventory, etc.)
+        console.log("Changes saved successfully!");
 
-        // Navigate to the medicines list page with success message
+        // Set success message
+        setSuccessMessage('Changes saved successfully!');
 
-        setOpenDialog(false); // Close the confirmation dialog
+        // Close the modal after saving
+        handleCloseModal();
     };
+
+
+    const confirmDelete = () => {
+        navigate('/admin/inventory/view-medicines-available', {
+            state: { successMessage: `${medicineName} Deleted Successfully.` },
+        });
+    };
+
+
+    const handleOpenModal = () => setOpenModal(true);
+    const handleCloseModal = () => setOpenModal(false);
+
+    const handleIncrement = (branch: number) => {
+        if (branch === 1) setBranch1Inventory(prev => prev + 5);
+        if (branch === 2) setBranch2Inventory(prev => prev + 5);
+        if (branch === 3) setBranch3Inventory(prev => prev + 5);
+    };
+
+    const handleDecrement = (branch: number) => {
+        if (branch === 1 && branch1Inventory > 0) setBranch1Inventory(prev => prev - 5);
+        if (branch === 2 && branch2Inventory > 0) setBranch2Inventory(prev => prev - 5);
+        if (branch === 3 && branch3Inventory > 0) setBranch3Inventory(prev => prev - 5);
+    };
+
+    const handleDialogOpen = () => {
+        setOpenDialog(true);
+    };
+
 
     const cancelDelete = () => {
         setOpenDialog(false);  // Close the dialog without deleting
@@ -104,7 +138,7 @@ const VIewMedicineDescription = () => {
 
                 <Box sx={{ width: '556px', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}>
                     {/* Header Section */}
-                    <Box sx={{ padding: '14px 30px', textAlign: 'left' }}>
+                    <Box sx={{ padding: '17px 30px', textAlign: 'left' }}>
                         <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>Medicine</Typography>
                     </Box>
 
@@ -129,9 +163,77 @@ const VIewMedicineDescription = () => {
 
                 <Box sx={{ width: '556px', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}>
                     {/* Header Section */}
-                    <Box sx={{ padding: '14px 30px', textAlign: 'left' }}>
-                        <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>Branch Inventory</Typography>
-                    </Box>
+                    <div className="flex flex-row justify-between items-center">
+                        <Box sx={{ padding: '14px 30px', textAlign: 'left' }}>
+                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>Branch Inventory</Typography>
+                        </Box>
+                        {/* Edit Icon Button */}
+                        <Box sx={{ padding: '14px 30px', textAlign: 'left' }}>
+                            <IconButton onClick={handleOpenModal}>
+                                <EditIcon sx={{ fontSize: '19px', color: 'gray' }} />
+                            </IconButton>
+                        </Box>
+                    </div>
+
+                    {/* Modal (Dialog) */}
+                    <Dialog open={openModal} onClose={handleCloseModal}>
+                        <DialogTitle>Edit Branch Inventory</DialogTitle>
+                        <DialogContent>
+                            <Typography>Update the Inventory Levels for each Branch.</Typography>
+
+                            {/* Branch 1 */}
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                                <Typography>Branch 1</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <IconButton onClick={() => handleDecrement(3)}>-</IconButton>
+                                    <TextField
+                                        value={branch1Inventory}
+                                        onChange={(e) => setBranch1Inventory(Number(e.target.value))}
+                                        type="number"
+                                        inputProps={{ min: 0, style: { textAlign: 'center' } }}
+                                        sx={{ width: 80, mx: 1 }}
+                                    />
+                                    <IconButton onClick={() => handleIncrement(3)}>+</IconButton>
+                                </Box>
+                            </Box>
+
+                            {/* Branch 2 */}
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                                <Typography>Branch 2</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <IconButton onClick={() => handleDecrement(3)}>-</IconButton>
+                                    <TextField
+                                        value={branch2Inventory}
+                                        onChange={(e) => setBranch2Inventory(Number(e.target.value))}
+                                        type="number"
+                                        inputProps={{ min: 0, style: { textAlign: 'center' } }}
+                                        sx={{ width: 80, mx: 1 }}
+                                    />
+                                    <IconButton onClick={() => handleIncrement(3)}>+</IconButton>
+                                </Box>
+                            </Box>
+
+                            {/* Branch 3 */}
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                                <Typography>Branch 3</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <IconButton onClick={() => handleDecrement(3)}>-</IconButton>
+                                    <TextField
+                                        value={branch3Inventory}
+                                        onChange={(e) => setBranch3Inventory(Number(e.target.value))}
+                                        type="number"
+                                        inputProps={{ min: 0, style: { textAlign: 'center' } }}
+                                        sx={{ width: 80, mx: 1 }}
+                                    />
+                                    <IconButton onClick={() => handleIncrement(3)}>+</IconButton>
+                                </Box>
+                            </Box>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={handleCloseModal}>Cancel</Button>
+                            <Button onClick={handleSaveChanges}>Save Changes</Button>
+                        </DialogActions>
+                    </Dialog>
 
                     {/* Divider */}
                     <Divider />
@@ -248,6 +350,7 @@ const VIewMedicineDescription = () => {
                     </Alert>
                 )}
             </Box>
+
         </Box>
 
 
