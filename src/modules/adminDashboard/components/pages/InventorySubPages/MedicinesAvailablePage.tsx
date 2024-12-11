@@ -218,6 +218,24 @@ const MedicinesAvailablePage = () => {
     setIsDeleteModalOpen(true); // Open the confirmation modal
   };
 
+  // Function to handle delete item confirmation
+  const handleConfirmDeleteItem = () => {
+    if (medicineToDelete) {
+      setSortedRows((prevRows) => prevRows.filter((row) => row.medicineName !== medicineToDelete));
+      setFilteredRows((prevRows) => prevRows.filter((row) => row.medicineName !== medicineToDelete));
+      setSuccessMessage(`Successfully deleted ${medicineToDelete}.`);
+      setMedicineToDelete(null);
+      setIsDeleteModalOpen(false);
+    }
+  };
+
+  // Function to close delete confirmation modal
+  const handleDeleteModalClose = () => {
+    setMedicineToDelete(null);
+    setIsDeleteModalOpen(false);
+  };
+
+
   const handleDeleteItemMultiple = () => {
     // Open the confirmation modal
     setIsConfirmDeleteModalOpen(true);
@@ -684,6 +702,31 @@ const MedicinesAvailablePage = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog
+        open={isDeleteModalOpen}
+        onClose={handleDeleteModalClose}
+        aria-labelledby="delete-confirmation-dialog-title"
+        PaperProps={{ style: { padding: '10px' } }} // Add padding to the modal
+      >
+        <DialogTitle id="delete-confirmation-dialog-title">
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete "{medicineToDelete}"? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteModalClose} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDeleteItem} color="primary" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {selectedRows.size > 0 && (
         <Button
