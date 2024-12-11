@@ -55,7 +55,7 @@ const InventoryPage = () => {
 
   const handleMedicineShortage = (item: any) => {
     setSelectedItem(item);
-    navigate('/admin/inventory/medicine-shortage');
+    navigate('/admin/inventory/view-medicine-shortage');
   };
 
 
@@ -63,13 +63,6 @@ const InventoryPage = () => {
     e.preventDefault(); // Prevent the default link behavior
     setSelectedItem(null); // Reset selected item, returning to the initial inventory view
   };
-
-    // Map handlers to content
-    const handlers = [
-      handleMedicinesAvailable,
-      handleMedicinesGroup,
-      handleMedicineShortage,
-    ];
 
   return (
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
@@ -110,66 +103,75 @@ const InventoryPage = () => {
 
       {/* Grid for the containers */}
       {!selectedItem && (
-        <Grid container spacing={3} sx={{ justifyContent: { xs: 'center', sm: 'flex-start' } }}>
-          {contentData.map((content, index) => (
-            <Grid key={index} item>
-              <Paper
-                sx={(theme) => ({
-                  height: 220,
-                  width: 272,
-                  backgroundColor: '#fff',
-                  border: `1px solid ${content.borderColor}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: theme.spacing(0),
-                  transition: 'transform 0.3s ease',
-                  '&:hover': {
-                    transform: 'scale(1.01)',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                  },
-                })}
-                onClick={() => handlers[index](content)}
-              >
-                <div
-                  style={{
+        <Grid item xs={12}>
+          <Grid container spacing={3} sx={{ justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+            {contentData.map((content, index) => (
+              <Grid key={index} item>
+                <Paper
+                  sx={(theme) => ({
+                    height: 220,
+                    width: 272,
+                    backgroundColor: '#fff',
+                    border: `1px solid ${content.borderColor}`,
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'center',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    flex: 1,
-                  }}
-                >
-                  <div>{React.cloneElement(content.icon, { sx: { fontSize: 40, color: content.borderColor } })}</div>
-                  <div>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
-                      {content.title}
-                    </Typography>
-                    <Typography variant="body2" sx={{ textAlign: 'center' }}>
-                      {content.subtitle}
-                    </Typography>
-                  </div>
-                </div>
-
-                <Button
-                  sx={{
-                    backgroundColor: content.borderColor,
-                    color: '#fff',
-                    width: '100%',
-                    textTransform: 'none',
-                    borderRadius: 1,
-                    marginTop: 'auto',
+                    padding: theme.spacing(0),
+                    transition: 'transform 0.3s ease',
                     '&:hover': {
-                      backgroundColor: `${content.borderColor}99`,
+                      transform: 'scale(1.01)',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
                     },
+                  })}
+                  onClick={() => {
+                    // Check if the item is for Medicines Group
+                    if (content.subtitle === 'Medicines Group') {
+                      HandleViewMedicineGroup(content); // Call HandleViewMedicineGroup
+                    } else {
+                      HandleViewMedicine(content); // Call HandleViewMedicine for other items
+                    }
                   }}
                 >
-                  {content.buttonText}
-                </Button>
-              </Paper>
-            </Grid>
-          ))}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      flex: 1,
+                    }}
+                  >
+                    <div>{React.cloneElement(content.icon, { sx: { fontSize: 40, color: content.borderColor } })}</div>
+                    <div>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+                        {content.title}
+                      </Typography>
+                      <Typography variant="body2" sx={{ textAlign: 'center' }}>
+                        {content.subtitle}
+                      </Typography>
+                    </div>
+                  </div>
+
+                  <Button
+                    sx={{
+                      backgroundColor: content.borderColor,
+                      color: '#fff',
+                      width: '100%',
+                      textTransform: 'none',
+                      borderRadius: 1,
+                      marginTop: 'auto',
+                      '&:hover': {
+                        backgroundColor: `${content.borderColor}99`,
+                      },
+                    }}
+                  >
+                    {content.buttonText}
+                  </Button>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
         </Grid>
       )}
 

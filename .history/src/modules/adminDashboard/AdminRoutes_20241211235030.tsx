@@ -14,7 +14,6 @@ import ViewMedicineDescription  from './components/pages/InventorySubPages/VIewM
 import MedicineGroupPage from './components/pages/InventorySubPages/MedicineGroupPage';
 import ViewGroupDetails from './components/pages/InventorySubPages/ViewGroupDetails';
 import EditMedicineDescription from './components/pages/InventorySubPages/EditMedicineDescription';
-import MedicineShortage from './components/pages/InventorySubPages/MedicineShortage';
 
 const AdminRoutes: React.FC = () => {
   return (
@@ -38,7 +37,7 @@ const AdminRoutes: React.FC = () => {
         <Route path="inventory/view-medicines-group" element={<MedicineGroupPage />} />
         <Route path="inventory/view-medicines-group/:groupName" element={<ViewGroupDetails />} />
 
-        <Route path="inventory/medicine-shortage" element={<MedicineShortage />} />
+        <Route path="inventory/view-medicines-group" element={<MedicineGroupPage />} />
 
 
         <Route path="branches" element={<BranchesPage />} />

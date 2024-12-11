@@ -55,7 +55,7 @@ const InventoryPage = () => {
 
   const handleMedicineShortage = (item: any) => {
     setSelectedItem(item);
-    navigate('/admin/inventory/medicine-shortage');
+    navigate('/admin/inventory/view-medicine-shortage');
   };
 
 

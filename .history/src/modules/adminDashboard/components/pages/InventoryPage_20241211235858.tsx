@@ -55,7 +55,7 @@ const InventoryPage = () => {
 
   const handleMedicineShortage = (item: any) => {
     setSelectedItem(item);
-    navigate('/admin/inventory/medicine-shortage');
+    navigate('/admin/inventory/view-medicine-shortage');
   };
 
 
@@ -75,40 +75,26 @@ const InventoryPage = () => {
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
       {/* Conditionally render Breadcrumbs only if selectedItem is not null */}
       {selectedItem && (
-        <Breadcrumbs
-          aria-label="breadcrumb"
-          sx={{
-            marginBottom: '16px',
-            display: 'flex',
-            justifyContent: { xs: 'center', sm: 'flex-start' }, // Center on small screens, left-align on larger screens
-            textAlign: { xs: 'center', sm: 'left' }, // Align text center on small screens, left-align on larger screens
-            width: '100%', // Ensure it takes full width for centering on small screens
-          }}
-        >
+        <Breadcrumbs aria-label="breadcrumb" sx={{ marginBottom: '16px' }}>
           <Link color="inherit" href="/" onClick={handleBreadcrumbClick}>
             Inventory
           </Link>
-          {selectedItem && (
-            <Typography color="text.primary">
-              {selectedItem.breadcrumbTitle}
-            </Typography>
-          )}
+          <Typography color="text.primary">
+            {selectedItem.breadcrumbTitle}
+          </Typography>
         </Breadcrumbs>
       )}
 
       {/* Title and Button Container with Centered Content */}
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-            {selectedItem ? selectedItem.pageTitle : 'Inventory'}
-          </Typography>
-          <Typography variant="body1" sx={{ mt: -1 }}>
-            {selectedItem ? selectedItem.pageSubtitle : 'List of medicines available for sales.'}
-          </Typography>
-        </Box>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
+          {selectedItem ? selectedItem.pageTitle : 'Inventory'}
+        </Typography>
+        <Typography variant="body1" sx={{ mt: -1 }}>
+          {selectedItem ? selectedItem.pageSubtitle : 'List of medicines available for sales.'}
+        </Typography>
       </Box>
 
-      {/* Grid for the containers */}
       {!selectedItem && (
         <Grid container spacing={3} sx={{ justifyContent: { xs: 'center', sm: 'flex-start' } }}>
           {contentData.map((content, index) => (
@@ -173,14 +159,13 @@ const InventoryPage = () => {
         </Grid>
       )}
 
-      {/* Placeholder for detailed content - Display only when an item is selected */}
       {selectedItem && (
         <Box sx={{ mt: 3 }}>
           <Typography variant="h6" gutterBottom>
             {selectedItem.title} - Full Details
           </Typography>
           <Typography variant="body1">
-            {selectedItem.subtitle} {/* Replace with actual content later */}
+            {selectedItem.subtitle}
           </Typography>
         </Box>
       )}

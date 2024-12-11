@@ -38,7 +38,7 @@ const AdminRoutes: React.FC = () => {
         <Route path="inventory/view-medicines-group" element={<MedicineGroupPage />} />
         <Route path="inventory/view-medicines-group/:groupName" element={<ViewGroupDetails />} />
 
-        <Route path="inventory/medicine-shortage" element={<MedicineShortage />} />
+        <Route path="inventory/medicine-shortage" element={<MedicineGroupPage />} />
 
 
         <Route path="branches" element={<BranchesPage />} />
