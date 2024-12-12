@@ -67,7 +67,7 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1}}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'Black' }}>
         Dashboard Overview
       </Typography>
       <p className='mt-[-13px] text-gray-700 mb-5'>A quick data overview of the inventory.</p>
