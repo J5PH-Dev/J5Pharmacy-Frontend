@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Container, Typography, Divider, Button, Grid, TextField, MenuItem, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import * as XLSX from 'xlsx';
 
 // Sample sales data
@@ -29,22 +29,41 @@ const downloadReport = () => {
 
 const ReportsPage = () => {
   return (
-    <Container>
-      <Typography variant="h4" gutterBottom>
-        Reports Page
-      </Typography>
-
-      <Grid container spacing={2}>
+    <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1 }}>
+      {/* Title and Button Container with Centered Content */}
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
+            Sales Report
+          </Typography>
+          <Typography variant="body1" sx={{ mt: -1 }}>
+            A summary of sales performance and key insights.
+          </Typography>
+        </Box>
         <Grid item xs={12}>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-            <Button variant="contained" color="primary" onClick={downloadReport}>
+            <Button variant="contained"
+              sx={{
+                color: 'black',
+                backgroundColor: 'white',
+                boxShadow: 'none',
+                border: '1px solid rgba(29, 36, 46, 0.2)',
+                padding: '10px 20px',
+                '&:hover': {
+                  transform: 'scale(1.012)',
+                  backgroundColor: 'white',
+                  boxShadow: 'none',
+                },
+              }} onClick={downloadReport}>
               Download Report
             </Button>
           </Box>
         </Grid>
+      </Box>
 
+      <Grid container spacing={2}>
         <Grid item xs={12}>
-          <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
+          <Box sx={{ display: 'flex', gap: 2, mb: 4, mt: 4, backgroundColor: 'white' }}>
             <TextField
               label="Date Range"
               type="date"
@@ -72,57 +91,115 @@ const ReportsPage = () => {
           </Box>
         </Grid>
 
-        <Grid item xs={12} md={8}>
-          <Box sx={{ mb: 4 }}>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h5" gutterBottom>
-              Sales Graph
-            </Typography>
-            <Box sx={{ width: '100%', height: 300 }}>
+        <Grid item xs={12} md={6}>
+          <Box sx={{ backgroundColor: 'white', padding: '20px 30px', maxWidth: '746px', borderLeft: '1px solid rgba(29, 36, 46, 0.2)', borderRight: '1px solid rgba(29, 36, 46, 0.2)' }}>
+            <div>
+              <Typography variant="h6" gutterBottom>
+                Sales Made
+              </Typography>
+            </div>
+            <Divider sx={{ mb: 5, mt: 2 }} />
+            <Box sx={{ width: '100%', height: 300, padding: 0 }}>
               <ResponsiveContainer>
-                <LineChart data={salesData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <AreaChart
+                  data={salesData}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="sales" stroke="#8884d8" activeDot={{ r: 8 }} />
-                </LineChart>
+
+                  {/* Define the linear gradient */}
+                  <defs>
+                    <linearGradient id="salesGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#299DED" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#82CAFF" stopOpacity={0.2} /> {/* Lighter blue at the bottom */}
+                    </linearGradient>
+                  </defs>
+
+                  {/* Apply the gradient to the Area chart */}
+                  <Area
+                    type="monotone"
+                    dataKey="sales"
+                    stroke="#299DED"
+                    fill="url(#salesGradient)" // Reference the gradient defined above
+                    activeDot={{ r: 8 }}
+                  />
+
+                </AreaChart>
               </ResponsiveContainer>
             </Box>
-            <Divider sx={{ my: 4 }} />
           </Box>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Typography variant="h5" gutterBottom>
-            Latest Transactions
-          </Typography>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Order ID</TableCell>
-                <TableCell>Date & Time</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              <TableRow>
-                <TableCell>12345</TableCell>
-                <TableCell>2024-12-11 12:30:45</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>12346</TableCell>
-                <TableCell>2024-12-10 15:22:30</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>12347</TableCell>
-                <TableCell>2024-12-09 14:10:15</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+        <Grid item xs={12} md={6}>
+          <Box
+            sx={{
+              mb: 4,
+              backgroundColor: 'white',
+              padding: '30px',
+              borderLeft: '1px solid rgba(29, 36, 46, 0.2)',
+              borderRight: '1px solid rgba(29, 36, 46, 0.2)',
+            }}
+          >
+            <Typography variant="h5" gutterBottom>
+              Latest Transactions
+            </Typography>
+            <Box sx={{ maxHeight: '330px', overflowY: 'auto' }}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Order ID</TableCell>
+                    <TableCell>Date & Time</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>12345</TableCell>
+                    <TableCell>2024-12-11 12:30:45</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>12346</TableCell>
+                    <TableCell>2024-12-10 15:22:30</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>12347</TableCell>
+                    <TableCell>2024-12-09 14:10:15</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>12345</TableCell>
+                    <TableCell>2024-12-11 12:30:45</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>12346</TableCell>
+                    <TableCell>2024-12-10 15:22:30</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>12347</TableCell>
+                    <TableCell>2024-12-09 14:10:15</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>12345</TableCell>
+                    <TableCell>2024-12-11 12:30:45</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>12346</TableCell>
+                    <TableCell>2024-12-10 15:22:30</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>12347</TableCell>
+                    <TableCell>2024-12-09 14:10:15</TableCell>
+                  </TableRow>
+                  {/* Add more rows to test scrolling */}
+                </TableBody>
+              </Table>
+            </Box>
+          </Box>
         </Grid>
+
       </Grid>
-    </Container>
+    </Box>
   );
 };
 
