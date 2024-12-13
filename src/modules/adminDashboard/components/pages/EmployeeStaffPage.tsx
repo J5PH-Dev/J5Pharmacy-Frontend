@@ -27,6 +27,7 @@ const predefinedBranches = ['Branch A', 'Branch B', 'Branch C'];
 const EmployeeStaffPage: React.FC = () => {
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
+  const [deleteStaffId, setDeleteStaffId] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   const [addStaffOpen, setAddStaffOpen] = useState(false);
   const [editStaffOpen, setEditStaffOpen] = useState(false); // New state for edit dialog
@@ -175,25 +176,23 @@ const EmployeeStaffPage: React.FC = () => {
 
   const selectedStaff = staffMembers.find(staff => staff.id === selectedStaffId);
 
-  const handleDeleteStaff = (id: number) => {
-    setStaffMembers(prev => prev.filter(staff => staff.id !== id));
-    setSuccessMessage('Staff member deleted successfully!');
-    setOpenDeleteModal(false);
-    // Reset the selected staff ID after deletion to close the details container
-    setSelectedStaffId(null);
-    setOpen(false);  // Close the details dialog if it's open
+  const handleDeleteStaff = () => {
+    if (deleteStaffId !== null) {
+      setStaffMembers(prev => prev.filter(staff => staff.id !== deleteStaffId));
+      setSuccessMessage('Staff member deleted successfully!');
+      setOpenDeleteModal(false);
+      setDeleteStaffId(null);
+    }
   };
 
   const handleClickOpenDeleteModal = (id: number) => {
-    setSelectedStaffId(id);
+    setDeleteStaffId(id);
     setOpenDeleteModal(true);
   };
 
   const handleCloseDeleteModal = () => {
+    setDeleteStaffId(null);
     setOpenDeleteModal(false);
-    // Reset the selected staff ID after deletion to close the details container
-    setSelectedStaffId(null);
-    setOpen(false);  // Close the details dialog if it's open
   };
 
 
@@ -306,7 +305,13 @@ const EmployeeStaffPage: React.FC = () => {
                     <IconButton onClick={() => handleEditClickOpen(staff.id)} sx={{ color: '#2B7FF5' }}>
                       <Edit />
                     </IconButton>
-                    <IconButton onClick={() => handleClickOpenDeleteModal(staff.id)} sx={{ color: '#D42A4C', ml: '-7px' }}>
+                    <IconButton
+                      onClick={(event) => {
+                        event.stopPropagation(); // Prevents the card's onClick from being triggered
+                        handleClickOpenDeleteModal(staff.id);
+                      }}
+                      sx={{ color: '#D42A4C', ml: '-7px' }}
+                    >
                       <Delete />
                     </IconButton>
                   </Box>
@@ -620,7 +625,7 @@ const EmployeeStaffPage: React.FC = () => {
               value={newStaff.name}
               onChange={(e) => handleNewStaffChange('name', e.target.value)}
             />
-            <FormControl variant="outlined" fullWidth required sx={{ flex: '1 1 calc(50% - 16px)',  mt: '12px'  }}>
+            <FormControl variant="outlined" fullWidth required sx={{ flex: '1 1 calc(50% - 16px)', mt: '12px' }}>
               <InputLabel htmlFor="position">Position</InputLabel>
               <Select
                 label="Position"
@@ -733,7 +738,7 @@ const EmployeeStaffPage: React.FC = () => {
           <Button onClick={handleCloseDeleteModal} color="primary">
             Cancel
           </Button>
-          <Button onClick={() => handleDeleteStaff(selectedStaffId!)} color="secondary" variant="contained">
+          <Button onClick={() => handleDeleteStaff()} color="secondary" variant="contained">
             Confirm
           </Button>
         </DialogActions>
