@@ -32,7 +32,6 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useAuth } from '../../../auth/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import './Sidebar.css'; // Import CSS
 
 const drawerWidth = 280;
 
