@@ -3,15 +3,22 @@ import {
   SpeedDial, 
   SpeedDialAction, 
   SpeedDialIcon,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
 } from '@mui/material';
 import BuildIcon from '@mui/icons-material/Build';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import ClearAllIcon from '@mui/icons-material/ClearAll';
-import { generateDummyItem } from './dummyData';
+import { sampleItems } from './sampleData';
+import { CartItem } from '../modules/pos/types/cart';
 
 interface DevToolsProps {
-  onAddSampleItems: (items: any[]) => void;
+  onAddSampleItems: (items: CartItem[]) => void;
   onResetStock: () => void;
   onClearCart: () => void;
 }
@@ -22,21 +29,38 @@ const DevTools: React.FC<DevToolsProps> = ({
   onClearCart 
 }) => {
   const [open, setOpen] = useState(false);
+  const [randomItemCount, setRandomItemCount] = useState(1);
+  const [countDialogOpen, setCountDialogOpen] = useState(false);
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  const handleAddSingleDummyItem = () => {
-    const dummyItem = generateDummyItem();
-    onAddSampleItems([dummyItem]);
+  const getRandomItems = (count: number): CartItem[] => {
+    const items: CartItem[] = [];
+    for (let i = 0; i < count; i++) {
+      const randomIndex = Math.floor(Math.random() * sampleItems.length);
+      items.push({ ...sampleItems[randomIndex], quantity: 1 });
+    }
+    return items;
+  };
+
+  const handleAddRandomItems = () => {
+    setCountDialogOpen(true);
     handleClose();
+  };
+
+  const handleConfirmRandomItems = () => {
+    const items = getRandomItems(randomItemCount);
+    onAddSampleItems(items);
+    setCountDialogOpen(false);
+    setRandomItemCount(1);
   };
 
   const actions = [
     { 
       icon: <AddCircleIcon />, 
-      name: 'Add Dummy Item', 
-      onClick: handleAddSingleDummyItem
+      name: 'Add Random Items', 
+      onClick: handleAddRandomItems
     },
     { 
       icon: <RestartAltIcon />, 
@@ -60,7 +84,7 @@ const DevTools: React.FC<DevToolsProps> = ({
     <>
       <SpeedDial
         ariaLabel="Dev Tools"
-        sx={{ position: 'fixed', bottom: 16, right: 16 }}
+        sx={{ position: 'fixed', top: 16, left: 16 }}
         icon={<SpeedDialIcon icon={<BuildIcon />} />}
         onClose={handleClose}
         onOpen={handleOpen}
@@ -76,6 +100,27 @@ const DevTools: React.FC<DevToolsProps> = ({
           />
         ))}
       </SpeedDial>
+
+      <Dialog open={countDialogOpen} onClose={() => setCountDialogOpen(false)}>
+        <DialogTitle>Add Random Items</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Number of items"
+            type="number"
+            fullWidth
+            value={randomItemCount}
+            onChange={(e) => setRandomItemCount(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+            inputProps={{ min: 1, max: 10 }}
+            helperText="Choose between 1-10 items"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCountDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleConfirmRandomItems} variant="contained">Add Items</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

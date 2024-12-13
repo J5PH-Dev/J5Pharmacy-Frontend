@@ -2,51 +2,98 @@ import React, { useEffect, useState } from 'react';
 import { Box, Typography, Stack } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import format from 'date-fns/format';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 
 const InfoContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'center',
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
   height: '100%',
   padding: theme.spacing(1, 3),
   backgroundColor: theme.palette.background.paper,
   color: theme.palette.text.primary,
 }));
 
-const InfoRow = styled(Box)({
+const LeftSection = styled(Box)({
   display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  width: '100%',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
 });
 
-const InfoText = styled(Typography)({
+const RightSection = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-end',
+  gap: theme.spacing(0.5),
+}));
+
+const StatusText = styled(Typography)(({ theme }) => ({
   fontWeight: 600,
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-});
+  fontSize: '1.1rem',
+  letterSpacing: '0.5px',
+  [theme.breakpoints.up('sm')]: {
+    fontSize: '1.2rem',
+  },
+}));
+
+const InfoLabel = styled(Typography)(({ theme }) => ({
+  fontWeight: 600,
+  fontSize: '1.1rem',
+  letterSpacing: '0.5px',
+  color: theme.palette.text.secondary,
+  [theme.breakpoints.up('sm')]: {
+    fontSize: '1.2rem',
+  },
+}));
 
 const TimeText = styled(Typography)(({ theme }) => ({
-  fontWeight: 700,
-  fontSize: '1.6rem',
+  fontWeight: 800,
+  fontSize: '1.8rem',
   letterSpacing: '0.5px',
   lineHeight: 1,
   color: theme.palette.primary.main,
   [theme.breakpoints.up('sm')]: {
-    fontSize: '1.8rem',
+    fontSize: '2rem',
   },
 }));
 
 const DateText = styled(Typography)(({ theme }) => ({
-  fontWeight: 600,
-  fontSize: '1.2rem',
+  fontWeight: 700,
+  fontSize: '1.3rem',
   letterSpacing: '0.5px',
   opacity: 0.9,
   lineHeight: 1,
   color: theme.palette.text.secondary,
   [theme.breakpoints.up('sm')]: {
-    fontSize: '1.4rem',
+    fontSize: '1.5rem',
+  },
+}));
+
+const StatusContainer = styled(Box)({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+});
+
+const BranchContainer = styled(Box)({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+});
+
+const StyledLocationIcon = styled(LocationOnIcon)(({ theme }) => ({
+  fontSize: '1.3rem',
+  color: theme.palette.text.secondary,
+}));
+
+const StyledStatusIcon = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  '& .MuiSvgIcon-root': {
+    fontSize: '1.3rem',
   },
 }));
 
@@ -67,6 +114,7 @@ const TransactionInfo: React.FC<TransactionInfoProps> = ({
 }) => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [transactionId, setTransactionId] = useState('');
+  const [networkStatus, setNetworkStatus] = useState<'online' | 'offline'>('online');
 
   useEffect(() => {
     // Generate initial transaction ID
@@ -81,28 +129,54 @@ const TransactionInfo: React.FC<TransactionInfoProps> = ({
       if (newDate.getHours() === 0 && newDate.getMinutes() === 0 && newDate.getSeconds() === 0) {
         setTransactionId(generateTransactionId(branchId));
       }
+
+      // Check network status
+      setNetworkStatus(navigator.onLine ? 'online' : 'offline');
     }, 1000);
 
-    return () => clearInterval(interval);
+    // Add network status listeners
+    const handleOnline = () => setNetworkStatus('online');
+    const handleOffline = () => setNetworkStatus('offline');
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [branchId]);
 
   return (
     <InfoContainer>
-      <Stack spacing={1} width="100%">
-        <InfoRow>
-          <InfoText sx={{ fontSize: '1.2rem', minWidth: 0, flex: 1, mr: 2 }}>
-            Transaction ID: {transactionId}
-          </InfoText>
-          <TimeText>
-            {format(currentDateTime, 'hh:mm:ss a')}
-          </TimeText>
-        </InfoRow>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <DateText>
-            {format(currentDateTime, 'MMMM dd, yyyy')}
-          </DateText>
-        </Box>
-      </Stack>
+      <LeftSection>
+        <TimeText>
+          {format(currentDateTime, 'hh:mm:ss a')}
+        </TimeText>
+        <DateText>
+          {format(currentDateTime, 'MMMM dd, yyyy')}
+        </DateText>
+      </LeftSection>
+
+      <RightSection>
+        <StatusContainer>
+          <StyledStatusIcon>
+            {networkStatus === 'online' 
+              ? <CheckCircleIcon color="success" />
+              : <CancelIcon color="error" />
+            }
+          </StyledStatusIcon>
+          <StatusText sx={{ color: networkStatus === 'online' ? 'success.main' : 'error.main' }}>
+            System {networkStatus.toUpperCase()}
+          </StatusText>
+        </StatusContainer>
+        <BranchContainer>
+          <StyledLocationIcon />
+          <InfoLabel>
+            Branch: Bagong Silang
+          </InfoLabel>
+        </BranchContainer>
+      </RightSection>
     </InfoContainer>
   );
 };

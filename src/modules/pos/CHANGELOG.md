@@ -1,5 +1,38 @@
 # J5 Pharmacy POS System Changelog
 
+## [Beta 0.5.0] - 2024-12-13
+
+### Added
+- Function Key Enhancements:
+  * F1: Converted to Product Inquiry with enhanced search
+  * F2: New Transaction with empty cart validation
+  * F3: Hold Transaction with confirmation dialog
+  * F4: Recall Transaction with confirmation and improved UI
+- Integrated barcode scanner functionality with keyboard search
+- Minimum 3-character requirement for product search with feedback
+- Confirmation dialogs for cart-clearing operations
+
+### Changed
+- UI/UX Improvements:
+  * Merged Header and TransactionInfo into unified design
+  * Increased text sizes throughout the cart interface
+  * Enhanced product price display and positioning
+  * Improved search dialog readability and navigation
+  * Added visual feedback for keyboard navigation
+- Search Functionality:
+  * Combined keyboard search with barcode scanning
+  * Added SKU switching with arrow keys
+  * Disabled search during checkout process
+  * Enhanced search result visibility and contrast
+
+### Fixed
+- Dark text visibility in selection dialogs
+- Component interface consistency
+- Module import paths
+- Props type definitions
+
+# Previous Versions
+
 ## [Beta 0.2.4-d] - 2024-00-21
 
 ### Changed

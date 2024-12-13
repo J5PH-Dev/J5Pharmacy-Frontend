@@ -3,6 +3,7 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import { format } from 'date-fns';
+import { Snackbar, Alert } from '@mui/material';
 
 // Import auth context
 import { useAuth } from '../../../modules/auth/contexts/AuthContext';
@@ -23,6 +24,7 @@ import { CartItem } from '../types/cart';
 import { DiscountType } from '../components/TransactionSummary/types';
 import { calculateTotals } from '../utils/calculations';
 import { cartItemToReceiptItem } from '../utils/mappers';
+import { HeldTransaction } from '../types/transaction';
 
 const generateTransactionId = (branchId: string = 'B001'): string => {
   const now = new Date();
@@ -52,6 +54,15 @@ const POSPage: React.FC = () => {
   const [customDiscountValue, setCustomDiscountValue] = useState<number>();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [starPointsEarned, setStarPointsEarned] = useState(0);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'warning' | 'error' | 'info';
+  }>({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
 
   const {
     subtotal,
@@ -60,6 +71,10 @@ const POSPage: React.FC = () => {
     vat,
     total
   } = calculateTotals(cartItems, discountType, customDiscountValue);
+
+  const showMessage = (message: string, severity: 'success' | 'warning' | 'error' | 'info') => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   const handleDiscountClick = () => {
     setDiscountDialogOpen(true);
@@ -104,34 +119,36 @@ const POSPage: React.FC = () => {
     console.log('Printing receipt...');
   };
 
-  const handleAddSampleItems = () => {
-    const sampleItems: CartItem[] = [
-      {
-        id: '1',
-        itemCode: 'MED001',
-        productName: 'Paracetamol 500mg',
-        price: 5.99,
-        quantity: 2,
-        unit: 'tablet',
-        category: 'Pain Relief',
-        brand: 'PharmaCo',
-        dosage: '500mg',
-        requiresPrescription: false
-      },
-      {
-        id: '2',
-        itemCode: 'MED002',
-        productName: 'Amoxicillin 250mg',
-        price: 12.99,
-        quantity: 1,
-        unit: 'capsule',
-        category: 'Antibiotics',
-        brand: 'MediCorp',
-        dosage: '250mg',
-        requiresPrescription: true
-      }
-    ];
-    setCartItems([...cartItems, ...sampleItems]);
+  const handleAddSampleItems = (items: CartItem[]) => {
+    // Add items with their quantities to the cart
+    const newItems = items.map(item => ({
+      ...item,
+      quantity: item.quantity || 1 // Ensure quantity is at least 1
+    }));
+    setCartItems([...cartItems, ...newItems]);
+  };
+
+  const handleAddProduct = (product: CartItem) => {
+    const newItems = [...cartItems];
+    const existingItemIndex = newItems.findIndex(item => item.id === product.id);
+
+    if (existingItemIndex > -1) {
+      // Update existing item quantity
+      newItems[existingItemIndex] = {
+        ...newItems[existingItemIndex],
+        quantity: newItems[existingItemIndex].quantity + (product.quantity || 1)
+      };
+    } else {
+      // Add new item with its quantity
+      newItems.push({ ...product, quantity: product.quantity || 1 });
+    }
+
+    setCartItems(newItems);
+  };
+
+  const handleRecallTransaction = (transaction: HeldTransaction) => {
+    setCartItems(transaction.items);
+    showMessage('Transaction recalled successfully', 'success');
   };
 
   useEffect(() => {
@@ -140,42 +157,85 @@ const POSPage: React.FC = () => {
   }, [cartItems, discountType, customDiscountValue]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', p: 1.5, bgcolor: 'background.default' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: '100vh', 
+      p: 1.5, 
+      bgcolor: 'background.default',
+      overflow: 'hidden'
+    }}>
       {/* Top Bar */}
-      <Grid container spacing={1.5} sx={{ mb: 1.5, height: '85px' }}>
-        {/* Header Section - 1/3 width */}
-        <Grid item xs={4}>
+      <Grid container spacing={1.5} sx={{ mb: 1.5, height: '85px', flexShrink: 0 }}>
+        <Grid item xs={12}>
           <Paper elevation={2} sx={{ height: '100%', overflow: 'hidden' }}>
             <Header />
-          </Paper>
-        </Grid>
-        {/* Transaction Info Section - 2/3 width */}
-        <Grid item xs={8}>
-          <Paper elevation={2} sx={{ height: '100%', overflow: 'hidden' }}>
-            <TransactionInfo />
           </Paper>
         </Grid>
       </Grid>
 
       {/* Main Content Area */}
-      <Grid container spacing={1.5} sx={{ flexGrow: 1 }}>
+      <Grid 
+        container 
+        spacing={1.5} 
+        sx={{ 
+          flexGrow: 1,
+          minHeight: 0,
+          height: 'calc(100% - 85px - 12px)'
+        }}
+      >
         {/* Function Keys */}
-        <Grid item xs={2}>
+        <Grid item xs={2} sx={{ height: '100%' }}>
           <Paper elevation={2} sx={{ height: '100%', overflow: 'hidden' }}>
-            <FunctionKeys onLogout={logout} />
+            <FunctionKeys 
+              onLogout={logout}
+              onAddProduct={handleAddProduct}
+              currentItems={cartItems}
+              currentTotal={total}
+              cartState={{
+                items: cartItems,
+                totals: {
+                  subtotal,
+                  totalDiscount: discountAmount,
+                  total,
+                  itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0)
+                },
+                prescriptionRequired: cartItems.some(item => item.requiresPrescription),
+                prescriptionVerified: false
+              }}
+              onClearCart={handleVoid}
+              onRecallTransaction={handleRecallTransaction}
+              isCheckoutOpen={isCheckoutOpen}
+            />
           </Paper>
         </Grid>
         {/* Cart Section */}
-        <Grid item xs={7}>
-          <Paper elevation={2} sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Grid item xs={7} sx={{ height: '100%' }}>
+          <Paper 
+            elevation={2} 
+            sx={{ 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
             <Cart items={cartItems} setItems={setCartItems} />
           </Paper>
         </Grid>
         {/* Right Side - Transaction Summary & Action Buttons */}
-        <Grid item xs={3}>
-          <Grid container direction="column" spacing={1.5} sx={{ height: '100%' }}>
-            <Grid item xs>
-              <Paper elevation={2} sx={{ p: 2, height: '100%' }}>
+        <Grid item xs={3} sx={{ height: '100%' }}>
+          <Grid 
+            container 
+            direction="column" 
+            spacing={1.5} 
+            sx={{ 
+              height: '100%',
+              minHeight: 0
+            }}
+          >
+            <Grid item xs sx={{ minHeight: 0 }}>
+              <Paper elevation={2} sx={{ height: '100%', overflow: 'hidden' }}>
                 <TransactionSummary
                   transactionId={transactionId}
                   customerId={customerId}
@@ -193,7 +253,7 @@ const POSPage: React.FC = () => {
                 />
               </Paper>
             </Grid>
-            <Grid item>
+            <Grid item sx={{ flexShrink: 0 }}>
               <Paper elevation={2} sx={{ p: 2 }}>
                 <ActionButtons
                   onCheckout={handleCheckout}
@@ -236,6 +296,36 @@ const POSPage: React.FC = () => {
         onCheckout={handleCheckoutComplete}
         onClearCart={() => setCartItems([])}
       />
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={3000} 
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          top: '24px !important',
+          '& .MuiPaper-root': {
+            minWidth: '400px',
+            fontSize: '1.1rem'
+          }
+        }}
+      >
+        <Alert 
+          severity={snackbar.severity} 
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          sx={{
+            width: '100%',
+            '& .MuiAlert-message': {
+              fontSize: '1.1rem',
+              padding: '8px 0'
+            },
+            '& .MuiAlert-icon': {
+              fontSize: '2rem'
+            }
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

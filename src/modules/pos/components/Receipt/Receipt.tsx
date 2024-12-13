@@ -71,7 +71,7 @@ export const Receipt: React.FC<ReceiptProps> = ({
             <TableRow key={index}>
               <TableCell sx={{ border: 'none', py: 0.5, pl: 0 }}>
                 <Typography variant="body2">
-                  {item.productName}
+                  {item.name}
                   <br />
                   {item.quantity} x ₱{item.price.toFixed(2)}
                 </Typography>

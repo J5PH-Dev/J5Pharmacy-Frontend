@@ -1,48 +1,111 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, TypographyProps } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import format from 'date-fns/format';
 import logo from '../../assets/images/logo.png';
 
-// Styled components
 const HeaderContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
+  flexDirection: 'row',
   alignItems: 'center',
+  justifyContent: 'space-between',
   height: '100%',
-  padding: theme.spacing(1, 2),
-  gap: theme.spacing(2),
+  padding: theme.spacing(1, 3),
   backgroundColor: theme.palette.background.paper,
-  color: theme.palette.primary.main,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.08)', // Softer shadow
+  color: theme.palette.text.primary,
 }));
 
-const LogoContainer = styled(Box)({
+const LogoSection = styled(Box)({
   display: 'flex',
   alignItems: 'center',
-  height: '65px', // Increased height
-  padding: '4px 0', // Added padding to give some breathing room
+  gap: '12px',
+  width: '33%',
 });
 
 const Logo = styled('img')({
-  height: '100%',
+  height: '65px',
   width: 'auto',
   objectFit: 'contain',
-  display: 'block',
 });
 
-const GreetingText = styled(Typography)<TypographyProps>(({ theme }) => ({
-  fontWeight: 500,
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
+const GreetingText = styled(Typography)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  '& .greeting': {
+    fontWeight: 500,
+    fontSize: '1.1rem',
+    lineHeight: 1.2,
+    color: theme.palette.text.primary,
+  },
+  '& .user': {
+    fontWeight: 600,
+    fontSize: '1.2rem',
+    color: theme.palette.primary.main,
+  },
+}));
+
+const CenterSection = styled(Box)({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  width: '34%',
+});
+
+const TimeText = styled(Typography)(({ theme }) => ({
+  fontWeight: 800,
+  fontSize: '1.8rem',
+  letterSpacing: '0.5px',
+  lineHeight: 1,
+  color: theme.palette.primary.main,
+  [theme.breakpoints.up('sm')]: {
+    fontSize: '2rem',
+  },
+}));
+
+const DateText = styled(Typography)(({ theme }) => ({
+  fontWeight: 700,
+  fontSize: '1.3rem',
+  letterSpacing: '0.5px',
+  opacity: 0.9,
+  lineHeight: 1,
+  color: theme.palette.text.secondary,
+  [theme.breakpoints.up('sm')]: {
+    fontSize: '1.5rem',
+  },
+}));
+
+const RightSection = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-end',
+  width: '33%',
+  gap: theme.spacing(0.5),
+}));
+
+const StatusText = styled(Typography)(({ theme }) => ({
+  fontWeight: 600,
   fontSize: '1.1rem',
-  lineHeight: 1.2,
-  color: theme.palette.text.primary,
-  marginLeft: theme.spacing(1), // Added margin for better spacing
+  letterSpacing: '0.5px',
+  [theme.breakpoints.up('sm')]: {
+    fontSize: '1.2rem',
+  },
+}));
+
+const InfoLabel = styled(Typography)(({ theme }) => ({
+  fontWeight: 600,
+  fontSize: '1.1rem',
+  letterSpacing: '0.5px',
+  color: theme.palette.text.secondary,
+  [theme.breakpoints.up('sm')]: {
+    fontSize: '1.2rem',
+  },
 }));
 
 const Header: React.FC = () => {
-  const [greeting, setGreeting] = useState<string>('');
-  const username = 'Admin'; // This will be replaced with actual user data later
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+  const [greeting, setGreeting] = useState('');
+  const username = 'Admin';
+  const networkStatus = 'online';
 
   useEffect(() => {
     const getGreeting = () => {
@@ -52,28 +115,48 @@ const Header: React.FC = () => {
       return 'Good Evening';
     };
 
-    setGreeting(getGreeting());
-
-    // Update greeting every minute
-    const interval = setInterval(() => {
+    const updateDateTime = () => {
+      setCurrentDateTime(new Date());
       setGreeting(getGreeting());
-    }, 60000);
+    };
 
-    return () => clearInterval(interval);
+    updateDateTime();
+    const timer = setInterval(updateDateTime, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
   return (
     <HeaderContainer>
-      <LogoContainer>
+      <LogoSection>
         <Logo 
           src={logo}
           alt="J5 Pharmacy Logo"
           loading="eager"
         />
-      </LogoContainer>
-      <GreetingText sx={{ flexGrow: 1 }}>
-        {greeting},<br />{username}
-      </GreetingText>
+        <GreetingText>
+          <span className="greeting">{greeting},</span>
+          <span className="user">{username}</span>
+        </GreetingText>
+      </LogoSection>
+
+      <CenterSection>
+        <TimeText>
+          {format(currentDateTime, 'hh:mm:ss a')}
+        </TimeText>
+        <DateText>
+          {format(currentDateTime, 'MMMM dd, yyyy')}
+        </DateText>
+      </CenterSection>
+
+      <RightSection>
+        <StatusText sx={{ color: networkStatus === 'online' ? 'success.main' : 'error.main' }}>
+          System {networkStatus.toUpperCase()}
+        </StatusText>
+        <InfoLabel>
+          Branch: Bagong Silang
+        </InfoLabel>
+      </RightSection>
     </HeaderContainer>
   );
 };
