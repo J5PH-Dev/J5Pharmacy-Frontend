@@ -16,6 +16,7 @@ import {
   Divider,
   useTheme,
   useMediaQuery,
+  ButtonBase,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -29,12 +30,12 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import MenuIcon from '@mui/icons-material/Menu';
 import { useAuth } from '../../../auth/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
 const drawerWidth = 280;
 
+// Sidebar container styled to respect header height
 const SidebarContainer = styled(Box)(({ theme }) => ({
   width: drawerWidth,
   flexShrink: 0,
@@ -46,7 +47,7 @@ const SidebarContainer = styled(Box)(({ theme }) => ({
     display: 'flex',
     flexDirection: 'column',
     height: 'calc(100vh - 64px)', // Adjust height based on header height
-    marginTop: '64px', // Space for header
+    marginTop: '64px', // Space for header (adjust as necessary)
     overflowY: 'auto', // Enable scrolling for sidebar content
     '&::-webkit-scrollbar': {
       width: '4px',
@@ -91,7 +92,14 @@ const Footer = styled(Box)(({ theme }) => ({
   },
 }));
 
-const navigationItems = [
+interface NavigationItem {
+  title: string;
+  icon: React.ReactNode;
+  children?: { title: string; path: string }[];
+  path?: string;
+}
+
+const navigationItems: NavigationItem[] = [
   {
     title: 'Dashboard',
     icon: <DashboardIcon />,
@@ -167,7 +175,6 @@ const Sidebar: React.FC = () => {
   const { logout } = useAuth();
   const [openItems, setOpenItems] = useState<string[]>([]);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
-  const [menuOpen, setMenuOpen] = useState(false); // Control sidebar visibility
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -192,81 +199,58 @@ const Sidebar: React.FC = () => {
     logout();
   };
 
-  const toggleSidebar = () => {
-    setMenuOpen((prev) => !prev);
-  };
-
   return (
-    <Box sx={{ display: 'flex' }}>
-      {/* Hamburger Button */}
-      {isMobile && (
-        <IconButton
-          edge="start"
-          color="inherit"
-          aria-label="menu"
-          onClick={toggleSidebar}
-          className="hamburger-menu"
-        >
-          <MenuIcon />
-        </IconButton>
-      )}
+    <SidebarContainer>
+      <Drawer
+        variant={isMobile ? 'temporary' : 'permanent'}
+        sx={{
+          '& .MuiDrawer-paper': {
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        }}
+        open={!isMobile}
+        onClose={() => { }}
+        ModalProps={{
+          keepMounted: true,
+        }}
+      >
+        {/* User Section */}
+        <UserSection>
+          <Avatar
+            sx={{ width: 48, height: 48 }}
+            src="/path-to-user-image.jpg"
+          />
+          <UserInfo>
+            <Typography className="MuiTypography-name">Janeth</Typography>
+            <Typography className="MuiTypography-role">Owner</Typography>
+          </UserInfo>
+          <IconButton onClick={handleUserMenuClick}>
+            <MoreVertIcon />
+          </IconButton>
+          <Menu
+            anchorEl={userMenuAnchor}
+            open={Boolean(userMenuAnchor)}
+            onClose={handleUserMenuClose}
+          >
+            <MenuItem onClick={handleUserMenuClose}>Profile</MenuItem>
+            <MenuItem onClick={handleLogout}>Logout</MenuItem>
+          </Menu>
+        </UserSection>
 
-      <SidebarContainer>
-        <Drawer
-          variant={isMobile ? 'temporary' : 'permanent'}
-          sx={{
-            '& .MuiDrawer-paper': {
-              display: 'flex',
-              flexDirection: 'column',
-            },
-          }}
-          open={menuOpen && isMobile}
-          onClose={toggleSidebar}
-          ModalProps={{
-            keepMounted: true,
-          }}
-        >
-          {/* User Section */}
-          <UserSection>
-            <Avatar sx={{ width: 48, height: 48 }} src="/path-to-user-image.jpg" />
-            <UserInfo>
-              <Typography className="MuiTypography-name">Janeth</Typography>
-              <Typography className="MuiTypography-role">Owner</Typography>
-            </UserInfo>
-            <IconButton onClick={handleUserMenuClick}>
-              <MoreVertIcon />
-            </IconButton>
-            <Menu
-              anchorEl={userMenuAnchor}
-              open={Boolean(userMenuAnchor)}
-              onClose={handleUserMenuClose}
-            >
-              <MenuItem onClick={handleUserMenuClose}>Profile</MenuItem>
-              <MenuItem onClick={handleLogout}>Logout</MenuItem>
-            </Menu>
-          </UserSection>
+        <Divider />
 
-          <Divider />
-
-          {/* Navigation Items */}
-          <List sx={{ flex: 1, overflowY: 'auto', pt: 0 }}>
-            {navigationItems.map((item) => (
-              <React.Fragment key={item.title}>
-                <ListItem disablePadding>
-                  {item.path ? (
-                    <Link
-                      to={item.path}
-                      style={{ width: '100%', textDecoration: 'none' }}
-                    >
-                      <ListItemButton onClick={() => item.children && handleItemClick(item.title)}>
-                        <ListItemIcon>{item.icon}</ListItemIcon>
-                        <ListItemText primary={item.title} />
-                        {item.children && (
-                          openItems.includes(item.title) ? <ExpandLess /> : <ExpandMore />
-                        )}
-                      </ListItemButton>
-                    </Link>
-                  ) : (
+        {/* Navigation Items */}
+        <List sx={{ flex: 1, overflowY: 'auto', pt: 0 }}>
+          {navigationItems.map((item) => (
+            <React.Fragment key={item.title}>
+              <ListItem disablePadding>
+                {/* Conditionally render Link only if 'path' is defined */}
+                {item.path ? (
+                  <Link
+                    to={item.path}  // Only render Link if path is defined
+                    style={{ width: '100%', textDecoration: 'none' }}
+                  >
                     <ListItemButton onClick={() => item.children && handleItemClick(item.title)}>
                       <ListItemIcon>{item.icon}</ListItemIcon>
                       <ListItemText primary={item.title} />
@@ -274,36 +258,46 @@ const Sidebar: React.FC = () => {
                         openItems.includes(item.title) ? <ExpandLess /> : <ExpandMore />
                       )}
                     </ListItemButton>
-                  )}
-                </ListItem>
-                {item.children && (
-                  <Collapse in={openItems.includes(item.title)} timeout="auto" unmountOnExit>
-                    <List component="div" disablePadding>
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.title}
-                          to={child.path}
-                          style={{ width: '100%', textDecoration: 'none' }}
-                        >
-                          <ListItemButton sx={{ pl: 4 }}>
-                            <ListItemText primary={child.title} />
-                          </ListItemButton>
-                        </Link>
-                      ))}
-                    </List>
-                  </Collapse>
+                  </Link>
+                ) : (
+                  // If no path is provided, render just the ListItemButton (no Link)
+                  <ListItemButton onClick={() => item.children && handleItemClick(item.title)}>
+                    <ListItemIcon>{item.icon}</ListItemIcon>
+                    <ListItemText primary={item.title} />
+                    {item.children && (
+                      openItems.includes(item.title) ? <ExpandLess /> : <ExpandMore />
+                    )}
+                  </ListItemButton>
                 )}
-              </React.Fragment>
-            ))}
-          </List>
+              </ListItem>
+              {item.children && (
+                <Collapse in={openItems.includes(item.title)} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {item.children.map((child) => (
+                      <Link
+                        key={child.title}
+                        to={child.path}  // Only render Link if path is defined
+                        style={{ width: '100%', textDecoration: 'none' }}
+                      >
+                        <ListItemButton sx={{ pl: 4 }}>
+                          <ListItemText primary={child.title} />
+                        </ListItemButton>
+                      </Link>
+                    ))}
+                  </List>
+                </Collapse>
+              )}
+            </React.Fragment>
+          ))}
+        </List>
 
-          {/* Footer */}
-          <Footer>
-            <Typography>J5 Pharmacy 2024 v.0.1.1-b1</Typography>
-          </Footer>
-        </Drawer>
-      </SidebarContainer>
-    </Box>
+
+        {/* Footer */}
+        <Footer>
+          <Typography>J5 Pharmacy 2024 v.0.1.1-b1</Typography>
+        </Footer>
+      </Drawer>
+    </SidebarContainer>
   );
 };
 
