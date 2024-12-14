@@ -16,6 +16,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { CartItem } from '../../types/cart';
 import { HeldTransaction } from '../../types/transaction';
 import * as handlers from './handlers';
+import { handleProcessReturn } from './handlers/processReturn';
 import SearchProductDialog from './dialogs/SearchProductDialog';
 import ConfirmationDialog from './dialogs/ConfirmationDialog';
 import { sampleItems } from '../../../../devtools/sampleData';
@@ -155,6 +156,7 @@ interface FunctionKeysProps {
   onManualSearchOpen: () => void;
   setRecallDialogOpen: (open: boolean) => void;
   setHoldDialogOpen: (open: boolean) => void;
+  setProcessReturnDialogOpen: (open: boolean) => void;
 }
 
 const FunctionKeys: React.FC<FunctionKeysProps> = ({
@@ -169,7 +171,8 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
   isCheckoutOpen,
   onManualSearchOpen,
   setRecallDialogOpen,
-  setHoldDialogOpen
+  setHoldDialogOpen,
+  setProcessReturnDialogOpen
 }) => {
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
@@ -199,7 +202,8 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
     setReportsDialogOpen: setReportsOpen,
     setConfirmationDialogOpen: setIsConfirmationDialogOpen,
     setRecallDialogOpen,
-    setHoldDialogOpen
+    setHoldDialogOpen,
+    setProcessReturnDialogOpen
   };
 
   console.log('FunctionKeys handlerProps:', handlerProps);

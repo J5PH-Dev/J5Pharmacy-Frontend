@@ -23,4 +23,5 @@ export interface FunctionHandlerProps {
   setHoldDialogOpen?: (open: boolean) => void;
   setReportsDialogOpen?: (open: boolean) => void;
   setConfirmationDialogOpen?: (open: boolean) => void;
+  setProcessReturnDialogOpen?: (open: boolean) => void;
 } 

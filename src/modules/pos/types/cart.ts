@@ -28,6 +28,7 @@ export interface CartItem {
   requiresPrescription: boolean;
   expiryDate: string;
   discount?: number;
+  stock: number;
 }
 
 export interface ReceiptItem extends Omit<CartItem, 'discount'> {

@@ -1,10 +1,42 @@
 import { CartState } from '../types/cart';
 import { HeldTransaction, Transaction } from '../types/transaction';
 
-const HELD_TRANSACTIONS_KEY = 'heldTransactions';
+// Helper function for date string
+const getCurrentDateString = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
+};
+
+// Storage keys and initialization
+const STORAGE_KEYS = {
+  HELD_TRANSACTIONS: 'devtools_held_transactions',
+  SEQUENCE: 'devtools_sequence_number',
+  DATE: 'devtools_current_date',
+  COMPLETED_TRANSACTIONS: 'devtools_completed_transactions'
+} as const;
+
+// Reset the sequential number at the start of each day
+export const resetDailySequence = () => {
+  const dateString = getCurrentDateString();
+  localStorage.setItem(STORAGE_KEYS.DATE, dateString);
+  localStorage.setItem(STORAGE_KEYS.SEQUENCE, '0');
+};
+
+// Initialize sequence number from storage or reset if it's a new day
+const initializeSequence = () => {
+  const storedDate = localStorage.getItem(STORAGE_KEYS.DATE);
+  const currentDate = getCurrentDateString();
+  
+  if (storedDate !== currentDate) {
+    resetDailySequence();
+  }
+};
 
 const getHeldTransactions = (): HeldTransaction[] => {
-  const stored = localStorage.getItem(HELD_TRANSACTIONS_KEY);
+  const stored = localStorage.getItem(STORAGE_KEYS.HELD_TRANSACTIONS);
   if (!stored) return [];
   try {
     return JSON.parse(stored);
@@ -12,6 +44,35 @@ const getHeldTransactions = (): HeldTransaction[] => {
     return [];
   }
 };
+
+const getNextSequenceNumber = (): number => {
+  const storedNumber = localStorage.getItem(STORAGE_KEYS.SEQUENCE);
+  const currentNumber = storedNumber ? parseInt(storedNumber, 10) : 0;
+  const nextNumber = (currentNumber >= 9999) ? 1 : currentNumber + 1;
+  localStorage.setItem(STORAGE_KEYS.SEQUENCE, nextNumber.toString());
+  return nextNumber;
+};
+
+export const generateTransactionId = (): string => {
+  const dateString = getCurrentDateString();
+  const storedDate = localStorage.getItem(STORAGE_KEYS.DATE);
+  
+  if (storedDate !== dateString) {
+    localStorage.setItem(STORAGE_KEYS.SEQUENCE, '0');
+    localStorage.setItem(STORAGE_KEYS.DATE, dateString);
+  }
+  
+  const sequentialNumber = getNextSequenceNumber();
+  return `${dateString}-${String(sequentialNumber).padStart(4, '0')}`;
+};
+
+export const resetInvoiceNumber = () => {
+  localStorage.setItem(STORAGE_KEYS.SEQUENCE, '0');
+  localStorage.setItem(STORAGE_KEYS.DATE, getCurrentDateString());
+};
+
+// Initialize on module load
+initializeSequence();
 
 export const transactionManager = {
   holdTransaction: (cartState: CartState, note?: string): HeldTransaction => {
@@ -25,18 +86,13 @@ export const transactionManager = {
       status: 'held',
       holdReason: note,
       prescriptionRequired: cartState.prescriptionRequired,
-      prescriptionVerified: cartState.prescriptionVerified,
+      prescriptionVerified: cartState.prescriptionVerified || false,
       discountType: 'None'
     };
 
-    // Get existing held transactions
     const existingTransactions = getHeldTransactions();
-    
-    // Add new transaction
     const updatedTransactions = [...existingTransactions, transaction];
-    
-    // Save to localStorage
-    localStorage.setItem(HELD_TRANSACTIONS_KEY, JSON.stringify(updatedTransactions));
+    localStorage.setItem(STORAGE_KEYS.HELD_TRANSACTIONS, JSON.stringify(updatedTransactions));
 
     return transaction;
   },
@@ -48,9 +104,8 @@ export const transactionManager = {
     const transaction = transactions.find(t => t.id === transactionId);
     
     if (transaction) {
-      // Remove from held transactions
       const updatedTransactions = transactions.filter(t => t.id !== transactionId);
-      localStorage.setItem(HELD_TRANSACTIONS_KEY, JSON.stringify(updatedTransactions));
+      localStorage.setItem(STORAGE_KEYS.HELD_TRANSACTIONS, JSON.stringify(updatedTransactions));
       return transaction;
     }
     
@@ -58,6 +113,13 @@ export const transactionManager = {
   },
 
   clearHeldTransactions: () => {
-    localStorage.removeItem(HELD_TRANSACTIONS_KEY);
+    localStorage.removeItem(STORAGE_KEYS.HELD_TRANSACTIONS);
+  },
+
+  saveCompletedTransaction: (transaction: Transaction) => {
+    const stored = localStorage.getItem(STORAGE_KEYS.COMPLETED_TRANSACTIONS);
+    const completedTransactions = stored ? JSON.parse(stored) : [];
+    completedTransactions.push(transaction);
+    localStorage.setItem(STORAGE_KEYS.COMPLETED_TRANSACTIONS, JSON.stringify(completedTransactions));
   }
 };

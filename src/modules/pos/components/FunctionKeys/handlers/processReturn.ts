@@ -2,7 +2,9 @@ import { FunctionHandlerProps } from '../types';
 
 export const handleProcessReturn = (props: FunctionHandlerProps) => {
   return () => {
-    // Implement return processing logic here
-    console.log('Process return handler called');
+    const { setProcessReturnDialogOpen } = props;
+    
+    // Open the process return dialog
+    setProcessReturnDialogOpen?.(true);
   };
 }; 

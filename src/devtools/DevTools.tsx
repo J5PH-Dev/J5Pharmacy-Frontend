@@ -14,19 +14,23 @@ import BuildIcon from '@mui/icons-material/Build';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import ClearAllIcon from '@mui/icons-material/ClearAll';
+import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
 import { sampleItems } from './sampleData';
 import { CartItem } from '../modules/pos/types/cart';
+import { resetInvoiceNumber } from '../modules/pos/utils/transactionManager';
 
 interface DevToolsProps {
   onAddSampleItems: (items: CartItem[]) => void;
   onResetStock: () => void;
   onClearCart: () => void;
+  onResetInvoice?: () => void;
 }
 
 const DevTools: React.FC<DevToolsProps> = ({ 
   onAddSampleItems, 
   onResetStock,
-  onClearCart 
+  onClearCart,
+  onResetInvoice
 }) => {
   const [open, setOpen] = useState(false);
   const [randomItemCount, setRandomItemCount] = useState(1);
@@ -78,17 +82,27 @@ const DevTools: React.FC<DevToolsProps> = ({
         handleClose();
       }
     },
+    {
+      icon: <FormatListNumberedIcon />,
+      name: 'Reset Invoice #',
+      onClick: () => {
+        resetInvoiceNumber();
+        onResetInvoice?.();
+        handleClose();
+      }
+    },
   ];
 
   return (
     <>
       <SpeedDial
         ariaLabel="Dev Tools"
-        sx={{ position: 'fixed', top: 16, left: 16 }}
+        sx={{ position: 'fixed', bottom: 16, right: 16 }}
         icon={<SpeedDialIcon icon={<BuildIcon />} />}
         onClose={handleClose}
         onOpen={handleOpen}
         open={open}
+        direction="up"
       >
         {actions.map((action) => (
           <SpeedDialAction

@@ -31,7 +31,8 @@ export const cartManager = {
         category: product.category,
         barcode: product.barcode,
         requiresPrescription: product.requiresPrescription,
-        expiryDate: product.expiryDate
+        expiryDate: product.expiryDate,
+        stock: product.stock
       };
       newItems = [...currentState.items, newItem];
     }

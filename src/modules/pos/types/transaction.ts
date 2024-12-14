@@ -6,24 +6,30 @@ export interface Transaction {
   items: CartItem[];
   timestamp: string;
   total: number;
-  status: 'active' | 'held' | 'completed' | 'cancelled';
+  subtotal: number;
+  discountType: DiscountType;
+  discountAmount: number;
+  vat: number;
   prescriptionRequired: boolean;
-  prescriptionVerified?: boolean;
-  notes?: string;
+  prescriptionVerified: boolean;
+  customerId?: string;
+  customerName?: string;
+  starPointsId?: string;
+  starPointsEarned?: number;
 }
 
 export interface HeldTransaction {
   id: string;
   items: CartItem[];
-  total: number;
   timestamp: string;
   holdTimestamp: string;
+  total: number;
   status: 'held';
+  holdReason?: string;
   prescriptionRequired: boolean;
-  prescriptionVerified?: boolean;
+  prescriptionVerified: boolean;
+  discountType: DiscountType;
   customerId?: string;
   customerName?: string;
   starPointsId?: string;
-  discountType: DiscountType;
-  holdReason?: string;
 }

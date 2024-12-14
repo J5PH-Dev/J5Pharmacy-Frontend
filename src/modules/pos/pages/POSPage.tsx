@@ -26,27 +26,22 @@ import HeldTransactionsDialog from '../components/FunctionKeys/dialogs/HeldTrans
 import QuantityDialog from '../components/FunctionKeys/dialogs/QuantityDialog';
 import NotificationStack, { Notification } from '../components/NotificationStack/NotificationStack';
 import HoldTransactionDialog from '../components/FunctionKeys/dialogs/HoldTransactionDialog';
+import { ProcessReturnDialog } from '../components/FunctionKeys/dialogs/ProcessReturnDialog';
 
 // Import types and utilities
 import { CartItem } from '../types/cart';
 import { DiscountType } from '../components/TransactionSummary/types';
 import { calculateTotals } from '../utils/calculations';
 import { cartItemToReceiptItem } from '../utils/mappers';
-import { HeldTransaction } from '../types/transaction';
+import { HeldTransaction, Transaction } from '../types/transaction';
 import { sampleItems } from '../../../devtools/sampleData';
-
-const generateTransactionId = (branchId: string = 'B001'): string => {
-  const now = new Date();
-  const dateStr = format(now, 'yyMMdd');
-  // In a real application, this number would come from a database or counter service
-  const sequenceNumber = '00001';
-  return `${branchId}-${dateStr}-${sequenceNumber}`;
-};
+import { generateTransactionId } from '../utils/transactionManager';
+import { devStorage } from '../../../devtools/storage';
 
 const POSPage: React.FC = () => {
   const { logout } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [transactionId] = useState<string>(() => generateTransactionId());
+  const [currentTransactionId, setCurrentTransactionId] = useState<string>(generateTransactionId());
   const [customerId, setCustomerId] = useState<string>();
   const [customerName, setCustomerName] = useState<string>();
   const [starPointsId, setStarPointsId] = useState<string>();
@@ -67,6 +62,7 @@ const POSPage: React.FC = () => {
   const [barcodeBuffer, setBarcodeBuffer] = useState<string>('');
   const [lastKeyTime, setLastKeyTime] = useState<number>(0);
   const [isHoldDialogOpen, setIsHoldDialogOpen] = useState(false);
+  const [isProcessReturnDialogOpen, setIsProcessReturnDialogOpen] = useState(false);
 
   const {
     subtotal,
@@ -112,6 +108,42 @@ const POSPage: React.FC = () => {
   };
 
   const handleCheckoutComplete = () => {
+    // Update stock levels
+    cartItems.forEach(cartItem => {
+      const itemIndex = sampleItems.findIndex(item => item.id === cartItem.id);
+      if (itemIndex !== -1) {
+        sampleItems[itemIndex] = {
+          ...sampleItems[itemIndex],
+          stock: sampleItems[itemIndex].stock - cartItem.quantity
+        };
+      }
+    });
+
+    // Save the completed transaction
+    const completedTransaction: Transaction = {
+      id: currentTransactionId,
+      items: cartItems,
+      timestamp: new Date().toISOString(),
+      total: total,
+      subtotal: subtotal,
+      discountType: discountType,
+      discountAmount: discountAmount,
+      vat: vat,
+      prescriptionRequired: cartItems.some(item => item.requiresPrescription),
+      prescriptionVerified: false,
+      customerId,
+      customerName,
+      starPointsId,
+      starPointsEarned
+    };
+    
+    devStorage.saveTransaction(completedTransaction);
+    showMessage('Transaction completed successfully', 'success');
+
+    // Generate new transaction ID for next transaction
+    setCurrentTransactionId(generateTransactionId());
+    
+    // Clear the cart and reset all states
     setCartItems([]);
     setDiscountType('None');
     setCustomDiscountValue(undefined);
@@ -145,18 +177,34 @@ const POSPage: React.FC = () => {
     const newItems = [...cartItems];
     const existingItemIndex = newItems.findIndex(item => item.id === product.id);
 
+    // Check if adding this quantity would exceed available stock
+    const requestedQuantity = product.quantity || 1;
+    const existingQuantity = existingItemIndex > -1 ? newItems[existingItemIndex].quantity : 0;
+    const totalRequestedQuantity = existingQuantity + requestedQuantity;
+
+    if (totalRequestedQuantity > product.stock) {
+      showMessage(
+        product.stock === 0 
+          ? `${product.name} is out of stock`
+          : `Cannot add ${requestedQuantity} units. Only ${product.stock - existingQuantity} units available.`,
+        'error'
+      );
+      return;
+    }
+
     if (existingItemIndex > -1) {
       // Update existing item quantity
       newItems[existingItemIndex] = {
         ...newItems[existingItemIndex],
-        quantity: newItems[existingItemIndex].quantity + (product.quantity || 1)
+        quantity: totalRequestedQuantity
       };
     } else {
       // Add new item with its quantity
-      newItems.push({ ...product, quantity: product.quantity || 1 });
+      newItems.push({ ...product, quantity: requestedQuantity });
     }
 
     setCartItems(newItems);
+    showMessage(`Added ${requestedQuantity}x ${product.name} to cart`, 'success');
   };
 
   const handleHoldTransaction = (note: string) => {
@@ -228,12 +276,17 @@ const POSPage: React.FC = () => {
       if (event.key === 'Tab') {
         event.preventDefault();
         setIsQuantityDialogOpen(true);
+      } else if (event.key === 'F10') {
+        event.preventDefault();
+        if (!isCheckoutOpen && cartItems.length > 0) {
+          handleCheckout();
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [cartItems.length, isCheckoutOpen]);
 
   const handleQuantityConfirm = (quantity: number) => {
     setPreSelectedQuantity(quantity);
@@ -305,13 +358,24 @@ const POSPage: React.FC = () => {
   // Update handleProductSelect
   const handleProductSelect = (product: CartItem) => {
     const quantity = preSelectedQuantity;
+    
+    // Check stock before adding
+    if (quantity > product.stock) {
+      showMessage(
+        product.stock === 0 
+          ? `${product.name} is out of stock`
+          : `Cannot add ${quantity} units. Only ${product.stock} units available.`,
+        'error'
+      );
+      return;
+    }
+
     handleAddProduct({ ...product, quantity });
     setPreSelectedQuantity(1); // Reset to 1 after adding
     setManualSearchOpen(false);
     setSearchQuery('');
     setSearchResults([]);
     setSelectedIndex(0);
-    showMessage(`Added ${quantity}x ${product.name} to cart`, 'success');
   };
 
   // Add barcode scanning handler
@@ -359,6 +423,12 @@ const POSPage: React.FC = () => {
       return;
     }
     setIsHoldDialogOpen(true);
+  };
+
+  // Add handler for processing returns
+  const handleProcessReturn = (transaction: Transaction) => {
+    // TODO: Implement return processing logic
+    showMessage(`Processing return for invoice ${transaction.id}`, 'info');
   };
 
   return (
@@ -447,6 +517,7 @@ const POSPage: React.FC = () => {
               onManualSearchOpen={() => setManualSearchOpen(true)}
               setRecallDialogOpen={setIsRecallDialogOpen}
               setHoldDialogOpen={setIsHoldDialogOpen}
+              setProcessReturnDialogOpen={setIsProcessReturnDialogOpen}
             />
           </Paper>
         </Grid>
@@ -478,7 +549,7 @@ const POSPage: React.FC = () => {
             <Grid item xs sx={{ minHeight: 0 }}>
               <Paper elevation={2} sx={{ height: '100%', overflow: 'hidden' }}>
                 <TransactionSummary
-                  transactionId={transactionId}
+                  transactionId={currentTransactionId}
                   customerId={customerId}
                   customerName={customerName}
                   starPointsId={starPointsId}
@@ -516,6 +587,10 @@ const POSPage: React.FC = () => {
         onAddSampleItems={handleAddSampleItems}
         onResetStock={() => {}}
         onClearCart={() => setCartItems([])}
+        onResetInvoice={() => {
+          setCurrentTransactionId(generateTransactionId());
+          showMessage('Invoice number has been reset', 'success');
+        }}
       />
       <DiscountDialog
         open={discountDialogOpen}
@@ -687,6 +762,16 @@ const POSPage: React.FC = () => {
                         variant="outlined"
                         sx={{ fontSize: '1rem' }}
                       />
+                      <Chip 
+                        label={product.stock === 0 ? 'Out of Stock' : `Stock: ${product.stock}`}
+                        size="small"
+                        color={product.stock === 0 ? 'error' : 'success'}
+                        variant={product.stock === 0 ? 'filled' : 'outlined'}
+                        sx={{ 
+                          fontSize: '1rem',
+                          fontWeight: product.stock === 0 ? 'bold' : 'normal'
+                        }}
+                      />
                     </Box>
                   }
                   secondary={
@@ -761,6 +846,13 @@ const POSPage: React.FC = () => {
         open={isHoldDialogOpen}
         onClose={() => setIsHoldDialogOpen(false)}
         onConfirm={handleHoldTransaction}
+      />
+
+      {/* Add ProcessReturnDialog */}
+      <ProcessReturnDialog
+        open={isProcessReturnDialogOpen}
+        onClose={() => setIsProcessReturnDialogOpen(false)}
+        onProcessReturn={handleProcessReturn}
       />
     </Box>
   );
