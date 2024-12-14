@@ -446,6 +446,7 @@ const POSPage: React.FC = () => {
               isCheckoutOpen={isCheckoutOpen}
               onManualSearchOpen={() => setManualSearchOpen(true)}
               setRecallDialogOpen={setIsRecallDialogOpen}
+              setHoldDialogOpen={setIsHoldDialogOpen}
             />
           </Paper>
         </Grid>

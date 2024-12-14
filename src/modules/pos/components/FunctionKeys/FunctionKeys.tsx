@@ -149,11 +149,12 @@ interface FunctionKeysProps {
     prescriptionVerified: boolean;
   };
   onClearCart: () => void;
-  onHoldTransaction: (transaction: HeldTransaction) => void;
+  onHoldTransaction: () => void;
   onRecallTransaction: (transaction: HeldTransaction) => void;
   isCheckoutOpen: boolean;
   onManualSearchOpen: () => void;
   setRecallDialogOpen: (open: boolean) => void;
+  setHoldDialogOpen: (open: boolean) => void;
 }
 
 const FunctionKeys: React.FC<FunctionKeysProps> = ({
@@ -167,7 +168,8 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
   onRecallTransaction,
   isCheckoutOpen,
   onManualSearchOpen,
-  setRecallDialogOpen
+  setRecallDialogOpen,
+  setHoldDialogOpen
 }) => {
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
@@ -196,7 +198,11 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
     setSearchDialogOpen: setIsSearchDialogOpen,
     setReportsDialogOpen: setReportsOpen,
     setConfirmationDialogOpen: setIsConfirmationDialogOpen,
+    setRecallDialogOpen,
+    setHoldDialogOpen
   };
+
+  console.log('FunctionKeys handlerProps:', handlerProps);
 
   const functionKeys: FunctionKey[] = [
     {
@@ -218,7 +224,12 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
       label: 'Hold Transaction',
       description: 'Temporarily hold current transaction',
       icon: <PauseIcon />,
-      action: handlers.handleHoldTransaction(handlerProps),
+      action: () => {
+        console.log('F3 Hold Transaction clicked');
+        const holdHandler = handlers.handleHoldTransaction(handlerProps);
+        console.log('Hold handler created:', holdHandler);
+        holdHandler();
+      },
     },
     {
       key: 'F4',
@@ -226,7 +237,6 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
       description: 'Recall a held transaction',
       icon: <RestoreIcon />,
       action: handlers.handleRecallTransaction(handlerProps),
-      disabled: !cartState.prescriptionVerified,
     },
     {
       key: 'F5',

@@ -15,11 +15,12 @@ export interface FunctionHandlerProps {
   };
   onAddProduct?: (product: CartItem) => void;
   onClearCart?: () => void;
-  onHoldTransaction?: (transaction: HeldTransaction) => void;
+  onHoldTransaction?: () => void;
   onRecallTransaction?: (transaction: HeldTransaction) => void;
   isCheckoutOpen?: boolean;
   setSearchDialogOpen?: (open: boolean) => void;
   setRecallDialogOpen?: (open: boolean) => void;
+  setHoldDialogOpen?: (open: boolean) => void;
   setReportsDialogOpen?: (open: boolean) => void;
   setConfirmationDialogOpen?: (open: boolean) => void;
 } 
