@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Box, List, ListItem, ListItemButton, ListItemText, Typography, Badge, Dialog, DialogTitle, DialogContent, Button, Stack } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, List, ListItem, ListItemButton, ListItemText, Typography, Badge, Snackbar, Alert, 
+  Dialog, DialogTitle, DialogContent, TextField, DialogActions, Button } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -10,7 +11,6 @@ import RestoreIcon from '@mui/icons-material/Restore';
 import AssignmentReturnIcon from '@mui/icons-material/AssignmentReturn';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
-import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 
 // Import components
 import { CartItem } from '../../types/cart';
@@ -18,6 +18,7 @@ import { HeldTransaction } from '../../types/transaction';
 import * as handlers from './handlers';
 import SearchProductDialog from './dialogs/SearchProductDialog';
 import ConfirmationDialog from './dialogs/ConfirmationDialog';
+import { sampleItems } from '../../../../devtools/sampleData';
 
 // Function key type definition
 interface FunctionKey {
@@ -150,6 +151,7 @@ interface FunctionKeysProps {
   onClearCart: () => void;
   onRecallTransaction: (transaction: HeldTransaction) => void;
   isCheckoutOpen: boolean;
+  onManualSearchOpen: () => void;
 }
 
 const FunctionKeys: React.FC<FunctionKeysProps> = ({
@@ -160,11 +162,20 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
   cartState,
   onClearCart,
   onRecallTransaction,
-  isCheckoutOpen
+  isCheckoutOpen,
+  onManualSearchOpen
 }) => {
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [isConfirmationDialogOpen, setIsConfirmationDialogOpen] = useState(false);
+  const [barcodeBuffer, setBarcodeBuffer] = useState('');
+  const [snackbar, setSnackbar] = useState<{open: boolean; message: string; severity: 'success' | 'error'}>({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+  const [isBarcodeScanMode, setIsBarcodeScanMode] = useState(false);
+  const [lastKeyPressTime, setLastKeyPressTime] = useState(0);
 
   const handleConfirmNewTransaction = () => {
     onClearCart();
@@ -270,6 +281,80 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [functionKeys, onLogout]);
 
+  // Handle keyboard input
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // Skip if the event originated from an input element
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Only accept alphanumeric characters
+      if (/^[a-zA-Z0-9]$/.test(event.key)) {
+        // Check for rapid keystrokes (barcode scanner)
+        const now = Date.now();
+        if (now - lastKeyPressTime < 50) {
+          setBarcodeBuffer(prev => prev + event.key);
+        } else {
+          // Manual typing - open search
+          onManualSearchOpen();
+        }
+        setLastKeyPressTime(now);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Handle Enter for barcode
+      if (event.key === 'Enter' && barcodeBuffer) {
+        event.preventDefault();
+        
+        // Find product in sampleItems by barcode
+        const foundProduct = sampleItems.find(item => item.barcode === barcodeBuffer);
+        
+        if (foundProduct) {
+          onAddProduct({
+            ...foundProduct,
+            quantity: 1
+          });
+          setSnackbar({
+            open: true,
+            message: `Added ${foundProduct.name} to cart`,
+            severity: 'success'
+          });
+        } else {
+          setSnackbar({
+            open: true,
+            message: `No product found for barcode: ${barcodeBuffer}`,
+            severity: 'error'
+          });
+        }
+        
+        setBarcodeBuffer('');
+      }
+
+      // Handle function keys
+      const key = event.key.toUpperCase();
+      if (key === 'F12') {
+        event.preventDefault();
+        onLogout();
+      } else {
+        const functionKey = functionKeys.find(fk => fk.key === key);
+        if (functionKey) {
+          event.preventDefault();
+          functionKey.action();
+        }
+      }
+    };
+
+    window.addEventListener('keypress', handleKeyPress);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keypress', handleKeyPress);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [barcodeBuffer, onAddProduct, onLogout, functionKeys, onManualSearchOpen]);
+
   return (
     <FunctionKeysContainer>
       <StyledList>
@@ -359,6 +444,16 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
         onConfirm={handleConfirmNewTransaction}
         message="You have items in your cart. Are you sure you want to start a new transaction?"
       />
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={2000} 
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert severity={snackbar.severity} variant="filled">
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </FunctionKeysContainer>
   );
 };
