@@ -10,7 +10,6 @@ import { useAuth } from '../../../modules/auth/contexts/AuthContext';
 
 // Import POS components
 import Header from '../components/Header';
-import TransactionInfo from '../components/TransactionInfo';
 import FunctionKeys from '../components/FunctionKeys';
 import Cart from '../components/Cart';
 import ActionButtons from '../../../core/components/ActionButtons';
