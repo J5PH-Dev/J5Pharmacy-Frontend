@@ -16,10 +16,10 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { CartItem } from '../../types/cart';
 import { HeldTransaction } from '../../types/transaction';
 import * as handlers from './handlers';
-import { handleProcessReturn } from './handlers/processReturn';
 import SearchProductDialog from './dialogs/SearchProductDialog';
 import ConfirmationDialog from './dialogs/ConfirmationDialog';
 import { sampleItems } from '../../../../devtools/sampleData';
+import PrescriptionDialog from './dialogs/PrescriptionDialog';
 
 // Function key type definition
 interface FunctionKey {
@@ -157,6 +157,7 @@ interface FunctionKeysProps {
   setRecallDialogOpen: (open: boolean) => void;
   setHoldDialogOpen: (open: boolean) => void;
   setProcessReturnDialogOpen: (open: boolean) => void;
+  setPrescriptionVerified: (verified: boolean) => void;
 }
 
 const FunctionKeys: React.FC<FunctionKeysProps> = ({
@@ -172,11 +173,13 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
   onManualSearchOpen,
   setRecallDialogOpen,
   setHoldDialogOpen,
-  setProcessReturnDialogOpen
+  setProcessReturnDialogOpen,
+  setPrescriptionVerified
 }) => {
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [isConfirmationDialogOpen, setIsConfirmationDialogOpen] = useState(false);
+  const [isPrescriptionDialogOpen, setIsPrescriptionDialogOpen] = useState(false);
   const [barcodeBuffer, setBarcodeBuffer] = useState('');
   const [snackbar, setSnackbar] = useState<{open: boolean; message: string; severity: 'success' | 'error'}>({
     open: false,
@@ -203,7 +206,8 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
     setConfirmationDialogOpen: setIsConfirmationDialogOpen,
     setRecallDialogOpen,
     setHoldDialogOpen,
-    setProcessReturnDialogOpen
+    setProcessReturnDialogOpen,
+    setPrescriptionDialogOpen: setIsPrescriptionDialogOpen
   };
 
   console.log('FunctionKeys handlerProps:', handlerProps);
@@ -461,6 +465,14 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
         onClose={() => setIsConfirmationDialogOpen(false)}
         onConfirm={handleConfirmNewTransaction}
         message="You have items in your cart. Are you sure you want to start a new transaction?"
+      />
+      <PrescriptionDialog
+        open={isPrescriptionDialogOpen}
+        onClose={() => setIsPrescriptionDialogOpen(false)}
+        onAddToCart={(items: CartItem[]) => items.forEach((item) => onAddProduct(item))}
+        currentItems={currentItems}
+        onManualSearchOpen={onManualSearchOpen}
+        setPrescriptionVerified={setPrescriptionVerified}
       />
       <Snackbar 
         open={snackbar.open} 

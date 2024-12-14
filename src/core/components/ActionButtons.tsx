@@ -1,11 +1,10 @@
 import React from 'react';
-import { Button, Stack } from '@mui/material';
+import { Stack, Button, Tooltip } from '@mui/material';
 import ShoppingCartCheckoutIcon from '@mui/icons-material/ShoppingCartCheckout';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PrintIcon from '@mui/icons-material/Print';
-import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import DiscountIcon from '@mui/icons-material/Discount';
 import PersonIcon from '@mui/icons-material/Person';
-import { DiscountType } from '../../modules/pos/components/TransactionSummary/types';
 
 interface ActionButtonsProps {
   onCheckout: () => void;
@@ -14,7 +13,8 @@ interface ActionButtonsProps {
   onDiscount: () => void;
   onCustomerInfo: () => void;
   isCartEmpty: boolean;
-  currentDiscount: DiscountType;
+  currentDiscount?: string;
+  disabled?: boolean;
 }
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -24,64 +24,71 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   onDiscount,
   onCustomerInfo,
   isCartEmpty,
-  currentDiscount
+  currentDiscount,
+  disabled
 }) => {
   return (
     <Stack spacing={2}>
-      <Button
-        variant="contained"
-        color="primary"
-        size="large"
-        onClick={onCheckout}
-        disabled={isCartEmpty}
-        startIcon={<ShoppingCartCheckoutIcon />}
-        fullWidth
-        sx={{ 
-          height: '50px',
-          fontSize: '1.1rem'
-        }}
+      <Tooltip 
+        title={disabled ? "Please verify prescription before checkout" : ""}
+        placement="top"
       >
-        F10 Checkout
-      </Button>
-      
+        <span style={{ width: '100%' }}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<ShoppingCartCheckoutIcon />}
+            onClick={onCheckout}
+            disabled={isCartEmpty || disabled}
+            fullWidth
+            sx={{ 
+              height: '50px',
+              fontSize: '1.1rem'
+            }}
+          >
+            F10 Checkout
+          </Button>
+        </span>
+      </Tooltip>
+
       <Stack direction="row" spacing={1}>
         <Button
           variant="outlined"
           color="error"
+          startIcon={<DeleteIcon />}
           onClick={onVoid}
           disabled={isCartEmpty}
-          startIcon={<DeleteIcon />}
           sx={{ flex: 1 }}
         >
           Void
         </Button>
         <Button
           variant="outlined"
+          startIcon={<PrintIcon />}
           onClick={onPrint}
           disabled={isCartEmpty}
-          startIcon={<PrintIcon />}
           sx={{ flex: 1 }}
         >
           Print
         </Button>
       </Stack>
-      
+
       <Stack direction="row" spacing={1}>
         <Button
           variant="outlined"
-          color={currentDiscount !== 'None' ? 'success' : 'primary'}
+          color={currentDiscount ? 'success' : 'primary'}
+          startIcon={<DiscountIcon />}
           onClick={onDiscount}
           disabled={isCartEmpty}
-          startIcon={<LocalOfferIcon />}
           sx={{ flex: 1 }}
         >
           Discount
         </Button>
         <Button
           variant="outlined"
+          startIcon={<PersonIcon />}
           onClick={onCustomerInfo}
           disabled={isCartEmpty}
-          startIcon={<PersonIcon />}
           sx={{ flex: 1 }}
         >
           Customer

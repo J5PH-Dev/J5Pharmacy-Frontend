@@ -1,27 +1,19 @@
-import { CartItem } from '../../types/cart';
-import { HeldTransaction } from '../../types/transaction';
+import { CartState } from '../../types/cart';
 
-export interface FunctionHandlerProps {
-  cartState: {
-    items: CartItem[];
-    totals: {
-      subtotal: number;
-      totalDiscount: number;
-      total: number;
-      itemCount: number;
-    };
-    prescriptionRequired: boolean;
-    prescriptionVerified: boolean;
-  };
-  onAddProduct?: (product: CartItem) => void;
-  onClearCart?: () => void;
-  onHoldTransaction?: () => void;
-  onRecallTransaction?: (transaction: HeldTransaction) => void;
-  isCheckoutOpen?: boolean;
-  setSearchDialogOpen?: (open: boolean) => void;
-  setRecallDialogOpen?: (open: boolean) => void;
-  setHoldDialogOpen?: (open: boolean) => void;
-  setReportsDialogOpen?: (open: boolean) => void;
-  setConfirmationDialogOpen?: (open: boolean) => void;
-  setProcessReturnDialogOpen?: (open: boolean) => void;
-} 
+export interface HandlerProps {
+  cartState: CartState;
+  onAddProduct: (product: any) => void;
+  onClearCart: () => void;
+  onRecallTransaction: (transaction: any) => void;
+  isCheckoutOpen: boolean;
+  setSearchDialogOpen: (open: boolean) => void;
+  setReportsDialogOpen: (open: boolean) => void;
+  setConfirmationDialogOpen: (open: boolean) => void;
+  setRecallDialogOpen: (open: boolean) => void;
+  setHoldDialogOpen: (open: boolean) => void;
+  setProcessReturnDialogOpen: (open: boolean) => void;
+  setPrescriptionDialogOpen: (open: boolean) => void;
+}
+
+// Alias for backward compatibility
+export type FunctionHandlerProps = HandlerProps; 

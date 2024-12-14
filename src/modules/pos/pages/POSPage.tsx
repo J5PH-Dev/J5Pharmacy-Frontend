@@ -63,6 +63,7 @@ const POSPage: React.FC = () => {
   const [lastKeyTime, setLastKeyTime] = useState<number>(0);
   const [isHoldDialogOpen, setIsHoldDialogOpen] = useState(false);
   const [isProcessReturnDialogOpen, setIsProcessReturnDialogOpen] = useState(false);
+  const [prescriptionVerified, setPrescriptionVerified] = useState(false);
 
   const {
     subtotal,
@@ -104,6 +105,11 @@ const POSPage: React.FC = () => {
   };
 
   const handleCheckout = () => {
+    const hasRxItems = cartItems.some(item => item.requiresPrescription);
+    if (hasRxItems && !prescriptionVerified) {
+      showMessage('Please verify prescription before checkout', 'error');
+      return;
+    }
     setIsCheckoutOpen(true);
   };
 
@@ -157,6 +163,7 @@ const POSPage: React.FC = () => {
     setCartItems([]);
     setDiscountType('None');
     setCustomDiscountValue(undefined);
+    setPrescriptionVerified(false);
   };
 
   const handlePrint = () => {
@@ -201,6 +208,11 @@ const POSPage: React.FC = () => {
     } else {
       // Add new item with its quantity
       newItems.push({ ...product, quantity: requestedQuantity });
+    }
+
+    // Reset prescription verification if adding new Rx item
+    if (product.requiresPrescription) {
+      setPrescriptionVerified(false);
     }
 
     setCartItems(newItems);
@@ -431,6 +443,12 @@ const POSPage: React.FC = () => {
     showMessage(`Processing return for invoice ${transaction.id}`, 'info');
   };
 
+  // Add prescription verification handler
+  const handlePrescriptionVerified = () => {
+    setPrescriptionVerified(true);
+    showMessage('Prescription verified successfully', 'success');
+  };
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -505,19 +523,20 @@ const POSPage: React.FC = () => {
                   subtotal,
                   totalDiscount: discountAmount,
                   total,
-                  itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0)
+                  itemCount: cartItems.length
                 },
                 prescriptionRequired: cartItems.some(item => item.requiresPrescription),
-                prescriptionVerified: false
+                prescriptionVerified
               }}
               onClearCart={handleVoid}
-              onHoldTransaction={handleHoldClick}
+              onHoldTransaction={() => handleHoldClick()}
               onRecallTransaction={handleRecallTransaction}
               isCheckoutOpen={isCheckoutOpen}
               onManualSearchOpen={() => setManualSearchOpen(true)}
               setRecallDialogOpen={setIsRecallDialogOpen}
               setHoldDialogOpen={setIsHoldDialogOpen}
               setProcessReturnDialogOpen={setIsProcessReturnDialogOpen}
+              setPrescriptionVerified={setPrescriptionVerified}
             />
           </Paper>
         </Grid>
@@ -575,6 +594,7 @@ const POSPage: React.FC = () => {
                   onCustomerInfo={handleCustomerInfo}
                   isCartEmpty={cartItems.length === 0}
                   currentDiscount={discountType}
+                  disabled={cartItems.some(item => item.requiresPrescription) && !prescriptionVerified}
                 />
               </Paper>
             </Grid>

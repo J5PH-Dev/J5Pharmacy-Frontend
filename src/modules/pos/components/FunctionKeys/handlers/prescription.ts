@@ -1,6 +1,6 @@
-import { FunctionHandlerProps } from '../types';
+import { HandlerProps } from '../types';
 
-export const handlePrescription = (props: FunctionHandlerProps) => {
+export const handlePrescription = (props: HandlerProps) => {
   return () => {
     // Implement prescription management logic here
     console.log('Prescription handler called');
