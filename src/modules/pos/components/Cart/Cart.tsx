@@ -1,179 +1,218 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
+  Box,
   Table,
   TableBody,
+  TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Box,
-  Typography,
   Paper,
+  Typography,
+  Chip
 } from '@mui/material';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import { CartItem } from '../../types/cart';
-import { StyledTableCell, StyledTableRow } from './styles';
-import { alpha } from '@mui/material/styles';
 
 interface CartProps {
   items: CartItem[];
   setItems: (items: CartItem[]) => void;
 }
 
-export default function Cart({ items, setItems }: CartProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startY, setStartY] = useState(0);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+const Cart: React.FC<CartProps> = ({ items, setItems }) => {
+  const tableContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto scroll to bottom when items change
+  // Calculate total quantity
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Scroll to bottom whenever items change
   useEffect(() => {
-    if (containerRef.current && items.length > 0) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    if (tableContainerRef.current && items.length > 0) {
+      const scrollContainer = tableContainerRef.current;
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
   }, [items]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setStartY(e.pageY - (containerRef.current?.offsetTop || 0));
-    setScrollTop(containerRef.current?.scrollTop || 0);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    
-    const y = e.pageY - (containerRef.current?.offsetTop || 0);
-    const walk = (y - startY) * 2; // Scroll speed multiplier
-    if (containerRef.current) {
-      containerRef.current.scrollTop = scrollTop - walk;
+  const getSkuChipColor = (sku: 'Piece' | 'Box') => {
+    switch (sku) {
+      case 'Piece':
+        return 'secondary';
+      case 'Box':
+        return 'info';
+      default:
+        return 'default';
     }
   };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleMouseLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleCheckout = () => {
-    setCheckoutDialogOpen(true);
-  };
-
-  const handleCheckoutComplete = () => {
-    // Checkout completed, transaction saved
-  };
-
-  const handleClearCart = () => {
-    setItems([]);
-  };
-
   return (
-    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box
-        sx={{
-          py: 1,
-          px: 2,
-          borderBottom: 1,
-          borderColor: 'divider',
-          backgroundColor: 'background.paper',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}
-      >
-        <Typography variant="h6" component="h2">
-          Cart
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          {items.length} items
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column',
+      height: '100%',
+      maxHeight: '100%',
+      overflow: 'hidden'
+    }}>
+      <Box sx={{ p: 2, flexShrink: 0 }}>
+        <Typography variant="h4" fontWeight="bold">
+          Cart {items.length > 0 && `(${totalQuantity} items)`}
         </Typography>
       </Box>
       
       <TableContainer 
-        ref={containerRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        sx={{
-          flex: 1,
+        component={Paper} 
+        elevation={0}
+        ref={tableContainerRef}
+        sx={{ 
+          flexGrow: 1,
+          minHeight: 0,
           overflow: 'auto',
-          userSelect: 'none', // Prevent text selection while dragging
           '&::-webkit-scrollbar': {
-            width: '18px',
-            height: '12px', 
+            width: '8px',
           },
           '&::-webkit-scrollbar-track': {
-            backgroundColor: theme => alpha(theme.palette.grey[200], 0.8),
-            borderRadius: '6px',
-            margin: 1,
+            backgroundColor: 'background.paper',
           },
           '&::-webkit-scrollbar-thumb': {
-            backgroundColor: theme => alpha(theme.palette.primary.light, 0.5),
-            borderRadius: '8px',
-            border: '5px solid transparent',
-            backgroundClip: 'padding-box',
-            '&:hover': {
-              backgroundColor: theme => alpha(theme.palette.primary.light, 0.9),
-              border: '6px solid transparent',
-            },
+            backgroundColor: 'primary.light',
+            borderRadius: '4px',
           },
         }}
       >
-        <Table stickyHeader size="small" sx={{ minWidth: 800 }}>
+        <Table stickyHeader size="medium">
           <TableHead>
             <TableRow>
-              <StyledTableCell>Item Code</StyledTableCell>
-              <StyledTableCell>Product Name</StyledTableCell>
-              <StyledTableCell align="center">Rx</StyledTableCell>
-              <StyledTableCell>Brand</StyledTableCell>
-              <StyledTableCell>Category</StyledTableCell>
-              <StyledTableCell>Dosage</StyledTableCell>
-              <StyledTableCell align="right">Price</StyledTableCell>
-              <StyledTableCell align="right">Qty</StyledTableCell>
-              <StyledTableCell align="right">Amount</StyledTableCell>
+              <TableCell 
+                sx={{ 
+                  backgroundColor: 'background.paper',
+                  fontWeight: 'bold',
+                  fontSize: '1.25rem',
+                  py: 2.5,
+                  width: '45%'
+                }}
+              >
+                Product
+              </TableCell>
+              <TableCell 
+                align="center"
+                sx={{ 
+                  backgroundColor: 'background.paper',
+                  fontWeight: 'bold',
+                  fontSize: '1.25rem',
+                  py: 2.5,
+                  width: '15%'
+                }}
+              >
+                Quantity
+              </TableCell>
+              <TableCell 
+                align="right"
+                sx={{ 
+                  backgroundColor: 'background.paper',
+                  fontWeight: 'bold',
+                  fontSize: '1.25rem',
+                  py: 2.5,
+                  width: '20%'
+                }}
+              >
+                Price
+              </TableCell>
+              <TableCell 
+                align="right"
+                sx={{ 
+                  backgroundColor: 'background.paper',
+                  fontWeight: 'bold',
+                  fontSize: '1.25rem',
+                  py: 2.5,
+                  width: '20%'
+                }}
+              >
+                Total
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {items.map((item, index) => (
-              <StyledTableRow key={`${item.itemCode}-${index}`}>
-                <StyledTableCell>{item.itemCode}</StyledTableCell>
-                <StyledTableCell>{item.productName}</StyledTableCell>
-                <StyledTableCell align="center">
-                  {item.requiresPrescription && (
-                    <LocalHospitalIcon 
-                      color="error" 
-                      fontSize="small"
-                      titleAccess="Requires Prescription"
-                    />
-                  )}
-                </StyledTableCell>
-                <StyledTableCell>{item.brand}</StyledTableCell>
-                <StyledTableCell>{item.category}</StyledTableCell>
-                <StyledTableCell>{item.dosage}</StyledTableCell>
-                <StyledTableCell align="right">
-                  {item.price.toLocaleString('en-US', {
-                    style: 'currency',
-                    currency: 'PHP'
-                  })}
-                </StyledTableCell>
-                <StyledTableCell align="right">{item.quantity}</StyledTableCell>
-                <StyledTableCell align="right">
-                  {(item.price * item.quantity).toLocaleString('en-US', {
-                    style: 'currency',
-                    currency: 'PHP'
-                  })}
-                </StyledTableCell>
-              </StyledTableRow>
-            ))}
-            <TableRow>
-              <StyledTableCell colSpan={9} sx={{ border: 0, p: 0.5 }} />
-            </TableRow>
+            {items.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
+                  <Typography variant="h5" color="text.secondary">
+                    Cart is empty
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              items.map((item, index) => (
+                <TableRow 
+                  key={item.id} 
+                  sx={{ 
+                    '&:hover': { bgcolor: 'action.hover' },
+                    bgcolor: index % 2 === 0 ? 'action.hover' : 'background.paper',
+                    transition: 'background-color 0.2s ease'
+                  }}
+                >
+                  <TableCell sx={{ py: 2.5 }}>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 500, lineHeight: 1.3 }}>
+                        {item.name}
+                      </Typography>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        mt: 0.8,
+                        flexWrap: 'wrap'
+                      }}>
+                        <Typography 
+                          variant="body1" 
+                          color="text.secondary"
+                          sx={{ fontSize: '1.1rem' }}
+                        >
+                          {item.category} • {item.dosage_amount}{item.dosage_unit}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Chip 
+                            label={item.SKU}
+                            size="medium"
+                            color={getSkuChipColor(item.SKU)}
+                            variant="outlined"
+                            sx={{ 
+                              fontSize: '1rem',
+                              height: 32,
+                              borderRadius: '16px',
+                              minWidth: '80px'
+                            }}
+                          />
+                          {item.requiresPrescription && (
+                            <Chip 
+                              label="Rx"
+                              size="medium"
+                              color="error"
+                              sx={{ 
+                                fontSize: '1rem',
+                                height: 32,
+                                fontWeight: 'bold'
+                              }}
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    </Box>
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontSize: '1.25rem', py: 2.5 }}>
+                    {item.quantity}
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontSize: '1.25rem', py: 2.5 }}>
+                    ₱{item.price.toFixed(2)}
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontSize: '1.25rem', py: 2.5 }}>
+                    ₱{(item.price * item.quantity).toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
     </Box>
   );
-}
+};
+
+export default Cart;
