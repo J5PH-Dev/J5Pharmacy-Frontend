@@ -6,6 +6,9 @@ import { format } from 'date-fns';
 import { Snackbar, Alert, Dialog, DialogTitle, DialogContent, TextField, DialogActions, Button, List, ListItem, ListItemText, IconButton, Typography, Chip, InputAdornment } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
+import Badge from '@mui/material/Badge';
+import Tooltip from '@mui/material/Tooltip';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 
 // Import auth context
 import { useAuth } from '../../../modules/auth/contexts/AuthContext';
@@ -19,6 +22,10 @@ import DiscountDialog from '../components/DiscountDialog';
 import TransactionSummary from '../components/TransactionSummary/TransactionSummary';
 import { CheckoutDialog } from '../components/CheckoutDialog/CheckoutDialog';
 import DevTools from '../../../devtools/DevTools';
+import HeldTransactionsDialog from '../components/FunctionKeys/dialogs/HeldTransactionsDialog';
+import QuantityDialog from '../components/FunctionKeys/dialogs/QuantityDialog';
+import NotificationStack, { Notification } from '../components/NotificationStack/NotificationStack';
+import HoldTransactionDialog from '../components/FunctionKeys/dialogs/HoldTransactionDialog';
 
 // Import types and utilities
 import { CartItem } from '../types/cart';
@@ -44,31 +51,22 @@ const POSPage: React.FC = () => {
   const [customerName, setCustomerName] = useState<string>();
   const [starPointsId, setStarPointsId] = useState<string>();
   const [discountType, setDiscountType] = useState<DiscountType>('None');
-  const [heldTransactions, setHeldTransactions] = useState<{
-    id: string;
-    items: CartItem[];
-    customerId?: string;
-    customerName?: string;
-    starPointsId?: string;
-    discountType: DiscountType;
-  }[]>([]);
+  const [heldTransactions, setHeldTransactions] = useState<HeldTransaction[]>([]);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [customDiscountValue, setCustomDiscountValue] = useState<number>();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [starPointsEarned, setStarPointsEarned] = useState(0);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'warning' | 'error' | 'info';
-  }>({
-    open: false,
-    message: '',
-    severity: 'info'
-  });
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [manualSearchOpen, setManualSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<CartItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isRecallDialogOpen, setIsRecallDialogOpen] = useState(false);
+  const [preSelectedQuantity, setPreSelectedQuantity] = useState<number>(1);
+  const [isQuantityDialogOpen, setIsQuantityDialogOpen] = useState(false);
+  const [barcodeBuffer, setBarcodeBuffer] = useState<string>('');
+  const [lastKeyTime, setLastKeyTime] = useState<number>(0);
+  const [isHoldDialogOpen, setIsHoldDialogOpen] = useState(false);
 
   const {
     subtotal,
@@ -79,7 +77,16 @@ const POSPage: React.FC = () => {
   } = calculateTotals(cartItems, discountType, customDiscountValue);
 
   const showMessage = (message: string, severity: 'success' | 'warning' | 'error' | 'info') => {
-    setSnackbar({ open: true, message, severity });
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      message,
+      severity,
+    };
+    setNotifications(prev => [newNotification, ...prev]);
+  };
+
+  const handleNotificationClose = (id: string) => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
   };
 
   const handleDiscountClick = () => {
@@ -152,8 +159,51 @@ const POSPage: React.FC = () => {
     setCartItems(newItems);
   };
 
+  const handleHoldTransaction = (note: string) => {
+    const timestamp = new Date().toISOString();
+    const transaction: HeldTransaction = {
+      id: `HOLD-${Date.now()}`,
+      items: cartItems,
+      total: total,
+      timestamp: timestamp,
+      holdTimestamp: timestamp,
+      status: 'held',
+      prescriptionRequired: cartItems.some(item => item.requiresPrescription),
+      prescriptionVerified: false,
+      discountType: discountType,
+      holdReason: note,
+      customerId,
+      customerName,
+      starPointsId
+    };
+
+    setHeldTransactions(prev => [...prev, transaction]);
+    setCartItems([]);
+    setDiscountType('None');
+    setCustomDiscountValue(undefined);
+    setCustomerId(undefined);
+    setCustomerName(undefined);
+    setStarPointsId(undefined);
+    showMessage('Transaction held successfully', 'success');
+  };
+
   const handleRecallTransaction = (transaction: HeldTransaction) => {
+    // Check if cart is not empty
+    if (cartItems.length > 0) {
+      showMessage('Please clear the current cart before recalling a transaction', 'error');
+      return;
+    }
+
+    // Set cart items from held transaction
     setCartItems(transaction.items);
+    setDiscountType(transaction.discountType);
+    if (transaction.customerId) setCustomerId(transaction.customerId);
+    if (transaction.customerName) setCustomerName(transaction.customerName);
+    if (transaction.starPointsId) setStarPointsId(transaction.starPointsId);
+
+    // Remove the transaction from held transactions
+    setHeldTransactions(prev => prev.filter(t => t.id !== transaction.id));
+    setIsRecallDialogOpen(false);
     showMessage('Transaction recalled successfully', 'success');
   };
 
@@ -166,6 +216,29 @@ const POSPage: React.FC = () => {
   useEffect(() => {
     setSelectedIndex(0);
   }, [searchResults]);
+
+  // Update global keyboard handler
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Skip if the event originated from an input element
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        setIsQuantityDialogOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleQuantityConfirm = (quantity: number) => {
+    setPreSelectedQuantity(quantity);
+    showMessage(`Pre-selected quantity set to ${quantity}`, 'info');
+  };
 
   // Handle manual search
   const handleManualSearch = (query: string) => {
@@ -191,7 +264,20 @@ const POSPage: React.FC = () => {
 
   // Handle keyboard navigation in search
   const handleSearchKeyDown = (event: React.KeyboardEvent) => {
-    if (searchResults.length === 0) return;
+    if (searchResults.length === 0) {
+      if (event.key === 'Enter') {
+        const query = searchQuery;
+        // Show notification for any non-empty query that could be a barcode
+        // Allow any character except spaces and control characters
+        if (query && /^[^\s]+$/.test(query)) {
+          showMessage(`No product found with barcode: ${query}`, 'error');
+        }
+        setManualSearchOpen(false);
+        setSearchQuery('');
+        setSearchResults([]);
+      }
+      return;
+    }
 
     switch (event.key) {
       case 'ArrowDown':
@@ -204,14 +290,7 @@ const POSPage: React.FC = () => {
         break;
       case 'Enter':
         event.preventDefault();
-        if (searchResults.length > 0) {
-          handleProductSelect(searchResults[selectedIndex]);
-        } else {
-          showMessage('Product not found', 'error');
-          setManualSearchOpen(false);
-          setSearchQuery('');
-          setSearchResults([]);
-        }
+        handleProductSelect(searchResults[selectedIndex]);
         break;
       case 'Backspace':
         if (searchQuery.length <= 1) {
@@ -223,14 +302,63 @@ const POSPage: React.FC = () => {
     }
   };
 
-  // Handle product selection from search
+  // Update handleProductSelect
   const handleProductSelect = (product: CartItem) => {
-    handleAddProduct({ ...product, quantity: 1 });
+    const quantity = preSelectedQuantity;
+    handleAddProduct({ ...product, quantity });
+    setPreSelectedQuantity(1); // Reset to 1 after adding
     setManualSearchOpen(false);
     setSearchQuery('');
     setSearchResults([]);
     setSelectedIndex(0);
-    showMessage(`Added ${product.name} to cart`, 'success');
+    showMessage(`Added ${quantity}x ${product.name} to cart`, 'success');
+  };
+
+  // Add barcode scanning handler
+  useEffect(() => {
+    const BARCODE_SCAN_TIMEOUT = 50; // ms between keystrokes for barcode scanner
+
+    const handleBarcodeScanner = (event: KeyboardEvent) => {
+      // Skip if the event originated from an input element
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const currentTime = Date.now();
+      
+      // If it's a rapid keystroke (likely from scanner)
+      if (currentTime - lastKeyTime < BARCODE_SCAN_TIMEOUT) {
+        if (event.key === 'Enter' && barcodeBuffer) {
+          // Search for product with this barcode
+          const product = sampleItems.find(item => item.barcode === barcodeBuffer);
+          if (product) {
+            handleAddProduct({ ...product, quantity: preSelectedQuantity });
+            showMessage(`Added ${preSelectedQuantity}x ${product.name} to cart`, 'success');
+          } else {
+            showMessage(`No product found with barcode: ${barcodeBuffer}`, 'error');
+          }
+          setBarcodeBuffer('');
+        } else if (event.key.length === 1 && /[^\s]/.test(event.key)) { // Accept any character except spaces
+          setBarcodeBuffer(prev => prev + event.key);
+        }
+      } else if (event.key.length === 1 && /[^\s]/.test(event.key)) { // Start new barcode with any character except spaces
+        setBarcodeBuffer(event.key);
+      }
+      
+      setLastKeyTime(currentTime);
+    };
+
+    window.addEventListener('keydown', handleBarcodeScanner);
+    return () => window.removeEventListener('keydown', handleBarcodeScanner);
+  }, [barcodeBuffer, lastKeyTime, preSelectedQuantity, handleAddProduct, showMessage]);
+
+  // Update FunctionKeys props to include setHoldDialogOpen
+  const handleHoldClick = () => {
+    if (cartItems.length === 0) {
+      showMessage('Cannot hold an empty transaction', 'error');
+      return;
+    }
+    setIsHoldDialogOpen(true);
   };
 
   return (
@@ -245,8 +373,40 @@ const POSPage: React.FC = () => {
       {/* Top Bar */}
       <Grid container spacing={1.5} sx={{ mb: 1.5, height: '85px', flexShrink: 0 }}>
         <Grid item xs={12}>
-          <Paper elevation={2} sx={{ height: '100%', overflow: 'hidden' }}>
+          <Paper elevation={2} sx={{ height: '100%', overflow: 'hidden', position: 'relative' }}>
             <Header />
+            {preSelectedQuantity > 1 && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  py: 0.5,
+                  px: 1.5,
+                  borderRadius: 2,
+                  boxShadow: 2,
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                    transform: 'scale(1.05)'
+                  }
+                }}
+              >
+                <Tooltip title="Pre-selected quantity (Press Tab to change)">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <LocalOfferIcon />
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
+                      x{preSelectedQuantity}
+                    </Typography>
+                  </Box>
+                </Tooltip>
+              </Box>
+            )}
           </Paper>
         </Grid>
       </Grid>
@@ -281,9 +441,11 @@ const POSPage: React.FC = () => {
                 prescriptionVerified: false
               }}
               onClearCart={handleVoid}
+              onHoldTransaction={handleHoldClick}
               onRecallTransaction={handleRecallTransaction}
               isCheckoutOpen={isCheckoutOpen}
               onManualSearchOpen={() => setManualSearchOpen(true)}
+              setRecallDialogOpen={setIsRecallDialogOpen}
             />
           </Paper>
         </Grid>
@@ -374,36 +536,10 @@ const POSPage: React.FC = () => {
         onCheckout={handleCheckoutComplete}
         onClearCart={() => setCartItems([])}
       />
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={3000} 
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        sx={{
-          top: '24px !important',
-          '& .MuiPaper-root': {
-            minWidth: '400px',
-            fontSize: '1.1rem'
-          }
-        }}
-      >
-        <Alert 
-          severity={snackbar.severity} 
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          sx={{
-            width: '100%',
-            '& .MuiAlert-message': {
-              fontSize: '1.1rem',
-              padding: '8px 0'
-            },
-            '& .MuiAlert-icon': {
-              fontSize: '2rem'
-            }
-          }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      <NotificationStack
+        notifications={notifications}
+        onClose={handleNotificationClose}
+      />
 
       {/* Manual Search Dialog */}
       <Dialog 
@@ -562,7 +698,7 @@ const POSPage: React.FC = () => {
                       }}>
                         <Box>
                           <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
-                            {product.category} • {product.dosage_amount}{product.dosage_unit}
+                            {product.category}  {product.dosage_amount}{product.dosage_unit}
                           </Typography>
                           {product.barcode && (
                             <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5, fontSize: '1.1rem' }}>
@@ -602,6 +738,29 @@ const POSPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Held Transactions Dialog */}
+      <HeldTransactionsDialog
+        open={isRecallDialogOpen}
+        onClose={() => setIsRecallDialogOpen(false)}
+        transactions={heldTransactions}
+        onRecall={handleRecallTransaction}
+      />
+
+      {/* Add QuantityDialog */}
+      <QuantityDialog
+        open={isQuantityDialogOpen}
+        onClose={() => setIsQuantityDialogOpen(false)}
+        onConfirm={handleQuantityConfirm}
+        currentQuantity={preSelectedQuantity}
+      />
+
+      {/* Add HoldTransactionDialog */}
+      <HoldTransactionDialog
+        open={isHoldDialogOpen}
+        onClose={() => setIsHoldDialogOpen(false)}
+        onConfirm={handleHoldTransaction}
+      />
     </Box>
   );
 };

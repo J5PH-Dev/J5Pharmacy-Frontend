@@ -23,10 +23,10 @@ export const transactionManager = {
       holdTimestamp: timestamp,
       total: cartState.totals.total,
       status: 'held',
-      notes: note,
       holdReason: note,
       prescriptionRequired: cartState.prescriptionRequired,
-      prescriptionVerified: cartState.prescriptionVerified
+      prescriptionVerified: cartState.prescriptionVerified,
+      discountType: 'None'
     };
 
     // Get existing held transactions

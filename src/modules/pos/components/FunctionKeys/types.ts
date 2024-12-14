@@ -1,25 +1,25 @@
 import { CartItem } from '../../types/cart';
 import { HeldTransaction } from '../../types/transaction';
 
-export interface CartState {
-  items: CartItem[];
-  totals: {
-    subtotal: number;
-    totalDiscount: number;
-    total: number;
-    itemCount: number;
-  };
-  prescriptionRequired: boolean;
-  prescriptionVerified: boolean;
-}
-
 export interface FunctionHandlerProps {
-  cartState: CartState;
+  cartState: {
+    items: CartItem[];
+    totals: {
+      subtotal: number;
+      totalDiscount: number;
+      total: number;
+      itemCount: number;
+    };
+    prescriptionRequired: boolean;
+    prescriptionVerified: boolean;
+  };
   onAddProduct?: (product: CartItem) => void;
   onClearCart?: () => void;
+  onHoldTransaction?: (transaction: HeldTransaction) => void;
   onRecallTransaction?: (transaction: HeldTransaction) => void;
   isCheckoutOpen?: boolean;
   setSearchDialogOpen?: (open: boolean) => void;
+  setRecallDialogOpen?: (open: boolean) => void;
   setReportsDialogOpen?: (open: boolean) => void;
   setConfirmationDialogOpen?: (open: boolean) => void;
 } 

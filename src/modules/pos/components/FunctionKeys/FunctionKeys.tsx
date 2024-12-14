@@ -149,9 +149,11 @@ interface FunctionKeysProps {
     prescriptionVerified: boolean;
   };
   onClearCart: () => void;
+  onHoldTransaction: (transaction: HeldTransaction) => void;
   onRecallTransaction: (transaction: HeldTransaction) => void;
   isCheckoutOpen: boolean;
   onManualSearchOpen: () => void;
+  setRecallDialogOpen: (open: boolean) => void;
 }
 
 const FunctionKeys: React.FC<FunctionKeysProps> = ({
@@ -161,9 +163,11 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
   currentTotal,
   cartState,
   onClearCart,
+  onHoldTransaction,
   onRecallTransaction,
   isCheckoutOpen,
-  onManualSearchOpen
+  onManualSearchOpen,
+  setRecallDialogOpen
 }) => {
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
