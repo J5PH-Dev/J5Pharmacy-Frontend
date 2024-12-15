@@ -173,17 +173,6 @@ const InventoryPage = () => {
         </Grid>
       )}
 
-      {/* Placeholder for detailed content - Display only when an item is selected */}
-      {selectedItem && (
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            {selectedItem.title} - Full Details
-          </Typography>
-          <Typography variant="body1">
-            {selectedItem.subtitle} {/* Replace with actual content later */}
-          </Typography>
-        </Box>
-      )}
     </Box>
   );
 };

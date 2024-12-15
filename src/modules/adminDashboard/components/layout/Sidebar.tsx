@@ -16,6 +16,8 @@ import {
   Divider,
   useTheme,
   useMediaQuery,
+  Modal,
+  Button,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -131,7 +133,7 @@ const navigationItems: NavigationItem[] = [
   {
     title: 'Reports',
     icon: <AssessmentIcon />,
-    path: '/admin/reports',
+    path: '/admin/sales-report',
     children: [
       // { title: 'Statistics', path: '/reports/statistics' },
       // { title: 'Sales', path: '/reports/sales' },
@@ -184,6 +186,9 @@ const Sidebar: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   // State to keep track of the active navigation item
   const [activeItem, setActiveItem] = useState<string>(navigationItems[0].path || '');
+  const [isModalOpen, setModalOpen] = useState(false);
+
+
 
   // Update active item based on the current location (path)
   React.useEffect(() => {
@@ -205,6 +210,15 @@ const Sidebar: React.FC = () => {
 
   const handleUserMenuClose = () => {
     setUserMenuAnchor(null);
+  };
+
+  const handleUserProfile = () => {
+    handleUserMenuClose(); // Close the user menu
+    setModalOpen(true); // Open the modal
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
   };
 
   const handleLogout = () => {
@@ -240,7 +254,7 @@ const Sidebar: React.FC = () => {
             <MoreVertIcon style={{ color: 'white' }} />
           </IconButton>
           <Menu anchorEl={userMenuAnchor} open={Boolean(userMenuAnchor)} onClose={handleUserMenuClose}>
-            <MenuItem onClick={handleUserMenuClose}>Profile</MenuItem>
+            <MenuItem onClick={handleUserProfile}>Profile</MenuItem>
             <MenuItem onClick={handleLogout}>Logout</MenuItem>
           </Menu>
         </UserSection>
@@ -300,6 +314,65 @@ const Sidebar: React.FC = () => {
           ))}
         </List>
 
+        {/* Modal */}
+        <Modal open={isModalOpen} onClose={handleModalClose}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              backgroundColor: 'white',
+              padding: '30px 40px',
+              boxShadow: 24,
+              width: '600px',
+              borderRadius: 2,
+              textAlign: 'center',
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 100,
+                height: 100,
+                margin: '0 auto 20px',
+                backgroundColor: '#FED600',
+                color: '#1B3E2D',
+              }}
+              src="/path-to-user-image.jpg" // Replace with actual image path
+            />
+            <Typography variant="h6" sx={{ marginBottom: 2 }}>
+              Jane Smith
+            </Typography>
+            <Box sx={{ textAlign: 'left', color: '#555', marginBottom: 4 }}>
+              <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <strong>Role:</strong> Owner
+              </Typography>
+              <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <strong>Branch Overseeing:</strong> All Branches
+              </Typography>
+              <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <strong>Ownership Start Date:</strong> 03/12/2018
+              </Typography>
+              <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <strong>Business Email:</strong> admin@pharmacycorp.com
+              </Typography>
+              <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <strong>Contact Number:</strong> +63 917 987 6543
+              </Typography>
+              <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <strong>Office Location:</strong> Corporate Headquarters, Manila
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleModalClose}
+              sx={{ marginTop: 2 }}
+            >
+              Close
+            </Button>
+          </Box>
+        </Modal>
 
 
         {/* Footer */}
