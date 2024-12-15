@@ -3,12 +3,21 @@ const cors = require('cors');
 const helmet = require('helmet');
 require('dotenv').config();
 const { testConnection } = require('./config/database');
+const InventoryRoutes = require('./routes/InventoryRoutes'); // Import the inventory routes
 
 const app = express();
 
+// CORS configuration
+const corsOptions = {
+  origin: 'http://localhost:3000', // The React app is running on localhost:3000
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers for the request
+  credentials: true, // Allows cookies and authorization headers
+};
+
 // Middleware
 app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS
+app.use(cors(corsOptions)); // Enable CORS with the specified options
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
@@ -20,6 +29,9 @@ app.get('/', (req, res) => {
 // Test database connection
 testConnection();
 
+// Use inventory routes
+app.use('/', InventoryRoutes);
+
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
@@ -30,4 +42,4 @@ app.listen(PORT, () => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!' });
-}); 
+});

@@ -9,6 +9,7 @@ import { useLocation } from 'react-router-dom';
 import CheckIcon from '@mui/icons-material/Check';
 import { Edit, Delete, Visibility } from '@mui/icons-material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import axios from 'axios';
 
 function createData(
   medicineName: string,
@@ -18,20 +19,6 @@ function createData(
 ) {
   return { medicineName, medicineID, groupName, stockQty };
 }
-
-// Example data rows
-const rows = [
-  createData('Paracetamol', 'MED001', 'Pain Relievers', 150),
-  createData('Amoxicillin', 'MED002', 'Antibiotics', 200),
-  createData('Ibuprofen', 'MED003', 'Anti-inflammatory', 120),
-  createData('Aspirin', 'MED004', 'Pain Relievers', 180),
-  createData('Metformin', 'MED005', 'Diabetes', 140),
-  createData('Lisinopril', 'MED006', 'Blood Pressure', 160),
-  createData('Omeprazole', 'MED007', 'Antacid', 210),
-  createData('Cetirizine', 'MED008', 'Antihistamine', 220),
-  createData('Fluoxetine', 'MED009', 'Antidepressants', 110),
-  createData('Salbutamol', 'MED010', 'Asthma', 130),
-];
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -71,20 +58,19 @@ function getStyles(name: string, personName: string[], theme: Theme) {
 const MedicinesAvailablePage = () => {
   const theme = useTheme();
   const [personName, setPersonName] = React.useState<string[]>([]);
-  const [sortedRows, setSortedRows] = React.useState(rows);
+  const [sortedRows, setSortedRows] = React.useState<any[]>([]);  // Initialize as an empty array
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredRows, setFilteredRows] = useState(rows);
+  const [filteredRows, setFilteredRows] = useState<any[]>([]);  // Store medicines fetched from API
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set()); // To store selected row ids (medicineID)
   const [selectAll, setSelectAll] = useState<boolean>(false); // To track the "select all" checkbox state
-  const [sortConfig, setSortConfig] = React.useState<{ key: RowKey; direction: 'asc' | 'desc' }>({
-    key: 'medicineName', direction: 'asc'
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({
+    key: 'medicineName', direction: 'asc',
   });
   const location = useLocation();
   const successMessageFromDeletion = location.state?.successMessage;
-  const [successMessage, setSuccessMessage] = useState<string | null>(successMessageFromDeletion);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isModalOpen, setModalOpen] = useState(false);
   const navigate = useNavigate();
-  const [medicineNameCreate, setMedicineNameCreate] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('');
   const medicineGroups = [
     'Pain Relievers',
@@ -98,6 +84,21 @@ const MedicinesAvailablePage = () => {
   // New state for confirmation modal
   const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
   const [medicinesToDelete, setMedicinesToDelete] = useState<string[]>([]); // For multiple selected medicines
+
+  // Fetch data from the API on component mount
+  useEffect(() => {
+    const fetchMedicines = async () => {
+      try {
+        const response = await axios.get('/admin/inventory/view-medicines-available');
+        setFilteredRows(response.data);  // Set filtered rows
+        setSortedRows(response.data);     // Set sorted rows from API
+      } catch (error) {
+        console.error('Error fetching medicines:', error);
+      }
+    };
+  
+    fetchMedicines();
+  }, []);
 
 
   const [newMedicineData, setNewMedicineData] = useState({
@@ -194,14 +195,14 @@ const MedicinesAvailablePage = () => {
   };
 
 
-  const handleSort = (key: RowKey) => {
+  const handleSort = (key: string) => {
     const direction = sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
-    const sortedData = [...rows].sort((a, b) => {
+    const sortedData = [...filteredRows].sort((a, b) => {
       if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
       if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
       return 0;
     });
-    setSortedRows(sortedData);
+    setFilteredRows(sortedData);
     setSortConfig({ key, direction });
   };
 
@@ -284,7 +285,7 @@ const MedicinesAvailablePage = () => {
   };
 
   useEffect(() => {
-    let filteredData = rows;
+    let filteredData = filteredRows;
 
     if (searchQuery !== '') {
       filteredData = filteredData.filter(row =>
@@ -292,22 +293,9 @@ const MedicinesAvailablePage = () => {
       );
     }
 
-    if (personName.length > 0) {
-      filteredData = filteredData.filter(row => personName.includes(row.groupName));
-    }
-
     setFilteredRows(filteredData);
-  }, [searchQuery, personName]);
+  }, [searchQuery, filteredRows]);
 
-  useEffect(() => {
-    if (successMessage) {
-      const timeout = setTimeout(() => {
-        setSuccessMessage(null); // Clear the message after 3 seconds
-      }, 3000);
-
-      return () => clearTimeout(timeout); // Cleanup the timeout
-    }
-  }, [successMessage]);
 
   const resetForm = () => {
     setNewMedicineData({
@@ -576,100 +564,20 @@ const MedicinesAvailablePage = () => {
         <Table aria-label="medicines-table">
           <TableHead sx={{ backgroundColor: 'white', zIndex: 1 }}>
             <TableRow>
-              <TableCell
-                padding="checkbox"
-                sx={{
-                  fontWeight: 'bold',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'white',
-                  zIndex: 3, // Ensure it's above other headers
-                }}
-              >
+              <TableCell padding="checkbox">
                 <Checkbox
                   checked={selectAll}
                   onChange={handleSelectAll}
                   color="primary"
                 />
               </TableCell>
-              <TableCell
-                onClick={() => handleSort('medicineName')}
-                sx={{
-                  fontWeight: 'bold',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'white',
-                  cursor: 'pointer',
-                  zIndex: 2,
-                }}
-              >
-                Medicine Name
-                {sortConfig.key === 'medicineName' && (
-                  sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
-                )}
-              </TableCell>
-              <TableCell
-                onClick={() => handleSort('medicineID')}
-                sx={{
-                  fontWeight: 'bold',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'white',
-                  cursor: 'pointer',
-                  zIndex: 2,
-                }}
-              >
-                Medicine ID
-                {sortConfig.key === 'medicineID' && (
-                  sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
-                )}
-              </TableCell>
-              <TableCell
-                onClick={() => handleSort('groupName')}
-                sx={{
-                  fontWeight: 'bold',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'white',
-                  cursor: 'pointer',
-                  zIndex: 2,
-                }}
-              >
-                Category
-                {sortConfig.key === 'groupName' && (
-                  sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
-                )}
-              </TableCell>
-              <TableCell
-                onClick={() => handleSort('stockQty')}
-                sx={{
-                  fontWeight: 'bold',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'white',
-                  cursor: 'pointer',
-                  zIndex: 2,
-                }}
-              >
-                Stock Quantity
-                {sortConfig.key === 'stockQty' && (
-                  sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
-                )}
-              </TableCell>
-              <TableCell
-                sx={{
-                  fontWeight: 'bold',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'white',
-                  zIndex: 2,
-                }}
-              >
-                Action
-              </TableCell>
+              <TableCell onClick={() => handleSort('medicineName')}>Medicine Name</TableCell>
+              <TableCell onClick={() => handleSort('medicineID')}>Medicine ID</TableCell>
+              <TableCell onClick={() => handleSort('groupName')}>Group Name</TableCell>
+              <TableCell onClick={() => handleSort('stockQty')}>Stock Quantity</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
-
           <TableBody>
             {filteredRows.map((row) => (
               <TableRow key={row.medicineID}>
@@ -680,12 +588,12 @@ const MedicinesAvailablePage = () => {
                     color="primary"
                   />
                 </TableCell>
-                <TableCell>{row.medicineName}</TableCell>
-                <TableCell>{row.medicineID}</TableCell>
-                <TableCell>{row.groupName}</TableCell>
-                <TableCell>{row.stockQty}</TableCell>
+                <TableCell>{row.name}</TableCell>
+                <TableCell>{row.barcode}</TableCell>
+                <TableCell>{row.category}</TableCell>
+                <TableCell>{row.stock}</TableCell>
                 <TableCell>
-                  <div className='flex flex-row'>
+                  <div className="flex flex-row">
                     <IconButton onClick={() => handleViewDetails(row.medicineName)} sx={{ color: '#2BA3B6', mr: 0 }}>
                       <Visibility sx={{ fontSize: 24 }} />
                     </IconButton>
