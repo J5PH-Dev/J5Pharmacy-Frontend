@@ -16,6 +16,13 @@ import ManagerRoutes from './modules/managerDashboard/ManagerRoutes';
 import LoadingPage from './modules/auth/components/LoadingPage';
 import { UserRole } from './modules/auth/types/auth.types';
 
+// Import Axios and configure it
+import axios from 'axios';
+
+// Set Axios defaults
+axios.defaults.baseURL = "http://localhost:5000";  // Adjust the URL according to your backend
+axios.defaults.withCredentials = true;  // Allow cookies to be sent with requests
+
 // ProtectedRoute component
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
@@ -46,7 +53,6 @@ const ProtectedRoute: React.FC<{
   return <>{children}</>;
 };
 
-
 // AppRoutes component
 const AppRoutes: React.FC = () => {
   const { user } = useAuth();
@@ -60,7 +66,6 @@ const AppRoutes: React.FC = () => {
       <Route path="/create-new-password" element={<CreateNewPassword />} />
       <Route path="/created-new-password" element={<CreatedNewPassword />} />
       <Route path="/loading-screen" element={<LoadingPage />} />
-      
 
       {/* Admin Routes */}
       <Route
@@ -81,8 +86,9 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-        {/* Manager Routes */}
-        <Route
+      
+      {/* Manager Routes */}
+      <Route
         path="/manager/*"
         element={
           <ProtectedRoute allowedRoles={[UserRole.MANAGER]}>
@@ -90,7 +96,6 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-
 
       {/* Redirect root to appropriate dashboard based on role */}
       <Route
@@ -112,13 +117,11 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-
       {/* Catch-all route for undefined paths */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 };
-
 
 // App component
 const App: React.FC = () => {

@@ -1,44 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Grid, Paper, Typography, Button, Breadcrumbs, Link } from '@mui/material';
 import { Medication, Group, Warning } from '@mui/icons-material'; // Material icons
 import AddIcon from '@mui/icons-material/Add'; // Import Material UI Add icon
 import { useNavigate } from 'react-router-dom';
-
-// Define border colors and content for each container in an array of objects
-const contentData = [
-  {
-    borderColor: '#03A9F5',
-    icon: <Medication sx={{ fontSize: 40 }} />,
-    title: '367',
-    subtitle: 'Medicines Available',
-    buttonText: 'View Full Details',
-    breadcrumbTitle: 'Medicines Available',
-    pageTitle: 'Medicines Available',
-    pageSubtitle: 'List of medicines available for sales..',
-  },
-  {
-    borderColor: '#01A768',
-    icon: <Group sx={{ fontSize: 40 }} />,
-    title: '2',
-    subtitle: 'Medicines Group',
-    buttonText: 'View Groups >>',
-    breadcrumbTitle: 'Medicine Groups',
-    pageTitle: 'Medicine Groups Overview',
-    pageSubtitle: 'List and details of all available groups of medicines.',
-  },
-  {
-    borderColor: '#F0483E',
-    icon: <Warning sx={{ fontSize: 40 }} />,
-    title: '01',
-    subtitle: 'Medicine Shortage',
-    buttonText: 'Resolve Now >>',
-    breadcrumbTitle: 'Shortages',
-    pageTitle: 'Medicine Shortages',
-    pageSubtitle: 'Current shortages and actions to resolve them.',
-  },
-];
+import axios from 'axios';
 
 const InventoryPage = () => {
+  const [stats, setStats] = useState({
+    medicinesAvailable: 0,
+    medicineGroups: 0,
+    medicineShortage: 0,
+  });
+
+
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const navigate = useNavigate(); // Initialize the navigate hook
 
@@ -64,12 +38,55 @@ const InventoryPage = () => {
     setSelectedItem(null); // Reset selected item, returning to the initial inventory view
   };
 
-    // Map handlers to content
-    const handlers = [
-      handleMedicinesAvailable,
-      handleMedicinesGroup,
-      handleMedicineShortage,
-    ];
+  // Map handlers to content
+  const handlers = [
+    handleMedicinesAvailable,
+    handleMedicinesGroup,
+    handleMedicineShortage,
+  ];
+
+
+  // Fetch inventory stats from backend
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await axios.get('/admin/inventory');
+        setStats(response.data);
+      } catch (error) {
+        console.error('Error fetching inventory stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Define border colors and content for each container in an array of objects
+  const contentData = [
+    {
+      borderColor: '#03A9F5',
+      icon: <Medication sx={{ fontSize: 40 }} />,
+      NumberAmount: stats.medicinesAvailable,
+      subtitle: 'Medicines Available',
+      buttonText: 'View Full Details',
+      route: '/admin/inventory/view-medicines-available',
+    },
+    {
+      borderColor: '#01A768',
+      icon: <Group sx={{ fontSize: 40 }} />,
+      NumberAmount: stats.medicineGroups,
+      subtitle: 'Medicine Groups',
+      buttonText: 'View Groups >>',
+      route: '/admin/inventory/view-medicines-group',
+    },
+    {
+      borderColor: '#F0483E',
+      icon: <Warning sx={{ fontSize: 40 }} />,
+      NumberAmount: stats.medicineShortage,
+      subtitle: 'Medicine Shortage',
+      buttonText: 'Resolve Now >>',
+      route: '/admin/inventory/medicine-shortage',
+    },
+  ];
 
   return (
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
@@ -144,7 +161,7 @@ const InventoryPage = () => {
                   <div>{React.cloneElement(content.icon, { sx: { fontSize: 40, color: content.borderColor } })}</div>
                   <div>
                     <Typography variant="h6" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
-                      {content.title}
+                      {content.NumberAmount}
                     </Typography>
                     <Typography variant="body2" sx={{ textAlign: 'center' }}>
                       {content.subtitle}
