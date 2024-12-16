@@ -32,17 +32,6 @@ const Cart: React.FC<CartProps> = ({ items, setItems }) => {
     }
   }, [items]);
 
-  const getSkuChipColor = (sku: 'Piece' | 'Box') => {
-    switch (sku) {
-      case 'Piece':
-        return 'secondary';
-      case 'Box':
-        return 'info';
-      default:
-        return 'default';
-    }
-  };
-
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -152,6 +141,13 @@ const Cart: React.FC<CartProps> = ({ items, setItems }) => {
                     <Box>
                       <Typography variant="h6" sx={{ fontWeight: 500, lineHeight: 1.3 }}>
                         {item.name}
+                        <Typography 
+                          component="span" 
+                          color="text.secondary" 
+                          sx={{ ml: 1, fontSize: '1rem' }}
+                        >
+                          ({item.brand_name})
+                        </Typography>
                       </Typography>
                       <Box sx={{ 
                         display: 'flex', 
@@ -160,26 +156,26 @@ const Cart: React.FC<CartProps> = ({ items, setItems }) => {
                         mt: 0.8,
                         flexWrap: 'wrap'
                       }}>
-                        <Typography 
-                          variant="body1" 
-                          color="text.secondary"
-                          sx={{ fontSize: '1.1rem' }}
-                        >
-                          {item.category} • {item.dosage_amount}{item.dosage_unit}
-                        </Typography>
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Chip 
-                            label={item.SKU}
-                            size="medium"
-                            color={getSkuChipColor(item.SKU)}
-                            variant="outlined"
-                            sx={{ 
-                              fontSize: '1rem',
-                              height: 32,
-                              borderRadius: '16px',
-                              minWidth: '80px'
-                            }}
-                          />
+                          <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
+                            {item.category} • {item.dosage_amount}{item.dosage_unit}
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
+                            {item.pieces_per_box > 1 
+                              ? (() => {
+                                  const boxes = Math.floor(item.quantity / item.pieces_per_box);
+                                  const pieces = item.quantity % item.pieces_per_box;
+                                  
+                                  if (boxes === 0) {
+                                    return `${pieces} piece${pieces !== 1 ? 's' : ''}`;
+                                  }
+                                  
+                                  return `${boxes} box${boxes !== 1 ? 'es' : ''}` + 
+                                         (pieces > 0 ? ` and ${pieces} piece${pieces !== 1 ? 's' : ''}` : '');
+                                })()
+                              : `${item.quantity} piece${item.quantity !== 1 ? 's' : ''}`
+                            }
+                          </Typography>
                           {item.requiresPrescription && (
                             <Chip 
                               label="Rx"

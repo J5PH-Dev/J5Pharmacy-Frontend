@@ -1,91 +1,101 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Box,
-  Typography,
-  IconButton
+import React, { useState, useEffect } from 'react';
+import { 
+  Dialog, DialogTitle, DialogContent, DialogActions, Button, 
+  TextField, Typography, Box, ToggleButtonGroup, ToggleButton,
+  InputAdornment
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
 
 interface QuantityDialogProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (quantity: number) => void;
+  onConfirm: (quantity: number, isBox: boolean) => void;
   currentQuantity: number;
+  pieces_per_box?: number;
 }
 
 const QuantityDialog: React.FC<QuantityDialogProps> = ({
   open,
   onClose,
   onConfirm,
-  currentQuantity
+  currentQuantity,
+  pieces_per_box
 }) => {
-  const [quantity, setQuantity] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [quantity, setQuantity] = useState<string>('');
+  const [isBox, setIsBox] = useState(false);
 
-  // Reset quantity and select text when dialog opens
+  // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setQuantity('');
-      // Use setTimeout to ensure the input is mounted
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 50);
+      setIsBox(false);
     }
   }, [open]);
 
-  const handleConfirm = () => {
-    const parsedQuantity = parseInt(quantity || '1');
-    if (!isNaN(parsedQuantity) && parsedQuantity > 0) {
-      onConfirm(parsedQuantity);
-      onClose();
-    }
-  };
-
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter') {
-      handleConfirm();
-    } else if (event.key === 'Escape') {
-      onConfirm(1);
-      onClose();
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      const current = parseInt(quantity) || 0;
-      setQuantity((current + 1).toString());
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      const current = parseInt(quantity) || 2;
-      setQuantity(Math.max(1, current - 1).toString());
-    } else if (/^\d$/.test(event.key)) {
-      // For numeric input, append the digit
-      event.preventDefault();
-      if (quantity === '0') {
-        setQuantity(event.key);
-      } else {
-        setQuantity(prev => prev + event.key);
-      }
-    } else if (event.key === 'Backspace') {
-      // Handle backspace to remove last digit
-      event.preventDefault();
-      const newValue = quantity.slice(0, -1);
-      setQuantity(newValue);
+    switch (event.key) {
+      case 'Escape':
+        // Reset to default and close
+        onConfirm(1, false);
+        onClose();
+        break;
+      case 'Enter':
+        handleConfirm();
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        handleIncrement();
+        break;
+      case 'ArrowDown':
+        event.preventDefault();
+        handleDecrement();
+        break;
+      case 'ArrowLeft':
+        event.preventDefault();
+        if (pieces_per_box) setIsBox(false);
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        if (pieces_per_box) setIsBox(true);
+        break;
+      case 'Backspace':
+        // Allow backspace to work normally
+        break;
+      default:
+        // Only allow numbers
+        if (!/^\d$/.test(event.key) && !event.ctrlKey && !event.metaKey) {
+          event.preventDefault();
+        }
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  const handleIncrement = () => {
+    const current = parseInt(quantity || '1');
+    setQuantity((current + 1).toString());
+  };
+
+  const handleDecrement = () => {
+    const current = parseInt(quantity || '1');
+    if (current > 1) {
+      setQuantity((current - 1).toString());
+    }
+  };
+
+  const handleConfirm = () => {
+    const numericQuantity = parseInt(quantity || '1');
+    if (numericQuantity > 0) {
+      onConfirm(numericQuantity, isBox);
+      onClose();
+    }
+  };
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
     if (value === '' || /^\d+$/.test(value)) {
-      // Prevent leading zeros unless it's empty
-      if (value === '' || (value !== '0' && !value.startsWith('0'))) {
-        setQuantity(value);
-      }
+      setQuantity(value);
     }
   };
 
@@ -93,55 +103,101 @@ const QuantityDialog: React.FC<QuantityDialogProps> = ({
     <Dialog 
       open={open} 
       onClose={onClose}
+      onKeyDown={handleKeyDown}
       maxWidth="xs"
       fullWidth
     >
-      <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">Set Quantity</Typography>
-          <IconButton onClick={onClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
+      <DialogTitle>Set Quantity</DialogTitle>
       <DialogContent>
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 1, 
-          alignItems: 'center',
-          bgcolor: 'info.light',
-          color: 'info.contrastText',
-          p: 1,
-          borderRadius: 1,
-          mb: 2
-        }}>
-          <Typography variant="body2" sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <span><strong>↑↓</strong> Adjust Value</span>
-            <span><strong>Enter</strong> Confirm</span>
-            <span><strong>Esc</strong> Reset & Close</span>
-            <span><strong>Type</strong> Set Value</span>
+        <Box sx={{ mb: 2, bgcolor: 'info.light', color: 'info.contrastText', p: 1.5, borderRadius: 1 }}>
+          <Typography variant="body2" component="div" sx={{ mb: 1 }}>
+            <strong>Keyboard Shortcuts:</strong>
           </Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+            <Typography variant="body2">↑/↓: Adjust quantity</Typography>
+            <Typography variant="body2">←/→: Switch unit</Typography>
+            <Typography variant="body2">Enter: Confirm</Typography>
+            <Typography variant="body2">Esc: Reset & close</Typography>
+          </Box>
         </Box>
+
         <TextField
-          inputRef={inputRef}
           autoFocus
           fullWidth
-          label="Quantity"
+          placeholder="1"
           value={quantity}
           onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          type="number"
-          placeholder="1"
-          inputProps={{ 
-            min: 1,
-            style: { fontSize: '1.5rem', textAlign: 'center' }
+          type="text"
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  <KeyboardArrowUpIcon 
+                    sx={{ cursor: 'pointer', fontSize: '1.2rem' }} 
+                    onClick={handleIncrement}
+                  />
+                  <KeyboardArrowDownIcon 
+                    sx={{ cursor: 'pointer', fontSize: '1.2rem' }} 
+                    onClick={handleDecrement}
+                  />
+                </Box>
+              </InputAdornment>
+            )
           }}
-          sx={{ mt: 1 }}
         />
+
+        {pieces_per_box && (
+          <Box sx={{ mt: 2 }}>
+            <ToggleButtonGroup
+              value={isBox ? 'box' : 'piece'}
+              exclusive
+              onChange={(_, value) => value && setIsBox(value === 'box')}
+              fullWidth
+              size="large"
+            >
+              <ToggleButton 
+                value="piece"
+                sx={{ 
+                  py: 1.5,
+                  display: 'flex',
+                  gap: 1,
+                  '&.Mui-selected': {
+                    bgcolor: 'primary.main',
+                    color: 'primary.contrastText',
+                    '&:hover': {
+                      bgcolor: 'primary.dark',
+                    }
+                  }
+                }}
+              >
+                <LocalOfferIcon />
+                <Typography>Pieces</Typography>
+              </ToggleButton>
+              <ToggleButton 
+                value="box"
+                sx={{ 
+                  py: 1.5,
+                  display: 'flex',
+                  gap: 1,
+                  '&.Mui-selected': {
+                    bgcolor: 'primary.main',
+                    color: 'primary.contrastText',
+                    '&:hover': {
+                      bgcolor: 'primary.dark',
+                    }
+                  }
+                }}
+              >
+                <Inventory2Icon />
+                <Typography>Box</Typography>
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleConfirm} variant="contained" color="primary">
+        <Button onClick={handleConfirm} variant="contained">
           Confirm
         </Button>
       </DialogActions>

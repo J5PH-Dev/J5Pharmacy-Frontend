@@ -64,6 +64,8 @@ const POSPage: React.FC = () => {
   const [isHoldDialogOpen, setIsHoldDialogOpen] = useState(false);
   const [isProcessReturnDialogOpen, setIsProcessReturnDialogOpen] = useState(false);
   const [prescriptionVerified, setPrescriptionVerified] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<CartItem | null>(null);
+  const [isBox, setIsBox] = useState(false);
 
   const {
     subtotal,
@@ -184,16 +186,26 @@ const POSPage: React.FC = () => {
     const newItems = [...cartItems];
     const existingItemIndex = newItems.findIndex(item => item.id === product.id);
 
-    // Check if adding this quantity would exceed available stock
+    // Calculate total pieces being requested
     const requestedQuantity = product.quantity || 1;
-    const existingQuantity = existingItemIndex > -1 ? newItems[existingItemIndex].quantity : 0;
-    const totalRequestedQuantity = existingQuantity + requestedQuantity;
+    const totalRequestedPieces = requestedQuantity;
 
-    if (totalRequestedQuantity > product.stock) {
+    // Calculate existing pieces in cart
+    const existingPieces = existingItemIndex > -1 
+      ? newItems[existingItemIndex].quantity
+      : 0;
+
+    // Check if adding this quantity would exceed available stock
+    const totalPiecesRequested = existingPieces + totalRequestedPieces;
+
+    if (totalPiecesRequested > product.stock) {
       showMessage(
         product.stock === 0 
           ? `${product.name} is out of stock`
-          : `Cannot add ${requestedQuantity} units. Only ${product.stock - existingQuantity} units available.`,
+          : `Cannot add ${requestedQuantity} unit${requestedQuantity > 1 ? 's' : ''}. ` +
+            `Only ${product.stock - existingPieces} unit${
+              product.stock - existingPieces !== 1 ? 's' : ''
+            } available.`,
         'error'
       );
       return;
@@ -203,7 +215,7 @@ const POSPage: React.FC = () => {
       // Update existing item quantity
       newItems[existingItemIndex] = {
         ...newItems[existingItemIndex],
-        quantity: totalRequestedQuantity
+        quantity: newItems[existingItemIndex].quantity + requestedQuantity
       };
     } else {
       // Add new item with its quantity
@@ -216,7 +228,10 @@ const POSPage: React.FC = () => {
     }
 
     setCartItems(newItems);
-    showMessage(`Added ${requestedQuantity}x ${product.name} to cart`, 'success');
+    showMessage(
+      `Added ${requestedQuantity}x ${product.name} to cart`, 
+      'success'
+    );
   };
 
   const handleHoldTransaction = (note: string) => {
@@ -300,9 +315,14 @@ const POSPage: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [cartItems.length, isCheckoutOpen]);
 
-  const handleQuantityConfirm = (quantity: number) => {
+  const handleQuantityConfirm = (quantity: number, isBox: boolean) => {
     setPreSelectedQuantity(quantity);
-    showMessage(`Pre-selected quantity set to ${quantity}`, 'info');
+    setIsBox(isBox);
+    
+    showMessage(
+      `Pre-selected: ${quantity}${isBox ? ' box(es)' : ' pc(s)'}`, 
+      'info'
+    );
   };
 
   // Handle manual search
@@ -369,21 +389,36 @@ const POSPage: React.FC = () => {
 
   // Update handleProductSelect
   const handleProductSelect = (product: CartItem) => {
-    const quantity = preSelectedQuantity;
+    setSelectedProduct(product);
+    const rawQuantity = preSelectedQuantity;
+    
+    // Calculate actual quantity based on whether it's boxes or pieces
+    const actualQuantity = isBox && product.pieces_per_box 
+      ? rawQuantity * product.pieces_per_box 
+      : rawQuantity;
     
     // Check stock before adding
-    if (quantity > product.stock) {
+    if (actualQuantity > product.stock) {
       showMessage(
         product.stock === 0 
           ? `${product.name} is out of stock`
-          : `Cannot add ${quantity} units. Only ${product.stock} units available.`,
+          : `Cannot add ${rawQuantity}${isBox ? ' box(es)' : ' piece(s)'}. Only ${
+              isBox 
+                ? Math.floor(product.stock / (product.pieces_per_box || 1)) + ' box(es)'
+                : product.stock + ' piece(s)'
+            } available.`,
         'error'
       );
       return;
     }
 
-    handleAddProduct({ ...product, quantity });
+    handleAddProduct({ 
+      ...product, 
+      quantity: actualQuantity 
+    });
+    
     setPreSelectedQuantity(1); // Reset to 1 after adding
+    setIsBox(false); // Reset to pieces
     setManualSearchOpen(false);
     setSearchQuery('');
     setSearchResults([]);
@@ -458,12 +493,12 @@ const POSPage: React.FC = () => {
       bgcolor: 'background.default',
       overflow: 'hidden'
     }}>
-      {/* Top Bar */}
+      {/* Pre-Selected Quantity Indicator */}
       <Grid container spacing={1.5} sx={{ mb: 1.5, height: '85px', flexShrink: 0 }}>
         <Grid item xs={12}>
           <Paper elevation={2} sx={{ height: '100%', overflow: 'hidden', position: 'relative' }}>
             <Header />
-            {preSelectedQuantity > 1 && (
+            {(preSelectedQuantity > 1 || isBox) && (
               <Box
                 sx={{
                   position: 'absolute',
@@ -488,9 +523,22 @@ const POSPage: React.FC = () => {
                 <Tooltip title="Pre-selected quantity (Press Tab to change)">
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <LocalOfferIcon />
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
-                      x{preSelectedQuantity}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
+                        {preSelectedQuantity}x
+                      </Typography>
+                      <Chip 
+                        label={isBox ? 'BOX' : 'PCS'} 
+                        size="small"
+                        sx={{ 
+                          bgcolor: 'primary.light',
+                          color: 'primary.contrastText',
+                          fontWeight: 'bold',
+                          fontSize: '0.75rem',
+                          height: '20px'
+                        }}
+                      />
+                    </Box>
                   </Box>
                 </Tooltip>
               </Box>
@@ -768,29 +816,21 @@ const POSPage: React.FC = () => {
                 <ListItemText
                   primary={
                     <Box display="flex" alignItems="center" gap={1}>
-                      <Typography variant="h6" sx={{ fontSize: '1.3rem' }}>{product.name}</Typography>
+                      <Typography variant="h6" sx={{ fontSize: '1.3rem' }}>
+                        {product.name}
+                        <Typography 
+                          component="span" 
+                          color="text.secondary" 
+                          sx={{ ml: 1, fontSize: '1.1rem' }}
+                        >
+                          ({product.brand_name})
+                        </Typography>
+                      </Typography>
                       <Chip 
                         label={product.requiresPrescription ? 'Rx' : 'OTC'} 
                         size="small"
                         color={product.requiresPrescription ? 'error' : 'success'}
                         sx={{ fontSize: '1rem' }}
-                      />
-                      <Chip 
-                        label={product.SKU}
-                        size="small"
-                        color="info"
-                        variant="outlined"
-                        sx={{ fontSize: '1rem' }}
-                      />
-                      <Chip 
-                        label={product.stock === 0 ? 'Out of Stock' : `Stock: ${product.stock}`}
-                        size="small"
-                        color={product.stock === 0 ? 'error' : 'success'}
-                        variant={product.stock === 0 ? 'filled' : 'outlined'}
-                        sx={{ 
-                          fontSize: '1rem',
-                          fontWeight: product.stock === 0 ? 'bold' : 'normal'
-                        }}
                       />
                     </Box>
                   }
@@ -804,7 +844,7 @@ const POSPage: React.FC = () => {
                       }}>
                         <Box>
                           <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
-                            {product.category}  {product.dosage_amount}{product.dosage_unit}
+                            {product.category} • {product.dosage_amount}{product.dosage_unit}
                           </Typography>
                           {product.barcode && (
                             <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5, fontSize: '1.1rem' }}>
@@ -859,6 +899,7 @@ const POSPage: React.FC = () => {
         onClose={() => setIsQuantityDialogOpen(false)}
         onConfirm={handleQuantityConfirm}
         currentQuantity={preSelectedQuantity}
+        pieces_per_box={100}
       />
 
       {/* Add HoldTransactionDialog */}

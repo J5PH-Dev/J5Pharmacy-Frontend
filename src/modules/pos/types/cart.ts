@@ -1,34 +1,24 @@
 export interface Product {
   id: number;
   name: string;
-  description?: string;
-  dosage_amount: number;
-  dosage_unit: 'mg' | 'ml' | 'g' | 'tablet';
+  brand_name: string;
+  description: string | null;
+  sideEffects: string | null;
+  dosage_amount: number | null;
+  dosage_unit: 'mg' | 'mcg' | 'mg/ml' | 'ml' | 'g' | 'tablet' | null;
   price: number;
   stock: number;
-  SKU: 'Piece' | 'Box';
+  pieces_per_box: number;
   category: string;
-  barcode?: string;
+  barcode: string | null;
   requiresPrescription: boolean;
-  expiryDate: string;
-  createdAt: string;
-  updatedAt: string;
+  expiryDate: string | null;
+  totalPieces: number;
 }
 
-export interface CartItem {
-  id: number;
-  name: string;
-  dosage_amount: number;
-  dosage_unit: 'mg' | 'ml' | 'g' | 'tablet';
-  price: number;
+export interface CartItem extends Product {
   quantity: number;
-  SKU: 'Piece' | 'Box';
-  category: string;
-  barcode?: string;
-  requiresPrescription: boolean;
-  expiryDate: string;
   discount?: number;
-  stock: number;
 }
 
 export interface ReceiptItem extends Omit<CartItem, 'discount'> {

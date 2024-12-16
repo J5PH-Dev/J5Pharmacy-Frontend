@@ -423,7 +423,7 @@ const PrescriptionDialog: React.FC<PrescriptionDialogProps> = ({
                       <ListItem key={item.id}>
                         <ListItemText
                           primary={item.name}
-                          secondary={`${item.dosage_amount}${item.dosage_unit} - ${item.quantity} ${item.SKU}(s)`}
+                          secondary={`${item.dosage_amount}${item.dosage_unit} - Qty: ${item.quantity}`}
                         />
                         <Chip
                           label="Rx"
@@ -616,7 +616,7 @@ const PrescriptionDialog: React.FC<PrescriptionDialogProps> = ({
                             >
                               <ListItemText
                                 primary={item.name}
-                                secondary={`${item.dosage_amount}${item.dosage_unit} - ${item.quantity} ${item.SKU}(s)`}
+                                secondary={`${item.dosage_amount}${item.dosage_unit} - Qty: ${item.quantity}`}
                               />
                             </ListItem>
                           ))}

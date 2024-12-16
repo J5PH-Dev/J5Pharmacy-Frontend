@@ -23,16 +23,20 @@ export const cartManager = {
       const newItem: CartItem = {
         id: product.id,
         name: product.name,
+        brand_name: product.brand_name,
+        description: product.description,
+        sideEffects: product.sideEffects,
         dosage_amount: product.dosage_amount,
         dosage_unit: product.dosage_unit,
         price: product.price,
         quantity: quantity,
-        SKU: product.SKU,
         category: product.category,
         barcode: product.barcode,
         requiresPrescription: product.requiresPrescription,
         expiryDate: product.expiryDate,
-        stock: product.stock
+        stock: product.stock,
+        pieces_per_box: product.pieces_per_box,
+        totalPieces: product.totalPieces
       };
       newItems = [...currentState.items, newItem];
     }

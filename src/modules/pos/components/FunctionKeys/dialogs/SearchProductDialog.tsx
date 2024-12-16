@@ -141,18 +141,20 @@ const ProductInquiryDialog: React.FC<ProductInquiryDialogProps> = ({
               <ListItemText
                 primary={
                   <Box display="flex" alignItems="center" gap={1}>
-                    <Typography variant="h6" sx={{ fontSize: '1.3rem' }}>{product.name}</Typography>
+                    <Typography variant="h6" sx={{ fontSize: '1.3rem' }}>
+                      {product.name}
+                      <Typography 
+                        component="span" 
+                        color="text.secondary" 
+                        sx={{ ml: 1, fontSize: '1.1rem' }}
+                      >
+                        ({product.brand_name})
+                      </Typography>
+                    </Typography>
                     <Chip 
                       label={product.requiresPrescription ? 'Rx' : 'OTC'} 
                       size="small"
                       color={product.requiresPrescription ? 'error' : 'success'}
-                      sx={{ fontSize: '1rem' }}
-                    />
-                    <Chip 
-                      label={product.SKU}
-                      size="small"
-                      color="info"
-                      variant="outlined"
                       sx={{ fontSize: '1rem' }}
                     />
                   </Box>

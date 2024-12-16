@@ -1,67 +1,238 @@
 import { CartItem } from '../modules/pos/types/cart';
 
-// Helper function to create both Box and Piece variants of a medicine
-const createMedicineVariants = (
-  baseId: number,
+// Remove the Box/Piece variant creation, just create one product
+const createMedicine = (
+  id: number,
   name: string,
-  dosage_amount: number,
-  dosage_unit: 'mg' | 'ml' | 'g' | 'tablet',
-  boxPrice: number,
-  piecesPerBox: number,
+  brand_name: string,
+  description: string | null,
+  sideEffects: string | null,
+  dosage_amount: number | null,
+  dosage_unit: 'mg' | 'mcg' | 'mg/ml' | 'ml' | 'g' | 'tablet' | null,
+  price: number,
+  stock: number,
+  pieces_per_box: number,
   category: string,
+  barcode: string | null,
   requiresPrescription: boolean,
-  boxBarcode: string,
-  pieceBarcode: string,
-  boxStock: number,
-  pieceStock: number
-): CartItem[] => {
-  const piecePrice = Math.round((boxPrice / piecesPerBox) * 100) / 100; // Round to 2 decimal places
+  expiryDate: string | null
+): CartItem => {
+  // Ensure pieces_per_box is at least 1
+  const actualPiecesPerBox = Math.max(1, pieces_per_box);
   
-  return [
-    {
-      id: baseId,
-      name,
-      dosage_amount,
-      dosage_unit,
-      price: boxPrice,
-      quantity: 1,
-      SKU: 'Box',
-      category,
-      barcode: boxBarcode,
-      requiresPrescription,
-      expiryDate: '2024-12-31',
-      stock: boxStock
-    },
-    {
-      id: baseId + 1000,
-      name,
-      dosage_amount,
-      dosage_unit,
-      price: piecePrice,
-      quantity: 1,
-      SKU: 'Piece',
-      category,
-      barcode: pieceBarcode,
-      requiresPrescription,
-      expiryDate: '2024-12-31',
-      stock: pieceStock
-    }
-  ];
+  return {
+    id,
+    name,
+    brand_name,
+    description,
+    sideEffects,
+    dosage_amount,
+    dosage_unit,
+    price,
+    stock,
+    pieces_per_box: actualPiecesPerBox,
+    category,
+    barcode,
+    requiresPrescription,
+    expiryDate: expiryDate || '2024-12-31',
+    totalPieces: stock,
+    quantity: 1
+  };
 };
 
-// Generate sample items with both Box and Piece variants
+// Generate sample items
 export const sampleItems: CartItem[] = [
-  ...createMedicineVariants(1, 'Amoxicillin', 500, 'mg', 250.00, 30, 'Antibiotics', true, 'AMX05000301', 'AMX05000302', 50, 150),
-  ...createMedicineVariants(3, 'Metformin', 850, 'mg', 350.00, 100, 'Diabetes', true, 'MET08501001', 'MET08501002', 30, 300),
-  ...createMedicineVariants(5, 'Losartan', 50, 'mg', 450.00, 50, 'Hypertension', true, 'LOS00500501', 'LOS00500502', 25, 125),
-  ...createMedicineVariants(7, 'Cetirizine', 10, 'mg', 180.00, 30, 'Allergy', false, 'CET00100301', 'CET00100302', 0, 0), // Out of stock
-  ...createMedicineVariants(9, 'Paracetamol', 500, 'mg', 120.00, 100, 'Pain Relief', false, 'PCM05001001', 'PCM05001002', 100, 1000),
-  ...createMedicineVariants(11, 'Omeprazole', 20, 'mg', 280.00, 30, 'Gastrointestinal', true, 'OMP00200301', 'OMP00200302', 40, 120),
-  ...createMedicineVariants(13, 'Amlodipine', 5, 'mg', 320.00, 50, 'Hypertension', true, 'AML00500501', 'AML00500502', 0, 0), // Out of stock
-  ...createMedicineVariants(15, 'Metoprolol', 50, 'mg', 380.00, 50, 'Hypertension', true, 'MTP00500501', 'MTP00500502', 0, 0), // Out of stock
-  ...createMedicineVariants(17, 'Vitamin C', 500, 'mg', 200.00, 100, 'Vitamins', false, 'VTC05001001', 'VTC05001002', 75, 750),
-  ...createMedicineVariants(19, 'Aspirin', 81, 'mg', 150.00, 100, 'Pain Relief', false, 'ASP00811001', 'ASP00811002', 60, 600),
-  ...createMedicineVariants(21, 'Ibuprofen', 400, 'mg', 180.00, 50, 'Pain Relief', false, 'IBU04000501', 'IBU04000502', 45, 225),
-  ...createMedicineVariants(23, 'Gabapentin', 300, 'mg', 580.00, 50, 'Pain Relief', true, 'GBP03000501', 'GBP03000502', 0, 0), // Out of stock
+  createMedicine(
+    1,
+    'DIOSMIN HESPERIDIN',
+    'DIOSGEN',
+    null,
+    null,
+    null,
+    null,
+    50.00,
+    90,
+    30,
+    'GENERIC',
+    '8902297023248',
+    false,
+    '2026-09-01'
+  ),
+  createMedicine(
+    3,
+    'NAPROXEN',
+    'PROXEN',
+    null,
+    null,
+    550.00,
+    'mg',
+    50.00,
+    250,
+    100,
+    'GENERIC',
+    '4806520352881',
+    true,
+    '2025-08-01'
+  ),
+  createMedicine(
+    8,
+    'MEFENAMIC ACID',
+    'ANALMIN',
+    null,
+    null,
+    250.00,
+    'mg',
+    50.00,
+    300,
+    100,
+    'GENERIC',
+    '4806519380086',
+    false,
+    '2026-02-01'
+  ),
+  createMedicine(
+    27,
+    'METFORMIN',
+    'FORMET',
+    null,
+    null,
+    500.00,
+    'mg',
+    50.00,
+    300,
+    100,
+    'GENERIC',
+    '4806505141387',
+    true,
+    '2026-03-01'
+  ),
+  createMedicine(
+    43,
+    'ASCORBIC ACID',
+    'MYREVIT C',
+    null,
+    null,
+    500.00,
+    'mg',
+    50.00,
+    400,
+    100,
+    'GENERIC',
+    '4806523301695',
+    false,
+    '2026-04-01'
+  ),
+  createMedicine(
+    46,
+    'OMEPRAZOLE',
+    'ZOSEC',
+    null,
+    null,
+    20.00,
+    'mg',
+    50.00,
+    100,
+    30,
+    'GENERIC',
+    '4806505140168',
+    true,
+    '2026-05-01'
+  ),
+  createMedicine(
+    77,
+    'PARACETAMOL',
+    'TEMPAID',
+    null,
+    null,
+    500.00,
+    'mg',
+    50.00,
+    300,
+    100,
+    'GENERIC',
+    '4806527195139',
+    false,
+    '2025-02-01'
+  ),
+  createMedicine(
+    80,
+    'CETIRIZINE',
+    'CETIRILIFE',
+    null,
+    null,
+    10.00,
+    'mg',
+    50.00,
+    800,
+    100,
+    'GENERIC',
+    '8906117651871',
+    false,
+    '2026-12-01'
+  ),
+  createMedicine(
+    111,
+    'SALBUTAMOL',
+    'SALBPRESS',
+    null,
+    null,
+    100.00,
+    'mcg',
+    50.00,
+    3,
+    1,
+    'GENERIC',
+    '6921665004803',
+    true,
+    '2027-05-01'
+  ),
+  createMedicine(
+    112,
+    'AMOXICILLIN',
+    'AXMEL',
+    null,
+    null,
+    250.00,
+    'mg/ml',
+    50.00,
+    10,
+    1,
+    'GENERIC',
+    '4806523301336',
+    true,
+    '2027-10-01'
+  ),
+  createMedicine(
+    114,
+    'AMBROXOL',
+    'COUXIN',
+    null,
+    null,
+    15.00,
+    'mg/ml',
+    50.00,
+    8,
+    1,
+    'GENERIC',
+    '4806529430047',
+    false,
+    '2027-02-01'
+  ),
+  createMedicine(
+    115,
+    'CO-AMOXICLAV',
+    'COBELXI-457',
+    null,
+    null,
+    457.00,
+    'mg/ml',
+    50.00,
+    3,
+    1,
+    'GENERIC',
+    '4806533603000',
+    true,
+    '2026-03-01'
+  )
 ];
 
