@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Alert, DialogTitle, DialogContent, Dialog, FormControlLabel, DialogActions, Checkbox, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add'; // Add Material UI icon
 import { useNavigate, useParams } from 'react-router-dom';
@@ -96,19 +96,22 @@ const MedicinesAvailablePage = () => {
         console.error('Error fetching medicines:', error);
       }
     };
-  
+
     fetchMedicines();
   }, []);
 
 
   const [newMedicineData, setNewMedicineData] = useState({
-    medicineName: '',
-    medicineID: '',
-    groupName: '',
-    stockQty: '',
-    howToUse: '',
+    name: '',
+    barcode: '',
+    category: '',
+    price: '',
+    stock: '',
+    description: '',
     sideEffects: '',
+    requiresPrescription: 0, // Add this field
   });
+
   const [errors, setErrors] = useState({
     medicineName: false,
     medicineID: false,
@@ -118,44 +121,49 @@ const MedicinesAvailablePage = () => {
     sideEffects: false,
   });
 
+  const handleCheckboxChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setNewMedicineData((prevData) => ({
+      ...prevData,
+      requiresPrescription: event.target.checked ? 1 : 0, // Set to 1 if checked, 0 if not
+    }));
+  };
 
   // Validate inputs and add data to table
-  const handleSaveNewItem = () => {
+  const handleSaveNewItem = async () => {
     const validationErrors = {
-      medicineName: !newMedicineData.medicineName,
-      medicineID: !newMedicineData.medicineID,
-      groupName: !newMedicineData.groupName,
-      stockQty: !newMedicineData.stockQty,
-      howToUse: !newMedicineData.howToUse,
+      medicineName: !newMedicineData.name,
+      medicineID: !newMedicineData.barcode,
+      groupName: !newMedicineData.category,
+      stockQty: !newMedicineData.stock,
+      howToUse: !newMedicineData.description,
       sideEffects: !newMedicineData.sideEffects,
     };
 
     setErrors(validationErrors);
 
-    // Check if all required fields are valid
-    const isFormValid = Object.values(validationErrors).every((isInvalid) => !isInvalid);
+    // Check if any validation errors exist
+    const hasErrors = Object.values(validationErrors).some((error) => error);
+    if (hasErrors) return;
 
-    if (isFormValid) {
-      // Add new item to table data
-      const newRow = createData(
-        newMedicineData.medicineName,
-        newMedicineData.medicineID,
-        newMedicineData.groupName,
-        Number(newMedicineData.stockQty),
-      );
+    console.log('New Medicine Data:', newMedicineData);
 
-      // Update the rows
-      setSortedRows((prevRows) => {
-        const updatedRows = [...prevRows, newRow];
-        setFilteredRows(updatedRows);  // Update filteredRows after adding the new row
-        return updatedRows;
-      });
+    try {
+      // POST request to save the new item
+      await axios.post('/admin/inventory/view-medicines-available', newMedicineData);
 
-      setModalOpen(false); // Close the modal
-      setSuccessMessage("New item added successfully!");
+      // Close the modal and reset the form
+      handleModalClose();
+      resetForm();
+      setSuccessMessage(`${newMedicineData.name} has been added successfully!`);
+
+      // Refresh the medicines list
+      const response = await axios.get('/admin/inventory/view-medicines-available');
+      setFilteredRows(response.data);  // Update table rows
+      setSortedRows(response.data);    // Update sorted rows
+    } catch (error) {
+      console.error('Error adding new item:', error);
     }
   };
-
 
   // Handle change for modal inputs
   const handleModalInputChange = (key: string, value: string) => {
@@ -296,16 +304,30 @@ const MedicinesAvailablePage = () => {
     setFilteredRows(filteredData);
   }, [searchQuery, filteredRows]);
 
+  useEffect(() => {
+    if (successMessage) {
+      const timeout = setTimeout(() => {
+        setSuccessMessage(null); // Clear the message after 3 seconds
+      }, 3000);
+
+      return () => clearTimeout(timeout); // Cleanup the timeout
+    }
+  }, [successMessage]);
+
+
 
   const resetForm = () => {
     setNewMedicineData({
-      medicineName: '',
-      medicineID: '',
-      groupName: '',
-      stockQty: '',
-      howToUse: '',
+      name: '', // Changed from 'medicineName'
+      barcode: '', // Changed from 'medicineID'
+      category: '', // Changed from 'groupName'
+      price: '',
+      stock: '', // Changed from 'stockQty'
+      description: '', // Changed from 'howToUse'
       sideEffects: '',
+      requiresPrescription: 0, // Keep this field
     });
+
     setErrors({
       medicineName: false,
       medicineID: false,
@@ -315,6 +337,7 @@ const MedicinesAvailablePage = () => {
       sideEffects: false,
     });
   };
+
 
   const handleRowSelect = (medicineID: string) => {
     const newSelectedRows = new Set(selectedRows);
@@ -386,9 +409,9 @@ const MedicinesAvailablePage = () => {
             <div className="flex flex-row flex-wrap gap-5 mt-1">
               <TextField
                 label="Medicine Name"
-                value={newMedicineData.medicineName}
+                value={newMedicineData.name}
                 onChange={(e) => {
-                  handleModalInputChange('medicineName', e.target.value);
+                  handleModalInputChange('name', e.target.value);
                   if (errors.medicineName) {
                     setErrors((prevErrors) => ({
                       ...prevErrors,
@@ -403,9 +426,9 @@ const MedicinesAvailablePage = () => {
               />
               <TextField
                 label="Medicine ID"
-                value={newMedicineData.medicineID}
+                value={newMedicineData.barcode}
                 onChange={(e) => {
-                  handleModalInputChange('medicineID', e.target.value);
+                  handleModalInputChange('barcode', e.target.value);
                   if (errors.medicineID) {
                     setErrors((prevErrors) => ({
                       ...prevErrors,
@@ -424,9 +447,9 @@ const MedicinesAvailablePage = () => {
               <FormControl sx={{ width: 340, backgroundColor: 'white' }}>
                 <InputLabel>Medicine Group</InputLabel>
                 <Select
-                  value={newMedicineData.groupName}
+                  value={newMedicineData.category}
                   onChange={(e) => {
-                    handleModalInputChange('groupName', e.target.value);
+                    handleModalInputChange('category', e.target.value);
                     if (errors.groupName) {
                       setErrors((prevErrors) => ({
                         ...prevErrors,
@@ -446,9 +469,9 @@ const MedicinesAvailablePage = () => {
               <TextField
                 label="Quantity in Number"
                 type="number"
-                value={newMedicineData.stockQty}
+                value={newMedicineData.stock}
                 onChange={(e) => {
-                  handleModalInputChange('stockQty', e.target.value);
+                  handleModalInputChange('stock', e.target.value);
                   if (errors.stockQty) {
                     setErrors((prevErrors) => ({
                       ...prevErrors,
@@ -468,9 +491,9 @@ const MedicinesAvailablePage = () => {
                 label="How to use"
                 multiline
                 rows={4}
-                value={newMedicineData.howToUse}
+                value={newMedicineData.description}
                 onChange={(e) => {
-                  handleModalInputChange('howToUse', e.target.value);
+                  handleModalInputChange('description', e.target.value);
                   if (errors.howToUse) {
                     setErrors((prevErrors) => ({
                       ...prevErrors,
@@ -503,7 +526,12 @@ const MedicinesAvailablePage = () => {
             </div>
 
             <FormControlLabel
-              control={<Checkbox />}
+              control={
+                <Checkbox
+                  checked={newMedicineData.requiresPrescription === 1} // Ensure the checkbox reflects the state
+                  onChange={handleCheckboxChange} // Handle checkbox change
+                />
+              }
               label="Requires Prescription"
               sx={{ marginTop: 1 }}
             />
@@ -561,21 +589,34 @@ const MedicinesAvailablePage = () => {
       </Box>
 
       <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: 'auto', boxShadow: 'none' }}>
-        <Table aria-label="medicines-table">
+        <Table aria-label="medicines-table" stickyHeader>
           <TableHead sx={{ backgroundColor: 'white', zIndex: 1 }}>
             <TableRow>
-              <TableCell padding="checkbox">
+              <TableCell padding="checkbox" sx={{ fontWeight: 'bold' }}>
                 <Checkbox
                   checked={selectAll}
                   onChange={handleSelectAll}
                   color="primary"
                 />
               </TableCell>
-              <TableCell onClick={() => handleSort('medicineName')}>Medicine Name</TableCell>
-              <TableCell onClick={() => handleSort('medicineID')}>Medicine ID</TableCell>
-              <TableCell onClick={() => handleSort('groupName')}>Group Name</TableCell>
-              <TableCell onClick={() => handleSort('stockQty')}>Stock Quantity</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell onClick={() => handleSort('medicineName')} sx={{ fontWeight: 'bold' }}>
+                Medicine Name
+              </TableCell>
+              <TableCell onClick={() => handleSort('medicineID')} sx={{ fontWeight: 'bold' }}>
+                Medicine ID
+              </TableCell>
+              <TableCell onClick={() => handleSort('groupName')} sx={{ fontWeight: 'bold' }}>
+                Medicine Group
+              </TableCell>
+              <TableCell onClick={() => handleSort('price')} sx={{ fontWeight: 'bold' }}>
+                Price
+              </TableCell>
+              <TableCell onClick={() => handleSort('stockQty')} sx={{ fontWeight: 'bold' }}>
+                Stock Quantity
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>
+                Actions
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -591,6 +632,7 @@ const MedicinesAvailablePage = () => {
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{row.barcode}</TableCell>
                 <TableCell>{row.category}</TableCell>
+                <TableCell>{row.price}</TableCell>
                 <TableCell>{row.stock}</TableCell>
                 <TableCell>
                   <div className="flex flex-row">
@@ -610,6 +652,7 @@ const MedicinesAvailablePage = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
 
       {/* Delete Confirmation Modal */}
       <Dialog
