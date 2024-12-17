@@ -26,7 +26,7 @@
     "@types/uuid": "^9.0.7",
     "axios": "^1.7.9",
     "bootstrap": "^5.3.3",
-    "date-fns": "^2.29.3",
+    "date-fns": "^2.30.0",
     "jquery": "^3.7.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -73,5 +73,10 @@
     "postcss": "^8.4.49",
     "prettier": "^3.1.1",
     "tailwindcss": "^3.4.15"
-  }
+  },
+  "description": "A comprehensive pharmacy management solution built with React, TypeScript, and Material-UI. This system provides a complete suite of tools for managing pharmacy operations, from point of sale to inventory management.",
+  "main": "postcss.config.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
