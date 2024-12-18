@@ -1,33 +1,58 @@
 import React, { useState } from 'react';
-import { Box, Grid, Paper, Typography, Button, Breadcrumbs, Link, Divider, Dialog, DialogTitle, DialogContent, TextField } from '@mui/material';
+import { Box, Grid, Paper, Typography, Button, Divider, Dialog, DialogTitle, DialogContent, TextField } from '@mui/material';
 import { AccountCircle, Info, Code } from '@mui/icons-material';
 
 interface Setting {
   icon: JSX.Element;
   title: string;
   description: string;
-  form: JSX.Element;
+  form?: JSX.Element;
 }
 
 const SettingsPage = () => {
   const [selectedSetting, setSelectedSetting] = useState<Setting | null>(null);
 
-  // Settings data with icons, details, and forms
-  const settingsData: Setting[] = [
+  // Email validation state and regex pattern
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState(false);
+  const [emailHelperText, setEmailHelperText] = useState('');
+
+  // Function to handle email change and validation
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+
+    // Simple email validation
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/; // Gmail domain validation
+    if (!emailPattern.test(newEmail)) {
+      setEmailError(true);
+      setEmailHelperText('Email should have @gmail.com');
+    } else {
+      setEmailError(false);
+      setEmailHelperText('');
+    }
+  };
+
+  // Settings data with icons and details
+  const settingsData = [
     {
       icon: <AccountCircle sx={{ fontSize: 40 }} />,
       title: 'Account Settings',
       description: 'Update your email, password, and profile information.',
       form: (
         <Box component="form" noValidate autoComplete="off">
-          <TextField fullWidth label="Email" margin="normal" />
+          <TextField
+            fullWidth
+            label="Email"
+            margin="normal"
+            value={email}
+            onChange={handleEmailChange}
+            error={emailError}
+            helperText={emailHelperText}
+          />
           <TextField fullWidth label="Password" type="password" margin="normal" />
           <TextField fullWidth label="Username" margin="normal" />
-          <Button
-            variant="contained"
-            sx={{ mt: 2, backgroundColor: '#03A9F5', '&:hover': { backgroundColor: '#03A9F599' } }}
-            fullWidth
-          >
+          <Button variant="contained" sx={{ marginTop: 2 }}>
             Update
           </Button>
         </Box>
@@ -36,30 +61,14 @@ const SettingsPage = () => {
     {
       icon: <Info sx={{ fontSize: 40 }} />,
       title: 'About',
-      description: 'Learn more about J5 Pharmacy Management System.',
+      description: 'Learn more about the app and its features.',
       form: (
-        <Box>
-          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-            About J5 Pharmacy Management System (PMS & POS)
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
+            About J5 Pharmacy Management System
           </Typography>
-          <Typography variant="body1" sx={{ mt: 2 }}>
-            The J5 Pharmacy Management System (PMS) is a comprehensive, integrated solution specifically designed for J5 Pharmacy. This system helps streamline and optimize the daily operations of the pharmacy, ensuring efficient management of pharmacy tasks such as inventory control, patient prescriptions, billing, and sales tracking. The system is tailored for the needs of J5 Pharmacy, providing an intuitive interface for both pharmacists and customers.
-          </Typography>
-          <Typography variant="body1" sx={{ mt: 2 }}>
-            The J5 Pharmacy system also includes a Point of Sale (POS) feature, which simplifies the sales process by offering a seamless checkout experience. It integrates directly with the inventory system, enabling real-time tracking of stock levels and ensuring that sales transactions are automatically recorded and updated.
-          </Typography>
-          <Typography variant="body1" sx={{ mt: 2 }}>
-            Key Features:
-          </Typography>
-          <ul>
-            <li>Pharmacy Management System (PMS) for managing prescriptions, inventory, and customer data.</li>
-            <li>Point of Sale (POS) for quick and accurate billing, and sales tracking.</li>
-            <li>Real-time inventory updates during sales transactions.</li>
-            <li>Prescription tracking and automated alerts for refills.</li>
-            <li>Detailed reporting and analytics for pharmacy operations.</li>
-          </ul>
-          <Typography variant="body1" sx={{ mt: 2 }}>
-            By integrating PMS and POS into a single platform, J5 Pharmacy's system enhances operational efficiency, reduces errors, and provides a smoother customer experience. It's a complete solution designed to address the specific needs of J5 Pharmacy's operations.
+          <Typography variant="body1" paragraph>
+            J5 Pharmacy is a comprehensive management system designed specifically for pharmacies. It integrates various modules to handle different aspects of pharmacy operations, including Point of Sale (POS), Pharmacy Management System (PMS), Inventory Management, and more.
           </Typography>
         </Box>
       ),
@@ -69,43 +78,45 @@ const SettingsPage = () => {
       title: 'Version',
       description: 'View app version and release details.',
       form: (
-        <Typography variant="body1">
-          App Version: 1.0.0 <br />
-          Release Date: December 2024
-        </Typography>
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
+            Version Information
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            Main Version: Beta
+          </Typography>
+          <Divider sx={{ marginBottom: 2 }} />
+
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            Component Versions:
+          </Typography>
+
+          <Box sx={{ marginTop: 2 }}>
+            <Typography variant="body1">POS: Beta 0.2.4-d</Typography>
+            <Typography variant="body1">Admin: Beta 0.1.0</Typography>
+            <Typography variant="body1">Analytics: Beta 0.1.0</Typography>
+            <Typography variant="body1">Attendance: Beta 0.1.0</Typography>
+            <Typography variant="body1">Branch: Beta 0.1.0</Typography>
+            <Typography variant="body1">Customers: Beta 0.1.0</Typography>
+            <Typography variant="body1">Dashboard: Beta 0.2.1</Typography>
+            <Typography variant="body1">Inventory: Beta 0.1.0</Typography>
+            <Typography variant="body1">Authentication: Beta 0.1.0</Typography>
+          </Box>
+        </Box>
       ),
     },
   ];
 
   return (
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
-      {/* Breadcrumbs */}
-      {selectedSetting && (
-        <Breadcrumbs
-          aria-label="breadcrumb"
-          sx={{
-            marginBottom: '16px',
-            display: 'flex',
-            justifyContent: { xs: 'center', sm: 'flex-start' },
-            textAlign: { xs: 'center', sm: 'left' },
-            width: '100%',
-          }}
-        >
-          <Link color="inherit" href="/" onClick={() => setSelectedSetting(null)}>
-            Settings
-          </Link>
-          <Typography color="text.primary">{selectedSetting.title}</Typography>
-        </Breadcrumbs>
-      )}
-
       {/* Title Section */}
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
           <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-            {selectedSetting ? selectedSetting.title : 'Settings'}
+            Settings
           </Typography>
           <Typography variant="body1" sx={{ mt: -1 }}>
-            {selectedSetting ? selectedSetting.description : 'Manage your app settings and preferences.'}
+            Manage your app settings and preferences.
           </Typography>
         </Box>
       </Box>
@@ -136,7 +147,7 @@ const SettingsPage = () => {
               onClick={() => setSelectedSetting(setting)}
             >
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-                {setting.icon}
+                {React.cloneElement(setting.icon, { sx: { fontSize: 40, color: '#000' } })}
                 <Typography variant="h6" sx={{ fontWeight: 'bold', textAlign: 'center', mt: 1 }}>
                   {setting.title}
                 </Typography>
@@ -144,6 +155,7 @@ const SettingsPage = () => {
                   {setting.description}
                 </Typography>
               </div>
+
               <Button
                 sx={{
                   backgroundColor: '#03A9F5',
@@ -168,9 +180,7 @@ const SettingsPage = () => {
       {selectedSetting && (
         <Dialog open={Boolean(selectedSetting)} onClose={() => setSelectedSetting(null)} fullWidth maxWidth="sm">
           <DialogTitle>{selectedSetting.title}</DialogTitle>
-          <DialogContent>
-            {selectedSetting.form}
-          </DialogContent>
+          <DialogContent>{selectedSetting.form}</DialogContent>
         </Dialog>
       )}
     </Box>
