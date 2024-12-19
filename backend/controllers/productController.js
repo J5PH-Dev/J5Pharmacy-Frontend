@@ -7,10 +7,10 @@ const searchProducts = async (req, res) => {
         let sql = `
             SELECT 
                 p.*,
-                c.name as category_name,
+                c.name as category,
                 p.stock * p.pieces_per_box as total_pieces
             FROM products p 
-            LEFT JOIN categories c ON p.category = c.id 
+            LEFT JOIN category c ON p.category = c.category_id 
             WHERE 1=1
         `;
         const params = [];
@@ -26,7 +26,7 @@ const searchProducts = async (req, res) => {
 
         sql += ` ORDER BY p.name ASC LIMIT 50`;
 
-        const [products] = await db.query(sql, params);
+        const [products] = await db.pool.query(sql, params);
         
         // Transform the data to match frontend expectations
         const transformedProducts = products.map(product => ({
@@ -37,10 +37,10 @@ const searchProducts = async (req, res) => {
             sideEffects: product.sideEffects,
             dosage_amount: product.dosage_amount,
             dosage_unit: product.dosage_unit,
-            price: product.price,
+            price: parseFloat(product.price),
             stock: product.stock,
             pieces_per_box: product.pieces_per_box,
-            category: product.category_name,
+            category: product.category,
             barcode: product.barcode,
             requiresPrescription: Boolean(product.requiresPrescription),
             expiryDate: product.expiryDate,
@@ -56,17 +56,27 @@ const searchProducts = async (req, res) => {
 
 // Hold transaction
 const holdTransaction = async (req, res) => {
-    const connection = await db.getConnection();
+    const connection = await db.pool.getConnection();
     try {
         await connection.beginTransaction();
 
         const { salesSessionId, customerId, items, holdNumber } = req.body;
         const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
 
-        // Create held transaction record
+        // Get branch_id from sales_sessions
+        const [sessionResult] = await connection.query(
+            'SELECT branch_id FROM sales_sessions WHERE session_id = ?',
+            [salesSessionId]
+        );
+
+        if (!sessionResult || sessionResult.length === 0) {
+            throw new Error('Invalid sales session');
+        }
+
+        // Create held transaction record with branch_id
         const [result] = await connection.query(
-            'INSERT INTO held_transactions (sales_session_id, customer_id, hold_number, total_amount) VALUES (?, ?, ?, ?)',
-            [salesSessionId, customerId || null, holdNumber, totalAmount]
+            'INSERT INTO held_transactions (sales_session_id, branch_id, customer_id, hold_number, total_amount) VALUES (?, ?, ?, ?, ?)',
+            [salesSessionId, sessionResult[0].branch_id, customerId || null, holdNumber, totalAmount]
         );
 
         const heldTransactionId = result.insertId;
@@ -95,17 +105,17 @@ const recallTransaction = async (req, res) => {
     try {
         const { salesSessionId, holdNumber } = req.query;
         
-        const [transaction] = await db.query(
+        const [transaction] = await db.pool.query(
             `SELECT 
                 ht.*,
                 hti.*,
                 p.*,
-                c.name as category_name,
+                c.name as category,
                 p.stock * p.pieces_per_box as total_pieces
             FROM held_transactions ht
             JOIN held_transaction_items hti ON ht.id = hti.held_transaction_id
             JOIN products p ON hti.product_id = p.id
-            LEFT JOIN categories c ON p.category = c.id
+            LEFT JOIN category c ON p.category = c.category_id
             WHERE ht.sales_session_id = ? AND ht.hold_number = ?`,
             [salesSessionId, holdNumber]
         );
@@ -151,7 +161,7 @@ const deleteHeldTransaction = async (req, res) => {
     try {
         const { salesSessionId, holdNumber } = req.params;
         
-        const [result] = await db.query(
+        const [result] = await db.pool.query(
             'DELETE FROM held_transactions WHERE sales_session_id = ? AND hold_number = ?',
             [salesSessionId, holdNumber]
         );
@@ -167,10 +177,36 @@ const deleteHeldTransaction = async (req, res) => {
     }
 };
 
+// Get all held transactions for a sales session
+const getHeldTransactions = async (req, res) => {
+    try {
+        const { salesSessionId } = req.query;
+        
+        const [transactions] = await db.pool.query(
+            `SELECT 
+                ht.id,
+                ht.hold_number,
+                ht.customer_id,
+                ht.total_amount,
+                ht.created_at
+            FROM held_transactions ht
+            WHERE ht.sales_session_id = ?
+            ORDER BY ht.created_at DESC`,
+            [salesSessionId]
+        );
+
+        res.json(transactions);
+    } catch (error) {
+        console.error('Error fetching held transactions:', error);
+        res.status(500).json({ message: 'Error fetching held transactions' });
+    }
+};
+
 // Make sure all functions are properly exported
 module.exports = {
     searchProducts,
     holdTransaction,
     recallTransaction,
-    deleteHeldTransaction
+    deleteHeldTransaction,
+    getHeldTransactions
 }; 

@@ -155,6 +155,7 @@ const posLogin = async (req, res) => {
                     branchId: pharmacist.branch_id,
                     branch_name: pharmacist.branch_name,
                     sessionId: sessionId,
+                    salesSessionId: sessionId,
                     loginTime: loginTimestamp
                 }
             });
