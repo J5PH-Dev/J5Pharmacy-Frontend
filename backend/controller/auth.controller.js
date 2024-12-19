@@ -284,10 +284,68 @@ const resetPassword = async (req, res) => {
     }
 };
 
+// End pharmacist session
+const endPharmacistSession = async (req, res) => {
+    const connection = await db.pool.getConnection();
+    
+    try {
+        await connection.beginTransaction();
+
+        const { staffId, sessionId } = req.user;
+
+        // Get the sales session ID
+        const [sessionResult] = await connection.query(
+            `SELECT ss.session_id 
+             FROM sales_sessions ss
+             JOIN pharmacist_sessions ps ON ss.session_id = ps.session_id
+             WHERE ps.staff_id = ? AND ps.session_id = ?
+             AND ss.end_time IS NULL`,
+            [staffId, sessionId]
+        );
+
+        if (sessionResult.length === 0) {
+            throw new Error('Active session not found');
+        }
+
+        // Update sales session end time
+        await connection.query(
+            `UPDATE sales_sessions 
+             SET end_time = ${getMySQLTimestamp()},
+                 total_sales = COALESCE((
+                     SELECT SUM(total_amount) 
+                     FROM sales s
+                     JOIN pharmacist_sessions ps ON s.pharmacist_session_id = ps.pharmacist_session_id
+                     WHERE ps.session_id = ?
+                 ), 0),
+                 updated_at = ${getMySQLTimestamp()}
+             WHERE session_id = ?`,
+            [sessionResult[0].session_id, sessionResult[0].session_id]
+        );
+
+        await connection.commit();
+
+        res.json({
+            success: true,
+            message: 'Session ended successfully'
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Error ending session:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Failed to end session',
+            error: error.message 
+        });
+    } finally {
+        connection.release();
+    }
+};
+
 module.exports = {
     pmsLogin,
     posLogin,
     forgotPassword,
     verifyResetToken,
-    resetPassword
+    resetPassword,
+    endPharmacistSession
 }; 

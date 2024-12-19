@@ -11,6 +11,8 @@ import RestoreIcon from '@mui/icons-material/Restore';
 import AssignmentReturnIcon from '@mui/icons-material/AssignmentReturn';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 // Import components
 import { CartItem } from '../../types/cart';
@@ -134,7 +136,7 @@ const ListItemContent = styled(ListItemText)(({ theme }) => ({
 }));
 
 interface FunctionKeysProps {
-  onLogout?: () => void;
+  onLogout: () => void;
   onAddProduct: (product: CartItem) => void;
   currentItems: CartItem[];
   currentTotal: number;
@@ -161,7 +163,7 @@ interface FunctionKeysProps {
 }
 
 const FunctionKeys: React.FC<FunctionKeysProps> = ({
-  onLogout = () => console.log('Logout clicked'),
+  onLogout,
   onAddProduct,
   currentItems,
   currentTotal,
@@ -188,6 +190,25 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
   });
   const [isBarcodeScanMode, setIsBarcodeScanMode] = useState(false);
   const [lastKeyPressTime, setLastKeyPressTime] = useState(0);
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      // Call the end-session endpoint
+      await axios.post('http://localhost:5000/api/auth/pos/end-session');
+      
+      // Navigate to loading page with logout state
+      navigate('/loading-screen', { state: { isLoggingOut: true } });
+      
+      // Delay actual logout to allow for animation
+      setTimeout(onLogout, 5000);
+    } catch (error) {
+      console.error('Error ending session:', error);
+      // Still proceed with logout even if session end fails
+      navigate('/loading-screen', { state: { isLoggingOut: true } });
+      setTimeout(onLogout, 5000);
+    }
+  };
 
   const handleConfirmNewTransaction = () => {
     onClearCart();
@@ -289,7 +310,7 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
       const key = event.key.toUpperCase();
       if (key === 'F12') {
         event.preventDefault();
-        onLogout();
+        handleLogout();
       } else {
         const functionKey = functionKeys.find(fk => fk.key === key);
         if (functionKey) {
@@ -301,7 +322,7 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [functionKeys, onLogout]);
+  }, [functionKeys, handleLogout]);
 
   // Handle keyboard input
   useEffect(() => {
@@ -358,7 +379,7 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
       const key = event.key.toUpperCase();
       if (key === 'F12') {
         event.preventDefault();
-        onLogout();
+        handleLogout();
       } else {
         const functionKey = functionKeys.find(fk => fk.key === key);
         if (functionKey) {
@@ -375,7 +396,7 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
       window.removeEventListener('keypress', handleKeyPress);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [barcodeBuffer, onAddProduct, onLogout, functionKeys, onManualSearchOpen]);
+  }, [barcodeBuffer, onAddProduct, handleLogout, functionKeys, onManualSearchOpen]);
 
   return (
     <FunctionKeysContainer>
@@ -403,7 +424,7 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
       {/* Logout Button - Separated at the bottom */}
       <Box sx={{ p: 1, borderTop: 1, borderColor: 'divider' }}>
         <StyledListItemButton 
-          onClick={onLogout}
+          onClick={handleLogout}
           sx={(theme) => ({ 
             backgroundColor: alpha(theme.palette.error.main, 0.02),
             borderColor: alpha(theme.palette.error.main, 0.3),
