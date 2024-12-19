@@ -165,15 +165,15 @@ const navigationItems: NavigationItem[] = [
     icon: <SettingsIcon />,
     path: '/admin/settings',
   },
-  {
-    title: 'Notifications',
-    icon: <NotificationsIcon />,
-    path: '/admin/notifications',
-    children: [
-      // { title: 'Announcements', path: '/notifications/announcements' },
-      // { title: 'Message Board', path: '/notifications/messages' },
-    ],
-  },
+  // {
+  //   title: 'Notifications',
+  //   icon: <NotificationsIcon />,
+  //   path: '/admin/notifications',
+  //   children: [
+  //     // { title: 'Announcements', path: '/notifications/announcements' },
+  //     // { title: 'Message Board', path: '/notifications/messages' },
+  //   ],
+  // },
 ];
 
 const Sidebar: React.FC = () => {

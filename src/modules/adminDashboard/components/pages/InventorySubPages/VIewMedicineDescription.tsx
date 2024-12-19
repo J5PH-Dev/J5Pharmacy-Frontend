@@ -6,6 +6,29 @@ import { useParams } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckIcon from '@mui/icons-material/Check';
+import axios from 'axios';
+
+interface MedicineDetails {
+    barcode: string;
+    group: string;
+    instructions: string;
+    sideEffects: string;
+    brand_name: string; // New field
+    price: number; // New field
+    stock: number; // New field
+    dosage_amount: number; // New field
+    dosage_unit: string; // New field
+    pieces_per_box: number; // New field
+    expiryDate: string; // New field
+    requiresPrescription: number; // New field (0 or 1)
+}
+
+
+interface Branch {
+    id: number;
+    name: string;
+    inventory: number;
+}
 
 const VIewMedicineDescription = () => {
     const navigate = useNavigate();
@@ -22,6 +45,25 @@ const VIewMedicineDescription = () => {
     const successMessageFromDeletion = location.state?.successMessage;
     const [successMessage, setSuccessMessage] = useState<string | null>(successMessageFromDeletion);
 
+    const [branches, setBranches] = useState<Branch[]>([]);
+
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    const [medicineDetails, setMedicineDetails] = useState<MedicineDetails>({
+        barcode: '',
+        group: '',
+        instructions: '',
+        sideEffects: '',
+        brand_name: '', // New field
+        price: 0, // New field
+        stock: 0, // New field
+        dosage_amount: 0, // New field
+        dosage_unit: '', // New field
+        pieces_per_box: 0, // New field
+        expiryDate: '', // New field
+        requiresPrescription: 0, // New field (0 or 1)
+    });
+
     useEffect(() => {
         if (successMessage) {
             const timeout = setTimeout(() => {
@@ -32,12 +74,44 @@ const VIewMedicineDescription = () => {
         }
     }, [successMessage]);
 
+    useEffect(() => {
+        const fetchMedicineDetails = async () => {
+            try {
+                const response = await axios.get(`/admin/inventory/view-medicines-description/${medicineName}`);
+                const medicineData = response.data.data;
+                console.log(medicineData); // Check if it prints the expected value (1 or 0)
+
+                // Map the API response to the state structure with the new fields
+                setMedicineDetails({
+                    barcode: medicineData.barcode.toString(), // Ensure the ID is a string
+                    group: medicineData.category, // Use name as the group
+                    instructions: medicineData.description || 'No instructions available', // Handle null case
+                    sideEffects: medicineData.sideEffects || 'No side effects listed', // Handle null case
+                    brand_name: medicineData.brand_name || 'No brand name', // New field
+                    price: medicineData.price || 0, // New field
+                    stock: medicineData.stock || 0, // New field
+                    dosage_amount: medicineData.dosage_amount || 0, // New field
+                    dosage_unit: medicineData.dosage_unit || 'mg', // New field (default value 'mg')
+                    pieces_per_box: medicineData.pieces_per_box || 0, // New field
+                    expiryDate: medicineData.expiryDate || 'N/A', // New field
+                    requiresPrescription: medicineData.requiresPrescription || 0, // New field (0 or 1)
+                });
+            } catch (error: any) {
+                setErrorMessage(error.response?.data?.message || 'Error fetching medicine details');
+            }
+        };
+
+        fetchMedicineDetails();
+    }, [medicineName]);
+
+
+
     const handleBreadcrumbClick = (path: string) => (e: React.MouseEvent) => {
         e.preventDefault();
         navigate(path);
     };
 
-    const handleAddNewItemClick = () => {
+    const handleEditItemClick = () => {
         navigate(`/admin/inventory/view-medicines-description/${medicineName}/edit-details`)
     };
 
@@ -66,26 +140,43 @@ const VIewMedicineDescription = () => {
     };
 
 
-    const confirmDelete = () => {
-        navigate('/admin/inventory/view-medicines-available', {
-            state: { successMessage: `${medicineName} Deleted Successfully.` },
-        });
+    const confirmDelete = async () => {
+        try {
+            // Make the DELETE request to the backend, using medicineName
+            await axios.delete(`/admin/inventory/edit-delete/${medicineName}`);
+
+            // Redirect to the medicines list after deletion
+            navigate('/admin/inventory/view-medicines-available', {
+                state: { successMessage: `${medicineName} Deleted Successfully.` },
+            });
+        } catch (error) {
+            console.error('Error deleting medicine:', error);
+            // Optionally, show an error message to the user
+        }
     };
 
 
     const handleOpenModal = () => setOpenModal(true);
     const handleCloseModal = () => setOpenModal(false);
 
-    const handleIncrement = (branch: number) => {
-        if (branch === 1) setBranch1Inventory(prev => prev + 5);
-        if (branch === 2) setBranch2Inventory(prev => prev + 5);
-        if (branch === 3) setBranch3Inventory(prev => prev + 5);
+    const handleIncrement = (index: number) => {
+        const updatedBranches = [...branches];
+        updatedBranches[index].inventory += 1;
+        setBranches(updatedBranches);
     };
 
-    const handleDecrement = (branch: number) => {
-        if (branch === 1 && branch1Inventory > 0) setBranch1Inventory(prev => prev - 5);
-        if (branch === 2 && branch2Inventory > 0) setBranch2Inventory(prev => prev - 5);
-        if (branch === 3 && branch3Inventory > 0) setBranch3Inventory(prev => prev - 5);
+    const handleDecrement = (index: number) => {
+        const updatedBranches = [...branches];
+        if (updatedBranches[index].inventory > 0) {
+            updatedBranches[index].inventory -= 1;
+            setBranches(updatedBranches);
+        }
+    };
+
+    const handleInventoryChange = (index: number, value: number) => {
+        const updatedBranches = [...branches];
+        updatedBranches[index].inventory = value;
+        setBranches(updatedBranches);
     };
 
     const handleDialogOpen = () => {
@@ -119,183 +210,219 @@ const VIewMedicineDescription = () => {
                     <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{medicineName}</Typography>
                     <Typography variant="body1">List of medicines available for sales.</Typography>
                 </Box>
-                <Button variant="contained" onClick={handleAddNewItemClick} sx={{ backgroundColor: '#01A768', color: '#fff', '&:hover': { backgroundColor: '#017F4A' } }}>
+                <Button variant="contained" onClick={handleEditItemClick} sx={{ backgroundColor: '#01A768', color: '#fff', '&:hover': { backgroundColor: '#017F4A' } }}>
                     <EditIcon sx={{ fontSize: '1rem', mr: 1 }} /> Edit Details
                 </Button>
             </Box>
 
-            <FormControlLabel control={<Checkbox defaultChecked sx={{ color: 'black', '&.Mui-checked': { color: 'black' }, }} />}
-                label="Requires Prescription" style={{ marginTop: '-10px', marginBottom: '14px', }}
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked={medicineDetails.requiresPrescription === 1} // Ensure checked is based on the updated state
+                        disabled // Keep it disabled to prevent interaction
+                        sx={{
+                            color: 'black',
+                            '&.Mui-checked': { color: 'black' },
+                        }}
+                    />
+                }
+                label="Requires Prescription"
                 sx={{
+                    marginTop: '-10px',
+                    marginBottom: '14px',
                     '& .MuiFormControlLabel-label': {
-                        fontWeight: 600, // Medium weight
+                        fontWeight: 600,
                     },
                 }}
             />
 
+
+            {/* Content Section */}
             {/* Content Section */}
             <div className='flex flex-row flex-wrap gap-5'>
-
-                <Box sx={{ width: '556px', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}>
-                    {/* Header Section */}
+                {/* Medicine Details Box */}
+                <Box
+                    sx={{
+                        width: '556px',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        backgroundColor: 'white',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                    }}
+                >
+                    {/* Header */}
                     <Box sx={{ padding: '17px 30px', textAlign: 'left' }}>
                         <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>Medicine</Typography>
                     </Box>
-
-                    {/* Divider */}
                     <Divider />
-
-                    {/* Content Section */}
+                    {/* Content */}
                     <Box sx={{ padding: '21px 30px', display: 'flex', justifyContent: 'space-between' }}>
                         {/* Left Column */}
                         <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>1023_1</Typography>
+                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>
+                                {medicineDetails.barcode}
+                            </Typography>
                             <Typography sx={{ color: 'black', fontSize: '15px' }}>Medicine ID</Typography>
                         </Box>
 
                         {/* Right Column */}
                         <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>Antibiotic</Typography>
-                            <Typography sx={{ color: 'black', fontSize: '14px' }}>Medicine Group</Typography>
+                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>
+                                {medicineDetails.group}
+                            </Typography>
+                            <Typography sx={{ color: 'black', fontSize: '15px' }}>Medicine Group</Typography>
                         </Box>
                     </Box>
                 </Box>
 
-                <Box sx={{ width: '556px', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}>
-                    {/* Header Section */}
+                {/* Branch Inventory */}
+                <Box
+                    sx={{
+                        width: '556px',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        backgroundColor: 'white',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                    }}
+                >
+                    {/* Header */}
                     <div className="flex flex-row justify-between items-center">
                         <Box sx={{ padding: '14px 30px', textAlign: 'left' }}>
                             <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>Branch Inventory</Typography>
                         </Box>
-                        {/* Edit Icon Button */}
                         <Box sx={{ padding: '14px 30px', textAlign: 'left' }}>
                             <IconButton onClick={handleOpenModal}>
                                 <EditIcon sx={{ fontSize: '19px', color: 'gray' }} />
                             </IconButton>
                         </Box>
                     </div>
-
-                    {/* Modal (Dialog) */}
-                    <Dialog open={openModal} onClose={handleCloseModal}>
-                        <DialogTitle>Edit Branch Inventory</DialogTitle>
-                        <DialogContent>
-                            <Typography>Update the Inventory Levels for each Branch.</Typography>
-
-                            {/* Branch 1 */}
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                                <Typography>Branch 1</Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <IconButton onClick={() => handleDecrement(3)}>-</IconButton>
-                                    <TextField
-                                        value={branch1Inventory}
-                                        onChange={(e) => setBranch1Inventory(Number(e.target.value))}
-                                        type="number"
-                                        inputProps={{ min: 0, style: { textAlign: 'center' } }}
-                                        sx={{ width: 80, mx: 1 }}
-                                    />
-                                    <IconButton onClick={() => handleIncrement(3)}>+</IconButton>
-                                </Box>
+                    <Divider />
+                    {/* Content Section */}
+                    {branches.map((branch, index) => (
+                        <Box key={branch.id} sx={{ padding: '21px 30px', display: 'flex', justifyContent: 'space-between' }}>
+                            <Box sx={{ flex: 1 }}>
+                                <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>{branch.inventory}</Typography>
+                                <Typography sx={{ color: 'black', fontSize: '15px' }}>{branch.name}</Typography>
                             </Box>
+                        </Box>
+                    ))}
+                </Box>
 
-                            {/* Branch 2 */}
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                                <Typography>Branch 2</Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <IconButton onClick={() => handleDecrement(3)}>-</IconButton>
-                                    <TextField
-                                        value={branch2Inventory}
-                                        onChange={(e) => setBranch2Inventory(Number(e.target.value))}
-                                        type="number"
-                                        inputProps={{ min: 0, style: { textAlign: 'center' } }}
-                                        sx={{ width: 80, mx: 1 }}
-                                    />
-                                    <IconButton onClick={() => handleIncrement(3)}>+</IconButton>
-                                </Box>
-                            </Box>
 
-                            {/* Branch 3 */}
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                                <Typography>Branch 3</Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <IconButton onClick={() => handleDecrement(3)}>-</IconButton>
-                                    <TextField
-                                        value={branch3Inventory}
-                                        onChange={(e) => setBranch3Inventory(Number(e.target.value))}
-                                        type="number"
-                                        inputProps={{ min: 0, style: { textAlign: 'center' } }}
-                                        sx={{ width: 80, mx: 1 }}
-                                    />
-                                    <IconButton onClick={() => handleIncrement(3)}>+</IconButton>
-                                </Box>
-                            </Box>
-                        </DialogContent>
-                        <DialogActions>
-                            <Button onClick={handleCloseModal}>Cancel</Button>
-                            <Button onClick={handleSaveChanges}>Save Changes</Button>
-                        </DialogActions>
-                    </Dialog>
-
-                    {/* Divider */}
+                {/* Medicine Info Section (Brand, Price, Stock, Dosage, Pieces Per Box, Expiry Date) */}
+                <Box
+                    sx={{
+                        width: '1456px',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        backgroundColor: 'white',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                    }}
+                >
+                    {/* Header */}
+                    <Box sx={{ padding: '17px 30px', textAlign: 'left' }}>
+                        <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>Medicine Info</Typography>
+                    </Box>
                     <Divider />
 
-                    {/* Content Section */}
-                    <Box sx={{ padding: '21px 30px', display: 'flex', justifyContent: 'space-between' }}>
-                        {/* Left Column */}
-                        <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>50</Typography>
-                            <Typography sx={{ color: 'black', fontSize: '15px' }}>Branch 1</Typography>
+                    {/* Content (Three Columns per Row) */}
+                    <Box sx={{ padding: '21px 30px', display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+                        {/* Brand Name */}
+                        <Box sx={{ flex: '1 1 30%' }}>
+                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>
+                                {medicineDetails.brand_name}
+                            </Typography>
+                            <Typography sx={{ color: 'black', fontSize: '15px' }}>Brand Name</Typography>
                         </Box>
 
-                        {/* Right Column */}
-                        <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>25</Typography>
-                            <Typography sx={{ color: 'black', fontSize: '14px' }}>Branch 2</Typography>
+                        {/* Price */}
+                        <Box sx={{ flex: '1 1 30%' }}>
+                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>
+                                ${medicineDetails.price}
+                            </Typography>
+                            <Typography sx={{ color: 'black', fontSize: '15px' }}>Price</Typography>
                         </Box>
-                        {/* Right Column */}
-                        <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>43</Typography>
-                            <Typography sx={{ color: 'black', fontSize: '14px' }}>Branch 3</Typography>
+
+                        {/* Stock */}
+                        <Box sx={{ flex: '1 1 30%' }}>
+                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>
+                                {medicineDetails.stock}
+                            </Typography>
+                            <Typography sx={{ color: 'black', fontSize: '15px' }}>Stock Available</Typography>
+                        </Box>
+
+                        {/* Dosage */}
+                        <Box sx={{ flex: '1 1 30%' }}>
+                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>
+                                {medicineDetails.dosage_amount} {medicineDetails.dosage_unit}
+                            </Typography>
+                            <Typography sx={{ color: 'black', fontSize: '15px' }}>Dosage</Typography>
+                        </Box>
+
+                        {/* Pieces Per Box */}
+                        <Box sx={{ flex: '1 1 30%' }}>
+                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>
+                                {medicineDetails.pieces_per_box}
+                            </Typography>
+                            <Typography sx={{ color: 'black', fontSize: '15px' }}>Pieces Per Box</Typography>
+                        </Box>
+
+                        {/* Expiry Date */}
+                        <Box sx={{ flex: '1 1 30%' }}>
+                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>
+                                {medicineDetails.expiryDate}
+                            </Typography>
+                            <Typography sx={{ color: 'black', fontSize: '15px' }}>Expiry Date</Typography>
                         </Box>
                     </Box>
                 </Box>
 
 
-                <Box sx={{ width: '1456px', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}>
-                    {/* Header Section */}
+
+                {/* Instructions */}
+                <Box
+                    sx={{
+                        width: '1456px',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        backgroundColor: 'white',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                    }}
+                >
                     <Box sx={{ padding: '19px 30px', textAlign: 'left' }}>
                         <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>How to use</Typography>
                     </Box>
-
-                    {/* Divider */}
                     <Divider />
-
-                    {/* Content Section */}
-                    <Box sx={{ padding: '21px 30px', display: 'flex', justifyContent: 'space-between' }}>
-                        {/* Left Column */}
-                        <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ color: 'black', fontSize: '15px' }}>Take this medication by mouth with or without food as directed by your doctor, usually once daily.</Typography>
-                        </Box>
+                    <Box sx={{ padding: '21px 30px' }}>
+                        <Typography sx={{ color: 'black', fontSize: '15px' }}>{medicineDetails.instructions}</Typography>
                     </Box>
                 </Box>
 
-                <Box sx={{ width: '1456px', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}>
-                    {/* Header Section */}
+                {/* Side Effects */}
+                <Box
+                    sx={{
+                        width: '1456px',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        backgroundColor: 'white',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                    }}
+                >
                     <Box sx={{ padding: '19px 30px', textAlign: 'left' }}>
                         <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>Side Effects</Typography>
                     </Box>
-
-                    {/* Divider */}
                     <Divider />
-
-                    {/* Content Section */}
-                    <Box sx={{ padding: '21px 30px', display: 'flex', justifyContent: 'space-between' }}>
-                        {/* Left Column */}
-                        <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ color: 'black', fontSize: '15px' }}>Dizziness, lightheadedness, drowsiness, nausea, vomiting, tiredness, excess saliva/drooling, blurred vision, weight gain, constipation, headache, and trouble sleeping may occur. If any of these effects persist or worsen, consult your doctor.</Typography>
-                        </Box>
+                    <Box sx={{ padding: '21px 30px' }}>
+                        <Typography sx={{ color: 'black', fontSize: '15px' }}>{medicineDetails.sideEffects}</Typography>
                     </Box>
                 </Box>
 
+                {/* Delete Button */}
                 <Button
                     variant="contained"
                     sx={{
@@ -303,10 +430,10 @@ const VIewMedicineDescription = () => {
                         color: '#F0483E',
                         padding: '15px 24px',
                         border: '1px solid #F0483E',
-                        textTransform: 'none', // Optional: Disable uppercase text
+                        textTransform: 'none',
                         fontWeight: 'bold',
                         '&:hover': {
-                            backgroundColor: '#FFF5F5', // Light background on hover
+                            backgroundColor: '#FFF5F5',
                         },
                     }}
                     onClick={handleDelete}
@@ -315,24 +442,27 @@ const VIewMedicineDescription = () => {
                     Delete Medicine
                 </Button>
 
-                {/* Confirmation Dialog for Item Deletion */}
-                <Dialog open={openDialog} onClose={cancelDelete} BackdropProps={{ onClick: (event) => event.stopPropagation() }} disableEscapeKeyDown>
+                {/* Confirmation Dialog */}
+                <Dialog open={openDialog} onClose={cancelDelete} disableEscapeKeyDown>
                     <DialogTitle>
                         <WarningIcon sx={{ color: 'red', marginRight: 1 }} />
                         Confirm Item Deletion
                     </DialogTitle>
                     <DialogContent>
-                        <Typography>
-                            Are you sure you want to delete this medicine? This action cannot be undone.
-                        </Typography>
+                        <Typography>Are you sure you want to delete this medicine? This action cannot be undone.</Typography>
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={cancelDelete} color="secondary">Cancel</Button>
-                        <Button onClick={confirmDelete} color="primary">Confirm</Button>
+                        <Button onClick={cancelDelete} color="secondary">
+                            Cancel
+                        </Button>
+                        <Button onClick={confirmDelete} color="primary">
+                            Confirm
+                        </Button>
                     </DialogActions>
                 </Dialog>
-
             </div>
+
+
             <Box>
                 {successMessage && (
                     <Alert

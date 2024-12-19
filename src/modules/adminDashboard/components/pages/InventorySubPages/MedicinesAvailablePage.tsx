@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Alert, DialogTitle, DialogContent, Dialog, FormControlLabel, DialogActions, Checkbox, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add'; // Add Material UI icon
 import { useNavigate, useParams } from 'react-router-dom';
@@ -11,14 +11,6 @@ import { Edit, Delete, Visibility } from '@mui/icons-material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
 
-function createData(
-  medicineName: string,
-  medicineID: string,
-  groupName: string,
-  stockQty: number,
-) {
-  return { medicineName, medicineID, groupName, stockQty };
-}
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -31,21 +23,15 @@ const MenuProps = {
   },
 };
 
-const names = [
-  'Pain Relievers',
-  'Antibiotics',
-  'Anti-inflammatories',
-  'Diabetes Medications',
-  'Blood Pressure Medications',
-  'Antacids',
-  'Antihistamines',
-  'Antidepressants',
-  'Asthma Medications',
-  'Vitamins and Supplements',
-];
+interface Medicine {
+  medicineID: string;
+  name: string;
+  barcode: string;
+  category: string;
+  price: number;
+  stock: number;
+}
 
-// Define a type for the row keys
-type RowKey = 'medicineName' | 'medicineID' | 'groupName' | 'stockQty';
 
 function getStyles(name: string, personName: string[], theme: Theme) {
   return {
@@ -59,100 +45,117 @@ const MedicinesAvailablePage = () => {
   const theme = useTheme();
   const [personName, setPersonName] = React.useState<string[]>([]);
   const [sortedRows, setSortedRows] = React.useState<any[]>([]);  // Initialize as an empty array
+  const [originalRows, setOriginalRows] = useState<Medicine[]>([]);
+  const [filteredRows, setFilteredRows] = useState<Medicine[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredRows, setFilteredRows] = useState<any[]>([]);  // Store medicines fetched from API
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set()); // To store selected row ids (medicineID)
   const [selectAll, setSelectAll] = useState<boolean>(false); // To track the "select all" checkbox state
-  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({
-    key: 'medicineName', direction: 'asc',
-  });
   const location = useLocation();
-  const successMessageFromDeletion = location.state?.successMessage;
+  const [successMessageFromDeletion, setsuccessMessageFromDeletion] = useState(location.state?.successMessage);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isModalOpen, setModalOpen] = useState(false);
   const navigate = useNavigate();
-  const [selectedGroup, setSelectedGroup] = useState('');
-  const medicineGroups = [
-    'Pain Relievers',
-    'Antibiotics',
-    'Anti-inflammatory',
-    'Diabetes',
-    // Add other groups here
-  ];
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [medicineToDelete, setMedicineToDelete] = useState<string | null>(null);
   // New state for confirmation modal
   const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
   const [medicinesToDelete, setMedicinesToDelete] = useState<string[]>([]); // For multiple selected medicines
+  const [categories, setCategories] = useState<string[]>([]);
 
   // Fetch data from the API on component mount
   useEffect(() => {
     const fetchMedicines = async () => {
       try {
-        const response = await axios.get('/admin/inventory/view-medicines-available');
+        const response = await axios.get<Medicine[]>('/admin/inventory/view-medicines-available');
+        setOriginalRows(response.data); // Store the unfiltered data
         setFilteredRows(response.data);  // Set filtered rows
         setSortedRows(response.data);     // Set sorted rows from API
       } catch (error) {
         console.error('Error fetching medicines:', error);
       }
     };
-  
+
     fetchMedicines();
+  }, []);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get('/admin/inventory/get-categories');
+        setCategories(response.data); // Assuming the API returns an array of strings
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+
+    fetchCategories();
   }, []);
 
 
   const [newMedicineData, setNewMedicineData] = useState({
-    medicineName: '',
-    medicineID: '',
-    groupName: '',
-    stockQty: '',
-    howToUse: '',
+    name: '',
+    barcode: '',
+    category: '',
+    price: '',
+    stock: '',
+    description: '',
     sideEffects: '',
+    requiresPrescription: 0, // Add this field
   });
+
   const [errors, setErrors] = useState({
     medicineName: false,
     medicineID: false,
     groupName: false,
+    price: false,
     stockQty: false,
     howToUse: false,
     sideEffects: false,
   });
 
+  const handleCheckboxChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setNewMedicineData((prevData) => ({
+      ...prevData,
+      requiresPrescription: event.target.checked ? 1 : 0, // Set to 1 if checked, 0 if not
+    }));
+  };
 
   // Validate inputs and add data to table
-  const handleSaveNewItem = () => {
+  const handleSaveNewItem = async () => {
     const validationErrors = {
-      medicineName: !newMedicineData.medicineName,
-      medicineID: !newMedicineData.medicineID,
-      groupName: !newMedicineData.groupName,
-      stockQty: !newMedicineData.stockQty,
-      howToUse: !newMedicineData.howToUse,
+      medicineName: !newMedicineData.name,
+      medicineID: !newMedicineData.barcode,
+      groupName: !newMedicineData.category,
+      stockQty: !newMedicineData.stock,
+      price: !newMedicineData.price,  // Add validation for price
+      howToUse: !newMedicineData.description,
       sideEffects: !newMedicineData.sideEffects,
     };
 
     setErrors(validationErrors);
 
-    // Check if all required fields are valid
-    const isFormValid = Object.values(validationErrors).every((isInvalid) => !isInvalid);
+    // Check if any validation errors exist
+    const hasErrors = Object.values(validationErrors).some((error) => error);
+    if (hasErrors) return;
 
-    if (isFormValid) {
-      // Add new item to table data
-      const newRow = createData(
-        newMedicineData.medicineName,
-        newMedicineData.medicineID,
-        newMedicineData.groupName,
-        Number(newMedicineData.stockQty),
-      );
+    console.log('New Medicine Data:', newMedicineData);
 
-      // Update the rows
-      setSortedRows((prevRows) => {
-        const updatedRows = [...prevRows, newRow];
-        setFilteredRows(updatedRows);  // Update filteredRows after adding the new row
-        return updatedRows;
-      });
+    try {
+      // POST request to save the new item
+      await axios.post('/admin/inventory/add-medicine', newMedicineData);
 
-      setModalOpen(false); // Close the modal
-      setSuccessMessage("New item added successfully!");
+      // Close the modal and reset the form
+      handleModalClose();
+      resetForm();
+      setSuccessMessage(`${newMedicineData.name} has been added successfully!`);
+
+      // Refresh the medicines list
+      const response = await axios.get('/admin/inventory/view-medicines-available');
+      setFilteredRows(response.data);  // Update table rows
+      setSortedRows(response.data);    // Update sorted rows
+    } catch (error) {
+      console.error('Error adding new item:', error);
     }
   };
 
@@ -165,13 +168,22 @@ const MedicinesAvailablePage = () => {
     }));
   };
 
-  const handleChange = (event: SelectChangeEvent<typeof personName>) => {
-    const {
-      target: { value },
-    } = event;
-    setPersonName(
-      typeof value === 'string' ? value.split(',') : value,
-    );
+  const handleChange = (event: SelectChangeEvent<string>) => {
+    const { value } = event.target;
+
+    setPersonName([value]); // Update with selected category
+
+    // If "All" is selected, show all rows
+    if (value === 'All') {
+      setFilteredRows(sortedRows); // Display all rows if "All" is selected
+    } else {
+      // Filter rows based on the selected category
+      const newFilteredRows = sortedRows.filter(row =>
+        row.category === value
+      );
+
+      setFilteredRows(newFilteredRows.length > 0 ? newFilteredRows : []);
+    }
   };
 
 
@@ -190,21 +202,6 @@ const MedicinesAvailablePage = () => {
     resetForm(); // Reset the form when modal closes
   };
 
-  const handleGroupChange = (event: SelectChangeEvent<string>) => {
-    setSelectedGroup(event.target.value as string);
-  };
-
-
-  const handleSort = (key: string) => {
-    const direction = sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
-    const sortedData = [...filteredRows].sort((a, b) => {
-      if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
-      if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
-      return 0;
-    });
-    setFilteredRows(sortedData);
-    setSortConfig({ key, direction });
-  };
 
   const handleViewDetails = (medicineName: string) => {
     navigate(`/admin/inventory/view-medicines-description/${medicineName}`);
@@ -214,21 +211,38 @@ const MedicinesAvailablePage = () => {
     navigate(`/admin/inventory/view-medicines-description/${medicineName}/edit-details`);
   };
 
-  const handleDeleteItem = (medicineName: string) => {
-    setMedicineToDelete(medicineName); // Set the medicine name to be deleted
+  const handleDeleteItem = (barcode: string) => {
+    setMedicineToDelete(barcode); // Set the medicine name to be deleted
     setIsDeleteModalOpen(true); // Open the confirmation modal
   };
 
   // Function to handle delete item confirmation
-  const handleConfirmDeleteItem = () => {
+  const handleConfirmDeleteItem = async () => {
     if (medicineToDelete) {
-      setSortedRows((prevRows) => prevRows.filter((row) => row.medicineName !== medicineToDelete));
-      setFilteredRows((prevRows) => prevRows.filter((row) => row.medicineName !== medicineToDelete));
-      setSuccessMessage(`Successfully deleted ${medicineToDelete}.`);
-      setMedicineToDelete(null);
-      setIsDeleteModalOpen(false);
+      try {
+        // Send DELETE request to the backend with the barcode
+        const response = await axios.delete(`/admin/inventory/delete-medicine/${medicineToDelete}`);
+
+        if (response.status === 200) {
+          // Update the rows in the frontend after successful deletion
+          setSortedRows((prevRows) => prevRows.filter((row) => row.barcode !== medicineToDelete));
+          setFilteredRows((prevRows) => prevRows.filter((row) => row.barcode !== medicineToDelete));
+
+          setSuccessMessage(`Successfully deleted medicine with barcode: ${medicineToDelete}`);
+        } else {
+          setSuccessMessage('Failed to delete medicine.');
+        }
+
+        // Reset delete state
+        setMedicineToDelete(null);
+        setIsDeleteModalOpen(false);
+      } catch (error) {
+        console.error('Error deleting item:', error);
+        setSuccessMessage('An error occurred while deleting the medicine.');
+      }
     }
   };
+
 
   // Function to close delete confirmation modal
   const handleDeleteModalClose = () => {
@@ -243,29 +257,37 @@ const MedicinesAvailablePage = () => {
   };
 
 
-  const handleConfirmDelete = () => {
-    // Get the list of selected medicine names based on the selected rows' IDs
-    const medicinesToDelete = Array.from(selectedRows).map(
-      (selectedID) => filteredRows.find((row) => row.medicineID === selectedID)?.medicineName
+  const handleConfirmDelete = async () => {
+    // Get the list of selected medicine barcodes based on the selected rows' IDs
+    const barcodesToDelete = Array.from(selectedRows).map(
+      (selectedID) => filteredRows.find((row) => row.medicineID === selectedID)?.barcode
     ).filter(Boolean); // Remove any undefined values in case some IDs were invalid
 
     // If there are selected medicines to delete
-    if (medicinesToDelete.length > 0) {
-      // Remove selected medicines from sortedRows and filteredRows
-      const updatedRows = sortedRows.filter(
-        (row) => !medicinesToDelete.includes(row.medicineName)
-      );
-      const updatedFilteredRows = filteredRows.filter(
-        (row) => !medicinesToDelete.includes(row.medicineName)
-      );
+    if (barcodesToDelete.length > 0) {
+      try {
+        // Send the request to the backend to delete the medicines
+        await axios.post('/admin/inventory/delete-medicines', { barcodes: barcodesToDelete });
 
-      // Update the state with the new rows
-      setSortedRows(updatedRows);
-      setFilteredRows(updatedFilteredRows);
+        // Remove selected medicines from sortedRows and filteredRows
+        const updatedRows = sortedRows.filter(
+          (row) => !barcodesToDelete.includes(row.barcode)
+        );
+        const updatedFilteredRows = filteredRows.filter(
+          (row) => !barcodesToDelete.includes(row.barcode)
+        );
 
-      // Set success message
-      setSuccessMessage(`${medicinesToDelete.join(', ')} deleted successfully!`);
-      setSelectedRows(new Set()); // Clear the selected rows
+        // Update the state with the new rows
+        setSortedRows(updatedRows);
+        setFilteredRows(updatedFilteredRows);
+
+        // Set success message
+        setSuccessMessage('Selected medicines deleted successfully!');
+        setSelectedRows(new Set()); // Clear the selected rows
+      } catch (error) {
+        console.error('Error deleting medicines:', error);
+        setSuccessMessage('Failed to delete medicines');
+      }
     }
 
     // Close the confirmation modal after deletion
@@ -282,14 +304,20 @@ const MedicinesAvailablePage = () => {
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     const query = event.target.value;
     setSearchQuery(query);
+
+    const filteredData = originalRows.filter(row =>
+      row.name.toLowerCase().includes(query.toLowerCase())
+    );
+    setFilteredRows(filteredData);
   };
+
 
   useEffect(() => {
     let filteredData = filteredRows;
 
     if (searchQuery !== '') {
       filteredData = filteredData.filter(row =>
-        row.medicineName.toLowerCase().includes(searchQuery.toLowerCase())
+        row.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -297,48 +325,99 @@ const MedicinesAvailablePage = () => {
   }, [searchQuery, filteredRows]);
 
 
+  useEffect(() => {
+    if (successMessage) {
+      const timeout = setTimeout(() => {
+        setSuccessMessage(null); // Clear the message after 3 seconds
+      }, 3000);
+
+      return () => clearTimeout(timeout); // Cleanup the timeout
+    }
+  }, [successMessage]);
+
+
+
   const resetForm = () => {
     setNewMedicineData({
-      medicineName: '',
-      medicineID: '',
-      groupName: '',
-      stockQty: '',
-      howToUse: '',
+      name: '', // Changed from 'medicineName'
+      barcode: '', // Changed from 'medicineID'
+      category: '', // Changed from 'groupName'
+      price: '',
+      stock: '', // Changed from 'stockQty'
+      description: '', // Changed from 'howToUse'
       sideEffects: '',
+      requiresPrescription: 0, // Keep this field
     });
+
     setErrors({
       medicineName: false,
       medicineID: false,
       groupName: false,
+      price: false,
       stockQty: false,
       howToUse: false,
       sideEffects: false,
     });
   };
 
+
   const handleRowSelect = (medicineID: string) => {
     const newSelectedRows = new Set(selectedRows);
+
     if (newSelectedRows.has(medicineID)) {
-      newSelectedRows.delete(medicineID);
+      newSelectedRows.delete(medicineID);  // Deselect the row
     } else {
-      newSelectedRows.add(medicineID);
+      newSelectedRows.add(medicineID);  // Select the row
     }
+
     setSelectedRows(newSelectedRows);
+    // "Select all" state should depend on whether all rows are selected or not
     setSelectAll(newSelectedRows.size === filteredRows.length);
   };
 
   const handleSelectAll = () => {
     if (selectAll) {
-      setSelectedRows(new Set());
+      setSelectedRows(new Set());  // Unselect all rows
     } else {
-      const allRowIDs = new Set(filteredRows.map((row) => row.medicineID));
+      const allRowIDs = new Set(filteredRows.map((row) => row.medicineID)); // Select all rows
       setSelectedRows(allRowIDs);
     }
-    setSelectAll(!selectAll);
+    setSelectAll(!selectAll);  // Toggle "select all" checkbox
   };
 
+    // Remove the success message after 3 seconds
+    useEffect(() => {
+      if (successMessageFromDeletion) {
+        const timer = setTimeout(() => {
+          setsuccessMessageFromDeletion(null); // Remove the message after 3 seconds
+        }, 3000);
+  
+        // Cleanup the timeout if component is unmounted or message is cleared
+        return () => clearTimeout(timer);
+      }
+    }, [successMessageFromDeletion]);
+
   return (
+
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
+      <Box>
+        {/* Medicine Deleted Alert Message */}
+        {successMessageFromDeletion && (
+          <Alert
+            icon={<CheckIcon fontSize="inherit" />}
+            severity="success"
+            sx={{
+              position: 'fixed',
+              bottom: 20,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1201, // Ensure it's above other content
+            }}
+          >
+            {successMessageFromDeletion}
+          </Alert>
+        )}
+      </Box>
       <Breadcrumbs aria-label="breadcrumb" sx={{ marginBottom: '16px', display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
         <Link color="inherit" href="/" onClick={handleBreadcrumbClick}>
           Inventory
@@ -386,9 +465,9 @@ const MedicinesAvailablePage = () => {
             <div className="flex flex-row flex-wrap gap-5 mt-1">
               <TextField
                 label="Medicine Name"
-                value={newMedicineData.medicineName}
+                value={newMedicineData.name}
                 onChange={(e) => {
-                  handleModalInputChange('medicineName', e.target.value);
+                  handleModalInputChange('name', e.target.value);
                   if (errors.medicineName) {
                     setErrors((prevErrors) => ({
                       ...prevErrors,
@@ -403,9 +482,9 @@ const MedicinesAvailablePage = () => {
               />
               <TextField
                 label="Medicine ID"
-                value={newMedicineData.medicineID}
+                value={newMedicineData.barcode}
                 onChange={(e) => {
-                  handleModalInputChange('medicineID', e.target.value);
+                  handleModalInputChange('barcode', e.target.value);
                   if (errors.medicineID) {
                     setErrors((prevErrors) => ({
                       ...prevErrors,
@@ -424,9 +503,9 @@ const MedicinesAvailablePage = () => {
               <FormControl sx={{ width: 340, backgroundColor: 'white' }}>
                 <InputLabel>Medicine Group</InputLabel>
                 <Select
-                  value={newMedicineData.groupName}
+                  value={newMedicineData.category}
                   onChange={(e) => {
-                    handleModalInputChange('groupName', e.target.value);
+                    handleModalInputChange('category', e.target.value);
                     if (errors.groupName) {
                       setErrors((prevErrors) => ({
                         ...prevErrors,
@@ -436,19 +515,40 @@ const MedicinesAvailablePage = () => {
                   }}
                   error={errors.groupName}
                 >
-                  {medicineGroups.map((group) => (
-                    <MenuItem key={group} value={group}>
-                      {group}
+                  {categories.map((name) => (
+                    <MenuItem key={name} value={name} style={getStyles(name, personName, theme)}>
+                      {name}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
               <TextField
+                label="Price"
+                type="number"
+                value={newMedicineData.price}
+                onChange={(e) => {
+                  handleModalInputChange('price', e.target.value);
+                  if (errors.price) {
+                    setErrors((prevErrors) => ({
+                      ...prevErrors,
+                      price: false,
+                    }));
+                  }
+                }}
+                variant="outlined"
+                sx={{ width: 340, backgroundColor: 'white' }}
+                error={errors.price}
+                helperText={errors.price ? "This field is required" : ""}
+              />
+            </div>
+
+            <div className="flex flex-row flex-wrap gap-5 mt-4">
+              <TextField
                 label="Quantity in Number"
                 type="number"
-                value={newMedicineData.stockQty}
+                value={newMedicineData.stock}
                 onChange={(e) => {
-                  handleModalInputChange('stockQty', e.target.value);
+                  handleModalInputChange('stock', e.target.value);
                   if (errors.stockQty) {
                     setErrors((prevErrors) => ({
                       ...prevErrors,
@@ -468,9 +568,9 @@ const MedicinesAvailablePage = () => {
                 label="How to use"
                 multiline
                 rows={4}
-                value={newMedicineData.howToUse}
+                value={newMedicineData.description}
                 onChange={(e) => {
-                  handleModalInputChange('howToUse', e.target.value);
+                  handleModalInputChange('description', e.target.value);
                   if (errors.howToUse) {
                     setErrors((prevErrors) => ({
                       ...prevErrors,
@@ -503,7 +603,12 @@ const MedicinesAvailablePage = () => {
             </div>
 
             <FormControlLabel
-              control={<Checkbox />}
+              control={
+                <Checkbox
+                  checked={newMedicineData.requiresPrescription === 1} // Ensure the checkbox reflects the state
+                  onChange={handleCheckboxChange} // Handle checkbox change
+                />
+              }
               label="Requires Prescription"
               sx={{ marginTop: 1 }}
             />
@@ -540,73 +645,96 @@ const MedicinesAvailablePage = () => {
             flexShrink: 0,
           }}
         />
-
         <FormControl sx={{ width: '250px', sm: 0, backgroundColor: 'white' }}>
-          <InputLabel>- Select Group -</InputLabel>
+          <InputLabel>- Select Category -</InputLabel>
           <Select
-            value={personName}
+            value={personName[0]} // Use the first (and only) selected value
             label="Filter by Category"
             onChange={handleChange}
             MenuProps={MenuProps}
-            multiple
             input={<OutlinedInput label="Filter by Category" />}
           >
-            {names.map((name) => (
+            {/* Add "All" as the default option */}
+            <MenuItem key="all" value="All" style={getStyles('All', personName, theme)}>
+              All
+            </MenuItem>
+            {categories.map((name) => (
               <MenuItem key={name} value={name} style={getStyles(name, personName, theme)}>
                 {name}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
+
       </Box>
 
       <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: 'auto', boxShadow: 'none' }}>
-        <Table aria-label="medicines-table">
+        <Table aria-label="medicines-table" stickyHeader>
           <TableHead sx={{ backgroundColor: 'white', zIndex: 1 }}>
             <TableRow>
-              <TableCell padding="checkbox">
+              <TableCell
+                padding="checkbox"
+                sx={{
+                  fontWeight: 'bold',
+                  position: 'sticky',
+                  top: 0,
+                  backgroundColor: 'white',
+                  zIndex: 3, // Ensure it's above other headers
+                }}
+              >
                 <Checkbox
                   checked={selectAll}
                   onChange={handleSelectAll}
                   color="primary"
                 />
               </TableCell>
-              <TableCell onClick={() => handleSort('medicineName')}>Medicine Name</TableCell>
-              <TableCell onClick={() => handleSort('medicineID')}>Medicine ID</TableCell>
-              <TableCell onClick={() => handleSort('groupName')}>Group Name</TableCell>
-              <TableCell onClick={() => handleSort('stockQty')}>Stock Quantity</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Medicine Name</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Barcode</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Price</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Stock Quantity</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredRows.map((row) => (
-              <TableRow key={row.medicineID}>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedRows.has(row.medicineID)}
-                    onChange={() => handleRowSelect(row.medicineID)}
-                    color="primary"
-                  />
-                </TableCell>
-                <TableCell>{row.name}</TableCell>
-                <TableCell>{row.barcode}</TableCell>
-                <TableCell>{row.category}</TableCell>
-                <TableCell>{row.stock}</TableCell>
-                <TableCell>
-                  <div className="flex flex-row">
-                    <IconButton onClick={() => handleViewDetails(row.medicineName)} sx={{ color: '#2BA3B6', mr: 0 }}>
-                      <Visibility sx={{ fontSize: 24 }} />
-                    </IconButton>
-                    <IconButton onClick={() => handleEditItem(row.medicineName)} sx={{ color: '#1D7DFA', mr: 0 }}>
-                      <Edit sx={{ fontSize: 24 }} />
-                    </IconButton>
-                    <IconButton onClick={() => handleDeleteItem(row.medicineName)} sx={{ color: '#D83049' }}>
-                      <Delete sx={{ fontSize: 24 }} />
-                    </IconButton>
-                  </div>
+            {/* Check if filteredRows is empty */}
+            {filteredRows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} sx={{ textAlign: 'center', padding: '16px' }}>
+                  No items available for the selected category.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredRows.map(row => (
+                <TableRow key={row.medicineID}>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedRows.has(row.medicineID)}
+                      onChange={() => handleRowSelect(row.medicineID)}
+                      color="primary"
+                    />
+                  </TableCell>
+                  <TableCell>{row.name}</TableCell>
+                  <TableCell>{row.barcode}</TableCell>
+                  <TableCell>{row.category}</TableCell>
+                  <TableCell>{row.price}</TableCell>
+                  <TableCell>{row.stock}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-row">
+                      <IconButton onClick={() => handleViewDetails(row.name)} sx={{ color: '#2BA3B6', mr: 0 }}>
+                        <Visibility sx={{ fontSize: 24 }} />
+                      </IconButton>
+                      <IconButton onClick={() => handleEditItem(row.name)} sx={{ color: '#1D7DFA', mr: 0 }}>
+                        <Edit sx={{ fontSize: 24 }} />
+                      </IconButton>
+                      <IconButton onClick={() => handleDeleteItem(row.barcode)} sx={{ color: '#D83049' }}>
+                        <Delete sx={{ fontSize: 24 }} />
+                      </IconButton>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
@@ -678,7 +806,7 @@ const MedicinesAvailablePage = () => {
           <Button onClick={cancelDelete} color="primary">
             Cancel
           </Button>
-          <Button onClick={handleConfirmDelete} variant="contained" color="error">
+          <Button variant="contained" onClick={handleConfirmDelete} color="error">
             Confirm
           </Button>
         </DialogActions>
