@@ -10,33 +10,28 @@ import WarningIcon from '@mui/icons-material/Warning'; // Icon for warning
 import { useParams } from 'react-router-dom';
 import CheckIcon from '@mui/icons-material/Check';
 import { Edit, Delete, Visibility } from '@mui/icons-material';
+import axios from 'axios';
 
 function createData(medicineName: string, noOfMedicine: string) {
   return { medicineName, noOfMedicine };
 }
 
-const rows = [
-  createData('Paracetamol', '12'),
-  createData('Ibuprofen', '04'),
-  createData('Aspirin', '21'),
-];
-
-// Mock Data for the Autocomplete
-const mockMedicines = [
-  { label: 'Amoxicillin', noOfMedicine: '03' },
-  { label: 'Ciprofloxacin', noOfMedicine: '22' },
-  { label: 'Metformin', noOfMedicine: '11' },
-  { label: 'Lisinopril', noOfMedicine: '14' },
-  { label: 'Omeprazole', noOfMedicine: '09' },
-];
+type Medicine = {
+  medicine_name: string;
+  stock: number;
+};
+type MedicineRow = {
+  medicineName: string;
+  noOfMedicine: string;
+};
 
 const ViewGroupDetails = () => {
   const navigate = useNavigate();
-  const [sortedRows, setSortedRows] = useState(rows);
+  const [sortedRows, setSortedRows] = useState<MedicineRow[]>([]); // Correct type
   const [searchQuery, setSearchQuery] = useState('');
   const { groupName } = useParams<{ groupName: string }>();
   const [sortConfig, setSortConfig] = useState<{
-    key: keyof typeof rows[0];
+    key: keyof typeof sortedRows[0]; // This should refer to sortedRows, not rows
     direction: 'asc' | 'desc';
   }>({ key: 'medicineName', direction: 'asc' });
 
@@ -53,9 +48,41 @@ const ViewGroupDetails = () => {
   const [openRemoveItemDialog, setOpenRemoveItemDialog] = useState(false); // State for remove item modal
   const [isEditMode, setIsEditMode] = useState(false); // New state for edit mode
 
+
+  useEffect(() => {
+    // Fetch medicines from the backend based on the groupName
+    const fetchMedicines = async () => {
+      try {
+        // Pass the groupName as part of the URL to the backend
+        const response = await axios.get(`/admin/fetch-category-products/${groupName}`);
+        const medicines = response.data;
+
+        // Format the rows
+        const formattedRows = medicines.map((medicine: any) => ({
+          medicineName: medicine.medicine_name,
+          noOfMedicine: medicine.stock.toString(),
+        }));
+
+        setSortedRows(formattedRows);
+      } catch (error) {
+        console.error('Error fetching medicines:', error);
+        setAlertMessage('Failed to fetch medicines');
+        setShowAlert(true);
+      }
+    };
+
+    // Only fetch if groupName exists (this ensures valid groupName handling)
+    if (groupName) {
+      fetchMedicines();
+    }
+  }, [groupName]); // Dependency on groupName, so it will re-fetch when the groupName changes
+
+
+
   const filteredRows = sortedRows.filter((row) =>
-    row.medicineName.toLowerCase().includes(searchQuery.toLowerCase())
+    row.medicineName && row.medicineName.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
 
   const handleBreadcrumbClick = (path: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -90,12 +117,12 @@ const ViewGroupDetails = () => {
       return;
     }
 
-    const newMedicines = selectedMedicine.map((medicine) => {
-      const foundMedicine = mockMedicines.find(item => item.label === medicine);
-      return createData(medicine, foundMedicine ? foundMedicine.noOfMedicine : '0');
-    });
+    // const newMedicines = selectedMedicine.map((medicine) => {
+    //   const foundMedicine = mockMedicines.find(item => item.label === medicine);
+    //   return createData(medicine, foundMedicine ? foundMedicine.noOfMedicine : '0');
+    // });
 
-    setSortedRows((prevRows) => [...prevRows, ...newMedicines]);
+    // setSortedRows((prevRows) => [...prevRows, ...newMedicines]);
 
     // Show success alert before closing the modal
     setAlertMessage(`Medicines "${selectedMedicine.join(', ')}" have been added to the group.`);
@@ -151,34 +178,34 @@ const ViewGroupDetails = () => {
     const row = sortedRows.find((row) => row.medicineName === medicineName);
 
     if (row) {
-      setSelectedGroupName(row.medicineName);  // Keep this state name but change the content
+      setSelectedGroupName(row.medicineName);
       setSelectedNoOfMedicine(row.noOfMedicine);
       setIsEditMode(true);
     }
   };
 
 
-  const handleSaveEdit = () => {
-    // Update the row with the new noOfMedicine value
-    const updatedRows = sortedRows.map((row) =>
-      row.medicineName === selectedGroupName
-        ? { ...row, noOfMedicine: selectedNoOfMedicine }
-        : row
-    );
+  // const handleSaveEdit = () => {
+  //   // Update the row with the new noOfMedicine value
+  //   const updatedRows = sortedRows.map((row) =>
+  //     row.medicineName === selectedGroupName
+  //       ? { ...row, noOfMedicine: selectedNoOfMedicine }
+  //       : row
+  //   );
 
-    setSortedRows(updatedRows); // Update the sorted rows with the new data
-    setIsEditMode(false); // Close the modal after saving
+  //   setSortedRows(updatedRows); // Update the sorted rows with the new data
+  //   setIsEditMode(false); // Close the modal after saving
 
-    // Show the confirmation alert
-    setAlertMessage('Changes saved successfully!');
-    setShowAlert(true);
-    setAlertVisible(true);
+  //   // Show the confirmation alert
+  //   setAlertMessage('Changes saved successfully!');
+  //   setShowAlert(true);
+  //   setAlertVisible(true);
 
-    // Hide the alert after 3 seconds
-    setTimeout(() => {
-      setAlertVisible(false);
-    }, 3000); // Hide after 3 seconds
-  };
+  //   // Hide the alert after 3 seconds
+  //   setTimeout(() => {
+  //     setAlertVisible(false);
+  //   }, 3000); // Hide after 3 seconds
+  // };
 
   const handleDeleteItemTable = (groupName: string) => {
     setSelectedGroupName(groupName);
@@ -311,7 +338,7 @@ const ViewGroupDetails = () => {
       </Box>
 
       {/* Add Medicine Modal */}
-      <Dialog
+      {/* <Dialog
         open={openAddMedicineModal}
         onClose={(event, reason) => {
           if (reason !== 'backdropClick') {
@@ -393,7 +420,7 @@ const ViewGroupDetails = () => {
             Add Medicine
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog> */}
 
 
       {/* Search */}
@@ -429,25 +456,46 @@ const ViewGroupDetails = () => {
                   top: 0,
                   backgroundColor: 'white',
                   zIndex: 3, // Ensure it's above other headers
-                  paddingLeft: 4,  // Add padding to the left of the checkbox
-                  paddingRight: 2, // Add padding to the right of the checkbox
+                  paddingLeft: 6, // Add padding to the left of the checkbox column
+                  paddingRight: 4,
                 }}
               >
                 <input
                   type="checkbox"
                   checked={selectedRows.length === sortedRows.length}
                   onChange={handleSelectAllChange}
-                  style={{ transform: 'scale(1.5)' }} // Increase the size of the checkbox
+                  style={{ transform: 'scale(1.1)' }} // Increase the size of the checkbox
                 />
               </TableCell>
-              {['Medicine Name', 'No of Medicine', 'Action'].map((header, index) => (
-                <TableCell key={index} sx={{ fontWeight: 'bold', position: 'sticky', top: 0, backgroundColor: 'white' }}>
-                  {header === 'Action' ? header : (
-                    <Stack direction="row" alignItems="center" onClick={() => handleSort(header === 'Medicine Name' ? 'medicineName' : 'noOfMedicine')}>
+              {['Medicine Name', 'Stocks', 'Action'].map((header, index) => (
+                <TableCell
+                  key={index}
+                  sx={{
+                    fontWeight: 'bold',
+                    position: 'sticky',
+                    top: 0,
+                    backgroundColor: 'white',
+                  }}
+                >
+                  {header === 'Action' ? (
+                    header
+                  ) : (
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      onClick={() =>
+                        handleSort(header === 'Medicine Name' ? 'medicineName' : 'noOfMedicine')
+                      }
+                    >
                       {header}
-                      {sortConfig.key === (header === 'Medicine Name' ? 'medicineName' : 'noOfMedicine') && (
-                        sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
-                      )}
+                      {sortConfig.key ===
+                        (header === 'Medicine Name' ? 'medicineName' : 'noOfMedicine') && (
+                          sortConfig.direction === 'asc' ? (
+                            <ArrowDropUpIcon />
+                          ) : (
+                            <ArrowDropDownIcon />
+                          )
+                        )}
                     </Stack>
                   )}
                 </TableCell>
@@ -457,25 +505,38 @@ const ViewGroupDetails = () => {
           <TableBody>
             {filteredRows.map((row) => (
               <TableRow key={row.medicineName}>
-                <TableCell padding="checkbox" sx={{ paddingLeft: 4, paddingRight: 2 }}>
+                <TableCell
+                  padding="checkbox"
+                  sx={{
+                    paddingLeft: 6, // Add padding to the left of the checkbox column
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={selectedRows.includes(row.medicineName)}
-                    onChange={(e) => handleCheckboxChange(e, row.medicineName)}
-                    style={{ transform: 'scale(1.5)' }}
+                    onChange={(event) => handleCheckboxChange(event, row.medicineName)}
                   />
                 </TableCell>
                 <TableCell>{row.medicineName}</TableCell>
                 <TableCell>{row.noOfMedicine}</TableCell>
                 <TableCell>
                   <div className="flex flex-row">
-                    <IconButton onClick={() => handleViewDetails(row.medicineName)} sx={{ color: '#2BA3B6', mr: 0 }}>
+                    <IconButton
+                      onClick={() => handleViewDetails(row.medicineName)}
+                      sx={{ color: '#2BA3B6', mr: 0 }}
+                    >
                       <Visibility sx={{ fontSize: 24 }} />
                     </IconButton>
-                    <IconButton onClick={() => handleEditItem(row.medicineName)} sx={{ color: '#1D7DFA', mr: 0 }}>
+                    <IconButton
+                      onClick={() => handleEditItem(row.medicineName)}
+                      sx={{ color: '#1D7DFA', mr: 0 }}
+                    >
                       <Edit sx={{ fontSize: 24 }} />
                     </IconButton>
-                    <IconButton onClick={() => handleDeleteItemTable(row.medicineName)} sx={{ color: '#D83049' }}>
+                    <IconButton
+                      onClick={() => handleDeleteItemTable(row.medicineName)}
+                      sx={{ color: '#D83049' }}
+                    >
                       <Delete sx={{ fontSize: 24 }} />
                     </IconButton>
                   </div>
@@ -483,9 +544,9 @@ const ViewGroupDetails = () => {
               </TableRow>
             ))}
           </TableBody>
-
         </Table>
       </TableContainer>
+
 
       {/* Edit Medicine Modal */}
       <Dialog
@@ -543,7 +604,7 @@ const ViewGroupDetails = () => {
             Cancel
           </Button>
           <Button
-            onClick={handleSaveEdit} // You need to implement handleSaveEdit function to save the changes
+            // onClick={handleSaveEdit} // You need to implement handleSaveEdit function to save the changes
             variant="contained"
             color="primary"
             sx={{

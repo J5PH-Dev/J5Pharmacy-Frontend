@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Alert, DialogActions, DialogContent, Dialog, DialogTitle, Checkbox, IconButton } from '@mui/material';
+import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Alert, DialogActions, DialogContent, Dialog, DialogTitle, Checkbox, IconButton, FormHelperText } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add'; // Add Material UI icon
 import { useLocation, useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
@@ -9,41 +9,19 @@ import CheckIcon from '@mui/icons-material/Check';
 import { Edit, Delete, Visibility } from '@mui/icons-material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ClearIcon from '@mui/icons-material/Clear';
+import axios from 'axios';
 
-function createData(
-  groupName: string,
-  noOfMedicine: string
-) {
-  return { groupName, noOfMedicine };
+
+
+// Define the structure of each row in the table
+interface MedicineGroup {
+  groupName: string;
+  noOfMedicine: string; // Adjusted to string to match your data type
 }
+type Medicine = {
+  name: string;
+};
 
-// Mock Data for the Autocomplete
-const mockMedicines = [
-  { label: 'Cold and Flu Medications', noOfMedicine: '10' },
-  { label: 'Heart Medications', noOfMedicine: '06' },
-  { label: 'Severe Allergy Medications', noOfMedicine: '05' },
-  { label: 'Sleep Aids', noOfMedicine: '07' },
-  { label: 'Anticoagulants', noOfMedicine: '04' },
-  { label: 'Fertility Medications', noOfMedicine: '02' },
-  { label: 'Skin Care Medications', noOfMedicine: '08' },
-  { label: 'Neurological Medications', noOfMedicine: '06' },
-  { label: 'Anti-nausea Medications', noOfMedicine: '03' },
-  { label: 'Antiviral Medications', noOfMedicine: '05' }
-];
-
-// Example data rows
-const rows = [
-  createData('Pain Relievers', '3'),
-  createData('Antibiotics', '8'),
-  createData('Anti-inflammatories', '12'),
-  createData('Diabetes Medications', '6'),
-  createData('Blood Pressure Medications', '7'),
-  createData('Antacids', '5'),
-  createData('Antihistamines', '4'),
-  createData('Antidepressants', '9'),
-  createData('Asthma Medications', '3'),
-  createData('Vitamins and Supplements', '15'),
-];
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -63,9 +41,11 @@ type RowKey = 'groupName' | 'noOfMedicine';
 const MedicineGroupPage = () => {
   const theme = useTheme();
   const [personName, setPersonName] = React.useState<string[]>([]);
-  const [sortedRows, setSortedRows] = React.useState(rows);
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [sortConfig, setSortConfig] = React.useState<{ key: RowKey; direction: 'asc' | 'desc' }>({
+  const [sortedRows, setSortedRows] = useState<MedicineGroup[]>([]); // Typed as MedicineGroup[]
+  const [searchQuery, setSearchQuery] = useState('');
+  const [medicineGroup, setMedicineGroup] = React.useState(''); // Holds input value
+  const [medicineGroups, setMedicineGroups] = useState<MedicineGroup[]>([]); // Correct typing for fetched data
+  const [sortConfig, setSortConfig] = useState<{ key: RowKey; direction: 'asc' | 'desc' }>({
     key: 'groupName',
     direction: 'asc',
   });
@@ -75,8 +55,8 @@ const MedicineGroupPage = () => {
   const location = useLocation();
   const successMessageFromGroupDeletion = location.state?.successMessage;
   const [isModalOpen, setModalOpen] = useState(false);
-  const [selectedMedicine, setSelectedMedicine] = useState<string[]>([]); // Multiple groups allowed
-  const [existingGroups, setExistingGroups] = useState(rows);
+  const [selectedMedicine, setSelectedMedicine] = useState<string>(''); // Use string instead of string[]
+  // const [existingGroups, setExistingGroups] = useState(rows);
   const [successMessage, setSuccessMessage] = useState('');
   const [modalSuccessMessage, setModalSuccessMessage] = useState(''); // Modal-specific success message
   const tableContainerRef = useRef<HTMLDivElement>(null); // Reference for the table container
@@ -87,6 +67,9 @@ const MedicineGroupPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>([]); // To store fetched medicines
+  const [selectedMedicines, setSelectedMedicines] = useState<string[]>([]);
+
 
   const handleChange = (event: SelectChangeEvent<typeof personName>) => {
     const {
@@ -100,21 +83,47 @@ const MedicineGroupPage = () => {
     navigate('/admin/inventory'); // Go back to the Inventory Page
   };
 
+  const fetchMedicines = async () => {
+    try {
+      const response = await axios.get('/admin/inventory/view-medicines-available');
+      console.log(response.data); // Log the data to check
+      setAvailableMedicines(response.data); // Set the available medicines
+    } catch (error) {
+      console.error('Error fetching medicines:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (isEditModalOpen) {
+      console.log('Modal opened, fetching medicines...');
+      fetchMedicines();
+    }
+  }, [isEditModalOpen]);
+
+  useEffect(() => {
+    // Fetch medicine groups from backend
+    const fetchMedicineGroups = async () => {
+      try {
+        const response = await axios.get('/admin/inventory/view-medicines-groups'); // Replace with your API endpoint
+        setMedicineGroups(response.data); // Set fetched data
+        setSortedRows(response.data); // Set initial sorted rows
+      } catch (error) {
+        console.error('Error fetching medicine groups:', error);
+      }
+    };
+    fetchMedicineGroups();
+  }, []);
+
   const handleSort = (key: RowKey) => {
     const direction =
       sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
 
-    const filteredData = existingGroups.filter((row) =>
-      row.groupName && row.groupName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const sortedData = [...filteredData].sort((a, b) => {
+    const sortedData = [...sortedRows].sort((a, b) => {
       if (key === 'noOfMedicine') {
         return direction === 'asc'
           ? parseInt(a[key], 10) - parseInt(b[key], 10)
           : parseInt(b[key], 10) - parseInt(a[key], 10);
       }
-
       if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
       if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
       return 0;
@@ -124,63 +133,62 @@ const MedicineGroupPage = () => {
     setSortedRows(sortedData);
   };
 
-
   const handleModalCloseMultipleSelection = () => {
     setModalOpen(false);
-    setSelectedMedicine([]);
+    setSelectedMedicine('');
     setModalSuccessMessage(''); // Reset success message when modal closes
   };
 
   const handleAddMedicineGroup = () => {
-    setSelectedMedicine([]); // Reset selected medicine when opening the modal
+    setSelectedMedicine(''); // Reset selected medicine when opening the modal
     setIsAddModalOpen(true); // Open the "Add New Group" modal
   };
 
   const [error, setError] = useState(false); // Track error state
 
-  const handleSaveMedicineGroup = () => {
-    if (selectedMedicine.length === 0) {
-      setError(true); // Show error if no medicine group is selected
-      return; // Prevent further execution
-    } else {
-      setError(false); // Reset error when there is valid input
+  const handleSaveMedicineGroup = async () => {
+    if (!selectedMedicine.trim()) {
+      setError(true);
+      return;
     }
 
-    const newGroups = selectedMedicine
-      .map((medicine) => {
-        const selectedMedicineData = mockMedicines.find(
-          (medicineData) => medicineData.label === medicine
-        );
+    try {
+      const response = await axios.post('/admin/add-medicine-group', {
+        categoryName: selectedMedicine,
+      });
 
-        if (selectedMedicineData) {
-          return {
-            groupName: selectedMedicineData.label,
-            noOfMedicine: selectedMedicineData.noOfMedicine,
-          };
-        }
-        return null;
-      })
-      .filter((group): group is { groupName: string; noOfMedicine: string } => group !== null);
+      setSuccessMessage(response.data.message);
+      setIsAddModalOpen(false);
+      setSelectedMedicine(''); // Clear input after successful save
 
-    setExistingGroups([...existingGroups, ...newGroups]);
-    setIsNewItemAdded(true); // Indicate that a new item has been added
-    setIsAddModalOpen(false); // Open the "Add New Group" modal
-    setSuccessMessage(`Medicines "${selectedMedicine.join(', ')}" have been added to the group.`);
+      const responseRefresh = await axios.get('/admin/inventory/view-medicines-groups'); // Replace with your API endpoint
+      setMedicineGroups(responseRefresh.data); // Set fetched data
+      setSortedRows(responseRefresh.data); // Set initial sorted rows
+    } catch (error: any) {
+      console.error('Error adding medicine group:', error);
+      setModalSuccessMessage(
+        error.response?.data?.message || 'Failed to add new category.'
+      );
+    }
   };
 
 
+
+
   // Scroll to bottom only when a new item is added
-  useEffect(() => {
-    if (isNewItemAdded && tableContainerRef.current) {
-      tableContainerRef.current.scrollTop = tableContainerRef.current.scrollHeight;
-      setIsNewItemAdded(false); // Reset the flag after scrolling
-    }
-  }, [existingGroups, isNewItemAdded]);
+
+  // useEffect(() => {
+  //   if (isNewItemAdded && tableContainerRef.current) {
+  //     tableContainerRef.current.scrollTop = tableContainerRef.current.scrollHeight;
+  //     setIsNewItemAdded(false); // Reset the flag after scrolling
+  //   }
+  // }, [existingGroups, isNewItemAdded]);
+
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
   };
 
-  const filteredRows = sortedRows.filter((row) =>
+  const filteredRows = sortedRows.filter(row =>
     row.groupName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -217,26 +225,38 @@ const MedicineGroupPage = () => {
   };
 
   const handleSelectAll = (checked: boolean) => {
-    setSelectedItems(checked ? rows.map((row) => row.groupName) : []);
+    setSelectedItems(checked ? medicineGroups.map((row) => row.groupName) : []);
   };
 
   const handleDeleteButtonClick = () => {
     setConfirmationModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    setExistingGroups((prev) => prev.filter((row) => !selectedItems.includes(row.groupName)));
-    setSuccessMessage(`Deleted successfully: ${selectedItems.join(', ')}`);
-    setSelectedItems([]);
-    setConfirmationModalOpen(false);
+  const handleConfirmDeleteCheckbox = async () => {
+    try {
+      // Send the selected items to the backend for deletion
+      const response = await axios.post('/admin/delete-categories-multuple', { groupNames: selectedItems });
+
+      setSuccessMessage(`Deleted successfully: ${selectedItems.join(', ')}`);
+      setSelectedItems([]); // Clear selected items after deletion
+      setConfirmationModalOpen(false); // Close the confirmation modal
+      // Optionally, refresh the data or update the state with the new list
+      const responseRefresh = await axios.get('/admin/inventory/view-medicines-groups'); // Replace with your API endpoint
+      setMedicineGroups(responseRefresh.data); // Set fetched data
+      setSortedRows(responseRefresh.data); // Set initial sorted rows
+    } catch (error) {
+      console.error('Error deleting categories:', error);
+      // Handle error (display an error message)
+    }
   };
+
 
   const handleModalClose = () => {
     setIsAddModalOpen(false); // Close "Add New Group" modal
     setIsEditModalOpen(false); // Close "Edit Medicine Group" modal
     setConfirmationModalOpen(false); // Close the confirmation modal
     setModalOpen(false); // Close the other modal (if necessary)
-    setSelectedMedicine([]); // Reset selected medicines
+    setSelectedMedicine(''); // Reset selected medicines
     setError(false); // Reset error when modal is closed
     setModalSuccessMessage(''); // Reset success message when modal closes
   };
@@ -253,13 +273,14 @@ const MedicineGroupPage = () => {
 
   // For Edit Medicine Group Modal
   const handleEditItem = (groupName: string) => {
-    const groupToEdit = existingGroups.find((group) => group.groupName === groupName);
-    if (groupToEdit) {
-      setGroupName(groupToEdit.groupName); // Set the selected group name
-      setNoOfMedicine(groupToEdit.noOfMedicine); // Set the number of medicines
-      setIsEditModalOpen(true); // Open the "Edit Medicine Group" modal
+    const row = medicineGroups.find((row) => row.groupName === groupName);
+    if (row) {
+      setGroupName(row.groupName);
+      setNoOfMedicine(row.noOfMedicine);
+      setIsEditModalOpen(true);
     }
   };
+
 
   // Add new medicine input field
   const handleAddMedicine = () => {
@@ -281,45 +302,90 @@ const MedicineGroupPage = () => {
     setMedicineErrors(updatedErrors);
   };
 
-  const handleSaveChanges = () => {
-
-    // Check if any medicine input is empty
-    const errors = newMedicines.map((medicine) => medicine.trim() === ''); // Create an array of boolean errors
-    setMedicineErrors(errors); // Set error state
-
-    if (errors.includes(true)) {
-      return; // Don't proceed if there's any error (empty field)
-    }
-
-    // Update the group with the new medicines
-    const updatedGroup = {
-      groupName,
-      noOfMedicine: (parseInt(noOfMedicine, 10) + newMedicines.length).toString(),
-    };
-
-    const updatedGroups = existingGroups.map((group) =>
-      group.groupName === groupName ? updatedGroup : group
-    );
-    
-    setExistingGroups(updatedGroups);
-    setSuccessMessage(`Changes saved for ${groupName} group.`);
-    setModalOpen(false);
-    handleModalClose();
-    setNewMedicines([]); // Reset new medicines
+  const categoryMap = {
+    'BRANDED': 1,
+    'GENERIC': 2,
+    'COSMETICS': 3,
+    'DIAPER': 4,
+    'FACE AND BODY': 5,
+    'GALENICALS': 6,
+    'MILK': 7,
+    'PILLS AND CONTRACEPTIVES': 8,
+    'SYRUP': 9,
+    'OTHERS': 10,
   };
+  
+  // This function should map a medicine name to its category ID
+  const getCategoryForMedicine = (medicineName: string | string[]) => {
+    // Replace this logic with actual logic if you have a different way to fetch category IDs
+    // Example: Fetch category based on medicine name or other criteria
+    if (medicineName.includes('Branded')) {
+      return categoryMap['BRANDED'];
+    } else if (medicineName.includes('Generic')) {
+      return categoryMap['GENERIC'];
+    } else if (medicineName.includes('Cosmetics')) {
+      return categoryMap['COSMETICS'];
+    } else {
+      return categoryMap['OTHERS']; // Default category
+    }
+  };
+  
+  const handleSaveChanges = async () => {
+    // Prepare the data to send to the backend
+    const selectedMedicines = newMedicines.map((medicineName) => {
+      const categoryId = getCategoryForMedicine(medicineName); // Get the category ID for the medicine
+      return { name: medicineName, categoryId };
+    });
+  
+    try {
+      const response = await axios.post('/admin/group/save-medicine-group', {
+        groupName,
+        selectedMedicines,
+      });
+  
+      if (response.status === 200) {
+        setSuccessMessage('Changes saved successfully.');
+        handleModalClose();
+      }
+    } catch (error) {
+      console.error('Error saving changes:', error);
+    }
+  };
+  
+
+
+  const handleMedicineSelection = (
+    e: React.ChangeEvent<HTMLInputElement>, // Type for the event parameter
+    medicineName: string                     // Type for the medicineName parameter
+  ) => {
+    if (e.target.checked) {
+      setSelectedMedicines([...selectedMedicines, medicineName]);
+    } else {
+      setSelectedMedicines(selectedMedicines.filter((name) => name !== medicineName));
+    }
+  };
+
 
   const handleDeleteItem = (medicineName: string) => {
     setMedicineToDelete(medicineName); // Set the medicine name to be deleted
     setIsDeleteModalOpen(true); // Open the confirmation modal
   };
 
-  const handleConfirmDeleteItem = () => {
-    if (medicineToDelete) {
-      setExistingGroups((prev) => prev.filter((row) => row.groupName !== medicineToDelete));
+  const handleConfirmDeleteItem = async () => {
+    try {
+      // Make the request to delete the category
+      await axios.delete(`/admin/delete-categories/${medicineToDelete}`); // Adjust URL to match your backend route
+
       setSuccessMessage(`"${medicineToDelete}" has been deleted successfully.`);
+      setIsDeleteModalOpen(false); // Close the modal
+      // Optionally, refresh or update the table after deletion
+      const responseRefresh = await axios.get('/admin/inventory/view-medicines-groups'); // Replace with your API endpoint
+      setMedicineGroups(responseRefresh.data); // Set fetched data
+      setSortedRows(responseRefresh.data); // Set initial sorted rows
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      // Optionally, display an error message
     }
-    setMedicineToDelete(null); // Reset the selected medicine
-    setIsDeleteModalOpen(false); // Close the modal
   };
 
   const handleCloseDeleteModal = () => {
@@ -391,28 +457,18 @@ const MedicineGroupPage = () => {
           </Typography>
         </DialogTitle>
         <DialogContent>
-          <Autocomplete
-            multiple
-            value={selectedMedicine}
-            onChange={(e, newValue) => {
-              setSelectedMedicine(newValue);
-              setError(false); // Clear the error when user interacts
+          <TextField
+            label="Medicine Group"
+            variant="outlined"
+            fullWidth
+            sx={{ marginTop: '5px' }}
+            value={selectedMedicine} // Bind value to selectedMedicine state
+            onChange={(e) => {
+              setSelectedMedicine(e.target.value); // Update input value
+              if (error) setError(false); // Clear error when user starts typing
             }}
-            options={mockMedicines.map((medicine) => medicine.label)}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Medicine Group"
-                variant="outlined"
-                fullWidth
-                sx={{ marginTop: '5px' }}
-                error={error} // Highlight the input field with error
-                helperText={error ? "This field is required" : ""} // Display error message
-              />
-            )}
-            renderOption={(props, option) => (
-              <li {...props}>{option}</li>
-            )}
+            error={error} // Show error when needed
+            helperText={error ? "This field is required" : ""} // Error message
           />
 
           {/* Display success or error message inside the modal */}
@@ -461,7 +517,7 @@ const MedicineGroupPage = () => {
         <Link color="inherit" href="/" onClick={handleBreadcrumbClick}>
           Inventory
         </Link>
-        <Typography color="text.primary">Medicines Group</Typography>
+        <Typography color="text.primary">Medicines Categories</Typography>
       </Breadcrumbs>
 
       {/* Page Title and Add New Item Button Container */}
@@ -476,10 +532,10 @@ const MedicineGroupPage = () => {
       >
         <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
           <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-            Medicines Group
+            Medicines Categories
           </Typography>
           <Typography variant="body1" sx={{ mt: -1 }}>
-            List of medicines groups.
+            List of medicines Categories.
           </Typography>
         </Box>
 
@@ -500,14 +556,14 @@ const MedicineGroupPage = () => {
             onClick={handleAddMedicineGroup}
           >
             <AddIcon />
-            Add New Group
+            Add New Category
           </Button>
         </Box>
       </Box>
 
       {/* Search Input */}
       <TextField
-        label="Search Medicine Groups"
+        label="Search Medicine Category"
         value={searchQuery}
         onChange={handleSearchChange}
         InputProps={{
@@ -526,8 +582,8 @@ const MedicineGroupPage = () => {
       />
 
       {/* Table Section */}
-      <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: 'auto' }} ref={tableContainerRef}>
-        <Table aria-label="simple table">
+      <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: 'auto' }}>
+        <Table aria-label="medicine groups table">
           <TableHead>
             <TableRow>
               <TableCell
@@ -540,10 +596,8 @@ const MedicineGroupPage = () => {
                   zIndex: 1,
                 }}>
                 <Checkbox
-                  checked={selectedItems.length === rows.length}
-                  indeterminate={
-                    selectedItems.length > 0 && selectedItems.length < rows.length
-                  }
+                  checked={selectedItems.length === medicineGroups.length}
+                  indeterminate={selectedItems.length > 0 && selectedItems.length < medicineGroups.length}
                   onChange={(e) => handleSelectAll(e.target.checked)}
                 />
               </TableCell>
@@ -556,17 +610,9 @@ const MedicineGroupPage = () => {
                   backgroundColor: 'white',
                   zIndex: 1,
                 }}
+                onClick={() => handleSort('groupName')}
               >
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  onClick={() => handleSort('groupName')}
-                >
-                  Group Name
-                  {sortConfig.key === 'groupName' && (
-                    sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
-                  )}
-                </Stack>
+                Group Category
               </TableCell>
               <TableCell
                 sx={{
@@ -577,17 +623,9 @@ const MedicineGroupPage = () => {
                   backgroundColor: 'white',
                   zIndex: 1,
                 }}
+                onClick={() => handleSort('noOfMedicine')}
               >
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  onClick={() => handleSort('noOfMedicine')}
-                >
-                  No of Medicine
-                  {sortConfig.key === 'noOfMedicine' && (
-                    sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
-                  )}
-                </Stack>
+                No of Medicines
               </TableCell>
               <TableCell
                 sx={{
@@ -603,30 +641,31 @@ const MedicineGroupPage = () => {
               </TableCell>
             </TableRow>
           </TableHead>
-
           <TableBody>
             {filteredRows.map((row) => (
-              <TableRow key={row.groupName} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+              <TableRow key={row.groupName}>
                 <TableCell>
                   <Checkbox
                     checked={selectedItems.includes(row.groupName)}
                     onChange={() => handleSelectItem(row.groupName)}
                   />
                 </TableCell>
-                <TableCell component="th" scope="row">{row.groupName}</TableCell>
-                <TableCell align="left">{row.noOfMedicine}</TableCell>
-                <TableCell align="left">
-                  <div className='flex flex-row'>
-                    <IconButton onClick={() => handleViewDetails(row.groupName)} sx={{ color: '#2BA3B6', mr: 0 }}>
-                      <Visibility sx={{ fontSize: 24 }} />
-                    </IconButton>
-                    <IconButton onClick={() => handleEditItem(row.groupName)} sx={{ color: '#1D7DFA', mr: 0 }}>
-                      <Edit sx={{ fontSize: 24 }} />
-                    </IconButton>
-                    <IconButton onClick={() => handleDeleteItem(row.groupName)} sx={{ color: '#D83049' }}>
-                      <Delete sx={{ fontSize: 24 }} />
-                    </IconButton>
-                  </div>
+                <TableCell>{row.groupName}</TableCell>
+                <TableCell>{row.noOfMedicine}</TableCell>
+                <TableCell>
+                  <IconButton onClick={() => navigate(`/admin/inventory/view-medicines-group/${row.groupName}`)} sx={{ color: '#2BA3B6', mr: 0 }}>
+                    <Visibility />
+                  </IconButton>
+                  <IconButton onClick={() => handleEditItem(row.groupName)} sx={{ color: '#1D7DFA', mr: 0 }}>
+                    <Edit />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => {
+                      setMedicineToDelete(row.groupName);  // Store the groupName of the item to delete
+                      setIsDeleteModalOpen(true);  // Open the modal
+                    }} sx={{ color: '#D83049' }}>
+                    <Delete />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
@@ -676,16 +715,28 @@ const MedicineGroupPage = () => {
 
           {newMedicines.map((medicine, index) => (
             <div key={index} className="flex justify-center items-center mb-2">
-              <TextField
-                label={`Medicine ${index + 1}`}
-                value={medicine}
-                onChange={(e) => handleMedicineChange(index, e.target.value)}
-                fullWidth
-                variant="outlined"
-                error={medicineErrors[index]} // Show error state
-                helperText={medicineErrors[index] ? 'This field is required' : ''} // Error message
-                sx={{ marginBottom: 2 }}
-              />
+              {/* Select for new medicine */}
+              <FormControl fullWidth error={medicineErrors[index]}>
+                <InputLabel>Medicine {index + 1}</InputLabel>
+                <Select
+                  value={medicine}
+                  onChange={(e) => handleMedicineChange(index, e.target.value)}
+                  label={`Medicine ${index + 1}`}
+                  variant="outlined"
+                >
+                  {/* Available medicines as options */}
+                  {availableMedicines.map((med, i) => (
+                    <MenuItem key={i} value={med.name}>
+                      {med.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {medicineErrors[index] && (
+                  <FormHelperText>This field is required</FormHelperText>
+                )}
+              </FormControl>
+
+              {/* IconButton to remove the medicine */}
               <IconButton
                 onClick={() => handleRemoveMedicine(index)} // Remove medicine input on click
                 sx={{ marginLeft: 1 }}
@@ -695,8 +746,6 @@ const MedicineGroupPage = () => {
             </div>
           ))}
 
-
-
           {modalSuccessMessage && (
             <Typography color="error" sx={{ textAlign: 'center', mt: 2 }}>
               {modalSuccessMessage}
@@ -705,7 +754,12 @@ const MedicineGroupPage = () => {
         </DialogContent>
 
         <DialogActions sx={{ justifyContent: 'space-between', padding: 2 }}>
-          <Button onClick={handleModalClose} variant="outlined" color="secondary" sx={{ borderRadius: 2 }}>
+          <Button
+            onClick={handleModalClose}
+            variant="outlined"
+            color="secondary"
+            sx={{ borderRadius: 2 }}
+          >
             Cancel
           </Button>
 
@@ -724,6 +778,9 @@ const MedicineGroupPage = () => {
         </DialogActions>
       </Dialog>
 
+
+
+
       <Dialog
         open={isDeleteModalOpen}
         onClose={handleCloseDeleteModal}
@@ -738,7 +795,7 @@ const MedicineGroupPage = () => {
         <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete {medicineToDelete}?
+            Are you sure you want to delete?
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -779,7 +836,7 @@ const MedicineGroupPage = () => {
             },
           }}
           startIcon={<DeleteIcon sx={{ color: '#F0483E' }} />}
-          onClick={handleDeleteButtonClick}
+          onClick={() => setConfirmationModalOpen(true)}  // Open modal for confirmation
         >
           Delete Medicine
         </Button>
@@ -792,17 +849,11 @@ const MedicineGroupPage = () => {
           Are you sure you want to delete the selected item(s)?
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleModalClose} color="secondary">
-            Cancel
-          </Button>
-          <Button onClick={handleConfirmDelete} color="primary">
-            Confirm
-          </Button>
+          <Button onClick={handleModalClose} color="secondary">Cancel</Button>
+          <Button onClick={handleConfirmDeleteCheckbox} color="primary">Confirm</Button>
         </DialogActions>
       </Dialog>
-
     </Box>
-
   );
 };
 
