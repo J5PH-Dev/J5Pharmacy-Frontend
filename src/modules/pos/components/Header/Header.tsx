@@ -104,10 +104,15 @@ const InfoLabel = styled(Typography)(({ theme }) => ({
 const Header: React.FC = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [greeting, setGreeting] = useState('');
-  const username = 'Admin';
-  const networkStatus = 'online';
-
+  const [pharmacistInfo, setPharmacistInfo] = useState<any>(null);
+  
   useEffect(() => {
+    // Get pharmacist info from localStorage
+    const storedPharmacist = localStorage.getItem('user');
+    if (storedPharmacist) {
+      setPharmacistInfo(JSON.parse(storedPharmacist));
+    }
+
     const getGreeting = () => {
       const hour = new Date().getHours();
       if (hour < 12) return 'Good Morning';
@@ -136,7 +141,7 @@ const Header: React.FC = () => {
         />
         <GreetingText>
           <span className="greeting">{greeting},</span>
-          <span className="user">{username}</span>
+          <span className="user">{pharmacistInfo?.name || 'User'}</span>
         </GreetingText>
       </LogoSection>
 
@@ -150,11 +155,11 @@ const Header: React.FC = () => {
       </CenterSection>
 
       <RightSection>
-        <StatusText sx={{ color: networkStatus === 'online' ? 'success.main' : 'error.main' }}>
-          System {networkStatus.toUpperCase()}
+        <StatusText sx={{ color: navigator.onLine ? 'success.main' : 'error.main' }}>
+          System {navigator.onLine ? 'ONLINE' : 'OFFLINE'}
         </StatusText>
         <InfoLabel>
-          Branch: Bagong Silang
+          Branch: {pharmacistInfo?.branch_name || 'Loading...'}
         </InfoLabel>
       </RightSection>
     </HeaderContainer>
