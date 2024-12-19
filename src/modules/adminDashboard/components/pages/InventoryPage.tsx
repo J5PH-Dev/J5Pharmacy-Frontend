@@ -74,8 +74,8 @@ const InventoryPage = () => {
       borderColor: '#01A768',
       icon: <Group sx={{ fontSize: 40 }} />,
       NumberAmount: stats.medicineGroups,
-      subtitle: 'Medicine Groups',
-      buttonText: 'View Groups >>',
+      subtitle: 'Medicine Categories',
+      buttonText: 'View Categories >>',
       route: '/admin/inventory/view-medicines-group',
     },
     {

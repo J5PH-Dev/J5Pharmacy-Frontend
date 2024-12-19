@@ -78,14 +78,6 @@ const MedicineShortage = () => {
     const [successMessage, setSuccessMessage] = useState<string | null>(successMessageFromDeletion);
     const [isModalOpen, setModalOpen] = useState(false);
     const navigate = useNavigate();
-    const [selectedGroup, setSelectedGroup] = useState('');
-    const medicineGroups = [
-        'Pain Relievers',
-        'Antibiotics',
-        'Anti-inflammatory',
-        'Diabetes',
-        // Add other groups here
-    ];
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [medicineToDelete, setMedicineToDelete] = useState<string | null>(null);
     // New state for confirmation modal
