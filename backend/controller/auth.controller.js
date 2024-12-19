@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
 const { sendPasswordResetEmail } = require('../utils/emailService');
+const { getMySQLTimestamp, getCurrentTimestamp, getConvertTZString } = require('../utils/timeZoneUtil');
 
 // PMS Login (Admin/Manager)
 const pmsLogin = async (req, res) => {
@@ -9,9 +10,15 @@ const pmsLogin = async (req, res) => {
         const { employee_id, password } = req.body;
         console.log('Attempting PMS login for employee_id:', employee_id);
 
-        // Get user from database
+        // Get user from database with converted timestamps
         const [users] = await db.pool.query(
-            'SELECT * FROM users WHERE employee_id = ? AND is_active = 1',
+            `SELECT u.*, b.branch_name,
+             ${getConvertTZString('u.created_at')} as created_at,
+             ${getConvertTZString('u.updated_at')} as updated_at,
+             ${getConvertTZString('u.hired_at')} as hired_at
+             FROM users u
+             LEFT JOIN branches b ON u.branch_id = b.branch_id
+             WHERE u.employee_id = ? AND u.is_active = 1`,
             [employee_id]
         );
 
@@ -29,6 +36,14 @@ const pmsLogin = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
+        // Update last login timestamp
+        await db.pool.query(
+            `UPDATE users 
+             SET updated_at = ${getMySQLTimestamp()}
+             WHERE user_id = ?`,
+            [user.user_id]
+        );
+
         // Generate JWT token
         const token = jwt.sign(
             { 
@@ -42,6 +57,9 @@ const pmsLogin = async (req, res) => {
             { expiresIn: '8h' }
         );
 
+        // Get current timestamp for login time
+        const loginTimestamp = getCurrentTimestamp();
+
         console.log('Successful PMS login for employee_id:', employee_id);
         res.json({
             token,
@@ -49,7 +67,12 @@ const pmsLogin = async (req, res) => {
                 name: user.name,
                 role: user.role,
                 employeeId: user.employee_id,
-                branchId: user.branch_id
+                branchId: user.branch_id,
+                branch_name: user.branch_name,
+                loginTime: loginTimestamp,
+                created_at: user.created_at,
+                updated_at: user.updated_at,
+                hired_at: user.hired_at
             }
         });
     } catch (error) {
@@ -64,9 +87,14 @@ const posLogin = async (req, res) => {
         const { pin_code } = req.body;
         console.log('Attempting POS login with PIN:', pin_code);
 
-        // Get pharmacist from database
+        // Get pharmacist from database with branch name
         const [pharmacists] = await db.pool.query(
-            'SELECT * FROM pharmacist WHERE pin_code = ? AND is_active = 1',
+            `SELECT p.*, b.branch_name,
+             ${getConvertTZString('p.created_at')} as created_at,
+             ${getConvertTZString('p.updated_at')} as updated_at
+             FROM pharmacist p 
+             JOIN branches b ON p.branch_id = b.branch_id 
+             WHERE p.pin_code = ? AND p.is_active = 1`,
             [pin_code]
         );
 
@@ -84,22 +112,27 @@ const posLogin = async (req, res) => {
         await db.pool.query('START TRANSACTION');
 
         try {
-            // First, create a sales session with the pharmacist's branch_id
+            // Create sales session with explicit timestamp
             const [salesSessionResult] = await db.pool.query(
-                'INSERT INTO sales_sessions (branch_id, start_time) VALUES (?, NOW())',
+                `INSERT INTO sales_sessions (branch_id, start_time, created_at, updated_at) 
+                 VALUES (?, ${getMySQLTimestamp()}, ${getMySQLTimestamp()}, ${getMySQLTimestamp()})`,
                 [pharmacist.branch_id]
             );
 
             const sessionId = salesSessionResult.insertId;
 
-            // Then create the pharmacist session
+            // Create pharmacist session with timestamp
             await db.pool.query(
-                'INSERT INTO pharmacist_sessions (session_id, staff_id, share_percentage) VALUES (?, ?, 100.00)',
+                `INSERT INTO pharmacist_sessions (session_id, staff_id, share_percentage, created_at) 
+                 VALUES (?, ?, 100.00, ${getMySQLTimestamp()})`,
                 [sessionId, pharmacist.staff_id]
             );
 
             // If everything is successful, commit the transaction
             await db.pool.query('COMMIT');
+
+            // Get the current timestamp for the response
+            const loginTimestamp = getCurrentTimestamp();
 
             // Generate JWT token
             const token = jwt.sign(
@@ -120,7 +153,9 @@ const posLogin = async (req, res) => {
                     name: pharmacist.name,
                     staffId: pharmacist.staff_id,
                     branchId: pharmacist.branch_id,
-                    sessionId: sessionId
+                    branch_name: pharmacist.branch_name,
+                    sessionId: sessionId,
+                    loginTime: loginTimestamp
                 }
             });
         } catch (error) {
@@ -224,9 +259,12 @@ const resetPassword = async (req, res) => {
         // Hash the new password
         const hashedPassword = await bcrypt.hash(new_password, 10);
 
-        // Update password in database
+        // Update password and updated_at timestamp
         await db.pool.query(
-            'UPDATE users SET password = ? WHERE employee_id = ?',
+            `UPDATE users 
+             SET password = ?, 
+                 updated_at = ${getMySQLTimestamp()}
+             WHERE employee_id = ?`,
             [hashedPassword, employee_id]
         );
 
