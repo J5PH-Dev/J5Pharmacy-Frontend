@@ -385,17 +385,17 @@ const MedicinesAvailablePage = () => {
     setSelectAll(!selectAll);  // Toggle "select all" checkbox
   };
 
-    // Remove the success message after 3 seconds
-    useEffect(() => {
-      if (successMessageFromDeletion) {
-        const timer = setTimeout(() => {
-          setsuccessMessageFromDeletion(null); // Remove the message after 3 seconds
-        }, 3000);
-  
-        // Cleanup the timeout if component is unmounted or message is cleared
-        return () => clearTimeout(timer);
-      }
-    }, [successMessageFromDeletion]);
+  // Remove the success message after 3 seconds
+  useEffect(() => {
+    if (successMessageFromDeletion) {
+      const timer = setTimeout(() => {
+        setsuccessMessageFromDeletion(null); // Remove the message after 3 seconds
+      }, 3000);
+
+      // Cleanup the timeout if component is unmounted or message is cleared
+      return () => clearTimeout(timer);
+    }
+  }, [successMessageFromDeletion]);
 
   return (
 
