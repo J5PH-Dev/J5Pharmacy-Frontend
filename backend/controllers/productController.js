@@ -69,14 +69,16 @@ const holdTransaction = async (req, res) => {
             [salesSessionId]
         );
 
-        if (!sessionResult || sessionResult.length === 0) {
-            throw new Error('Invalid sales session');
+        if (!sessionResult.length) {
+            throw new Error('Sales session not found');
         }
 
-        // Create held transaction record with branch_id
+        const branchId = sessionResult[0].branch_id;
+
+        // Create held transaction record
         const [result] = await connection.query(
-            'INSERT INTO held_transactions (sales_session_id, branch_id, customer_id, hold_number, total_amount) VALUES (?, ?, ?, ?, ?)',
-            [salesSessionId, sessionResult[0].branch_id, customerId || null, holdNumber, totalAmount]
+            'INSERT INTO held_transactions (sales_session_id, customer_id, hold_number, total_amount, branch_id) VALUES (?, ?, ?, ?, ?)',
+            [salesSessionId, customerId || null, holdNumber, totalAmount, branchId]
         );
 
         const heldTransactionId = result.insertId;
