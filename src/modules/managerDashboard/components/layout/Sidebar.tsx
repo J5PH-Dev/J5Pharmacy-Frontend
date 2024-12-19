@@ -22,12 +22,10 @@ import {
 import { styled } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import InventoryIcon from '@mui/icons-material/Inventory';
-import BusinessIcon from '@mui/icons-material/Business';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import PeopleIcon from '@mui/icons-material/People';
 import PersonIcon from '@mui/icons-material/Person';
 import SettingsIcon from '@mui/icons-material/Settings';
-import NotificationsIcon from '@mui/icons-material/Notifications';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -119,15 +117,6 @@ const navigationItems: NavigationItem[] = [
       // { title: 'List of Items', path: '/admin/inventory' },
       // { title: 'Item', path: '/inventory/item' },
       // { title: 'Encode Items', path: '/inventory/encode' },
-    ],
-  },
-  {
-    title: 'Branches',
-    icon: <BusinessIcon />,
-    path: '/manager/branches',
-    children: [
-      // { title: 'Manage Branch', path: '/branches/manage' },
-      // { title: 'Add a Branch', path: '/branches/add' },
     ],
   },
   {

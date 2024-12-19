@@ -1,7 +1,6 @@
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import ManagerLayout from './ManagerLayout';
-import BranchesPage from './components/pages/BranchesPage'; // Assuming this is your dashboard component
 import CustomerInfoPage from './components/pages/CustomerInfoPage'; // Assuming this is your dashboard component
 import DashboardPage from './components/pages/DashboardPage'; // Assuming this is your dashboard component
 import EmployeeStaffPage from './components/pages/EmployeeStaffPage'; // Assuming this is your dashboard component
@@ -41,8 +40,6 @@ const ManagerRoutes: React.FC = () => {
 
         <Route path="inventory/medicine-shortage" element={<MedicineShortage />} />
 
-
-        <Route path="branches" element={<BranchesPage />} />
         
         <Route path="sales-report" element={<ReportsPage />} />
         <Route path="sales-report/view-all-transactions" element={<ViewAllTransaction />} />

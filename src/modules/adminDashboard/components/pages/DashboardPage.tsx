@@ -37,7 +37,7 @@ const contentData = [
     buttonText: 'View Groups >>',
   },
   {
-    borderColor: '#F0483E',
+    borderColor: '#FCD538',
     icon: <Warning sx={{ fontSize: 40 }} />,
     title: '85',
     subtitle: 'Total Orders',
