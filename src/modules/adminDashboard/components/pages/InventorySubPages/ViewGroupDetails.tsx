@@ -185,27 +185,40 @@ const ViewGroupDetails = () => {
   };
 
 
-  // const handleSaveEdit = () => {
-  //   // Update the row with the new noOfMedicine value
-  //   const updatedRows = sortedRows.map((row) =>
-  //     row.medicineName === selectedGroupName
-  //       ? { ...row, noOfMedicine: selectedNoOfMedicine }
-  //       : row
-  //   );
+  const handleSaveEdit = async () => {
+    try {
+      const response = await axios.post('/admin/update-product-stock', {
+        medicineName: selectedGroupName,
+        newStock: selectedNoOfMedicine, // Ensure this is converted to a number if required
+      });
 
-  //   setSortedRows(updatedRows); // Update the sorted rows with the new data
-  //   setIsEditMode(false); // Close the modal after saving
+      if (response.status === 200) {
+        setAlertMessage('Stock updated successfully!');
+        setShowAlert(true);
+        setAlertVisible(true);
+        setIsEditMode(false)
 
-  //   // Show the confirmation alert
-  //   setAlertMessage('Changes saved successfully!');
-  //   setShowAlert(true);
-  //   setAlertVisible(true);
+        // Optionally, update the local state to reflect the change
+        setSortedRows((prevRows) =>
+          prevRows.map((row) =>
+            row.medicineName === selectedGroupName
+              ? { ...row, noOfMedicine: selectedNoOfMedicine }
+              : row
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating stock:', error);
+      setAlertMessage('Failed to update stock.');
+      setShowAlert(true);
+    }
 
-  //   // Hide the alert after 3 seconds
-  //   setTimeout(() => {
-  //     setAlertVisible(false);
-  //   }, 3000); // Hide after 3 seconds
-  // };
+    // Hide the alert after 3 seconds
+    setTimeout(() => {
+      setAlertVisible(false);
+    }, 3000);
+  };
+
 
   const handleDeleteItemTable = (groupName: string) => {
     setSelectedGroupName(groupName);
@@ -219,23 +232,38 @@ const ViewGroupDetails = () => {
     setOpenDialog(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteType === 'item' && selectedGroupName) {
+      // Remove the item from the local state
       const updatedRows = sortedRows.filter((row) => row.medicineName !== selectedGroupName);
       setSortedRows(updatedRows);
       setAlertMessage(`Item "${selectedGroupName}" has been deleted.`);
-    } else if (deleteType === 'group') {
-      navigate('/admin/inventory/view-medicines-group', {
-        state: { successMessage: 'Group deleted successfully!' },
-      });
+    } else if (deleteType === 'group' && selectedGroupName) {
+      try {
+        // Send the delete request to the backend API for the group
+        const response = await axios.delete(`/admin/delete-categories-view/${groupName}`);
+
+        // If deletion was successful, navigate and show success message
+        if (response.status === 200) {
+          navigate('/admin/inventory/view-medicines-group', {
+            state: { successMessage: 'Group deleted successfully!' },
+          });
+        } else {
+          // Handle cases where deletion wasn't successful
+          setAlertMessage('Failed to delete group. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error deleting group:', error);
+        setAlertMessage('Failed to delete group due to a server error.');
+      }
     }
 
     // Show the alert after deletion
     setShowAlert(true);
     setAlertVisible(true); // Ensure the alert is visible immediately
 
-    // Reset the state to prevent multiple consecutive pop-ups without user action
-    setOpenDialog(false); // Close the confirmation dialog
+    // Close the confirmation dialog
+    setOpenDialog(false);
 
     // Reset the alert message after a brief delay to allow animation
     setTimeout(() => {
@@ -289,26 +317,40 @@ const ViewGroupDetails = () => {
     setOpenDialog(true);
   };
 
-  const confirmDeleteMultiple = () => {
+  // New function to handle multiple item deletions
+  const confirmDeleteMultiple = async () => {
     if (deleteType === 'item' && selectedRows.length > 0) {
-      const updatedRows = sortedRows.filter((row) => !selectedRows.includes(row.medicineName));
-      setSortedRows(updatedRows);
-      setAlertMessage(`Medicines "${selectedRows.join(', ')}" have been deleted.`);
-      setSelectedRows([]); // Reset selected rows after deletion
+      try {
+        // Directly pass the selectedRows array as the groupNames
+        const response = await axios.delete('/admin/delete-categories', {
+          data: { groupNames: selectedRows }  // No need to map, as selectedRows are already strings
+        });
+  
+        if (response.status === 200) {
+          navigate('/admin/inventory/view-medicines-group', {
+            state: { successMessage: 'Items deleted successfully!' },
+          });
+        } else {
+          setAlertMessage('Failed to delete items. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error deleting items:', error);
+        setAlertMessage('Failed to delete items due to a server error.');
+      }
     }
-
+  
     // Show the alert after deletion
     setShowAlert(true);
-    setAlertVisible(true);
-
-    // Reset the state to prevent multiple consecutive pop-ups without user action
+    setAlertVisible(true); // Ensure the alert is visible immediately
     setOpenDialog(false);
+  
     setTimeout(() => {
       setAlertMessage(null); // Clear alert message
       setShowAlert(false); // Hide the alert
       setAlertVisible(false); // Ensure alert animation completes
     }, 3500); // Time for alert message duration
   };
+  
 
   return (
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
@@ -332,9 +374,9 @@ const ViewGroupDetails = () => {
           <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{groupName}</Typography>
           <Typography variant="body1">Detailed view of a medicine group.</Typography>
         </Box>
-        <Button variant="contained" onClick={handleAddNewItemClick} sx={{ backgroundColor: '#01A768', color: '#fff', '&:hover': { backgroundColor: '#017F4A' } }}>
+        {/* <Button variant="contained" onClick={handleAddNewItemClick} sx={{ backgroundColor: '#01A768', color: '#fff', '&:hover': { backgroundColor: '#017F4A' } }}>
           <AddIcon /> Add New Item
-        </Button>
+        </Button> */}
       </Box>
 
       {/* Add Medicine Modal */}
@@ -604,7 +646,7 @@ const ViewGroupDetails = () => {
             Cancel
           </Button>
           <Button
-            // onClick={handleSaveEdit} // You need to implement handleSaveEdit function to save the changes
+            onClick={handleSaveEdit} // You need to implement handleSaveEdit function to save the changes
             variant="contained"
             color="primary"
             sx={{

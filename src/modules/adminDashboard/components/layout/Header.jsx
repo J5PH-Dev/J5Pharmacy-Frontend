@@ -175,7 +175,7 @@ const Header = () => {
                 </div>
 
                 {/* Search Bar (Visible on larger screens) */}
-                <form className="flex-grow-1 px-4 pe-2" role="search"
+                {/* <form className="flex-grow-1 px-4 pe-2" role="search"
                     style={{
                         display: window.innerWidth < 900 ? 'none' : 'flex',
                     }}>
@@ -211,7 +211,7 @@ const Header = () => {
                             <FaSearch />
                         </button>
                     </div>
-                </form>
+                </form> */}
 
 
 

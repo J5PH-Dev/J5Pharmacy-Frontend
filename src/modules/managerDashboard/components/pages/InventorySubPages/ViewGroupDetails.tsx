@@ -9,35 +9,31 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import WarningIcon from '@mui/icons-material/Warning'; // Icon for warning
 import { useParams } from 'react-router-dom';
 import CheckIcon from '@mui/icons-material/Check';
+import { Edit, Delete, Visibility } from '@mui/icons-material';
+import axios from 'axios';
 
-function createData(groupName: string, noOfMedicine: string) {
-  return { groupName, noOfMedicine };
+function createData(medicineName: string, noOfMedicine: string) {
+  return { medicineName, noOfMedicine };
 }
 
-const rows = [
-  createData('Paracetamol', '12'),
-  createData('Ibuprofen', '04'),
-  createData('Aspirin', '21'),
-];
-
-// Mock Data for the Autocomplete
-const mockMedicines = [
-  { label: 'Amoxicillin', noOfMedicine: '03' },
-  { label: 'Ciprofloxacin', noOfMedicine: '22' },
-  { label: 'Metformin', noOfMedicine: '11' },
-  { label: 'Lisinopril', noOfMedicine: '14' },
-  { label: 'Omeprazole', noOfMedicine: '09' },
-];
+type Medicine = {
+  medicine_name: string;
+  stock: number;
+};
+type MedicineRow = {
+  medicineName: string;
+  noOfMedicine: string;
+};
 
 const ViewGroupDetails = () => {
   const navigate = useNavigate();
-  const [sortedRows, setSortedRows] = useState(rows);
+  const [sortedRows, setSortedRows] = useState<MedicineRow[]>([]); // Correct type
   const [searchQuery, setSearchQuery] = useState('');
   const { groupName } = useParams<{ groupName: string }>();
   const [sortConfig, setSortConfig] = useState<{
-    key: keyof typeof rows[0];
+    key: keyof typeof sortedRows[0]; // This should refer to sortedRows, not rows
     direction: 'asc' | 'desc';
-  }>({ key: 'groupName', direction: 'asc' });
+  }>({ key: 'medicineName', direction: 'asc' });
 
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedGroupName, setSelectedGroupName] = useState<string | null>(null);
@@ -48,10 +44,45 @@ const ViewGroupDetails = () => {
   const [openAddMedicineModal, setOpenAddMedicineModal] = useState(false); // State for modal
   const [selectedMedicine, setSelectedMedicine] = useState<string[]>([]); // Updated to an array of strings
   const [duplicateAlertMessage, setDuplicateAlertMessage] = useState<string | null>(null); // State for duplicate alert
+  const [selectedRows, setSelectedRows] = useState<string[]>([]); // Store selected items
+  const [openRemoveItemDialog, setOpenRemoveItemDialog] = useState(false); // State for remove item modal
+  const [isEditMode, setIsEditMode] = useState(false); // New state for edit mode
+
+
+  useEffect(() => {
+    // Fetch medicines from the backend based on the groupName
+    const fetchMedicines = async () => {
+      try {
+        // Pass the groupName as part of the URL to the backend
+        const response = await axios.get(`/admin/fetch-category-products/${groupName}`);
+        const medicines = response.data;
+
+        // Format the rows
+        const formattedRows = medicines.map((medicine: any) => ({
+          medicineName: medicine.medicine_name,
+          noOfMedicine: medicine.stock.toString(),
+        }));
+
+        setSortedRows(formattedRows);
+      } catch (error) {
+        console.error('Error fetching medicines:', error);
+        setAlertMessage('Failed to fetch medicines');
+        setShowAlert(true);
+      }
+    };
+
+    // Only fetch if groupName exists (this ensures valid groupName handling)
+    if (groupName) {
+      fetchMedicines();
+    }
+  }, [groupName]); // Dependency on groupName, so it will re-fetch when the groupName changes
+
+
 
   const filteredRows = sortedRows.filter((row) =>
-    row.groupName.toLowerCase().includes(searchQuery.toLowerCase())
+    row.medicineName && row.medicineName.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
 
   const handleBreadcrumbClick = (path: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -64,49 +95,55 @@ const ViewGroupDetails = () => {
   };
 
   const handleCloseModal = () => {
-    setOpenAddMedicineModal(false); // Close the modal
+    setOpenAddMedicineModal(false);
+    setSelectedMedicine([]);  // Clear selection on modal close
+    setDuplicateAlertMessage(null);  // Reset any error messages
   };
 
   // Inside your component
   const tableContainerRef = useRef<HTMLDivElement | null>(null);
 
   const handleAddMedicineToGroup = () => {
-    if (selectedMedicine.length > 0) {
-      const existingMedicines = sortedRows.map(row => row.groupName);
-      const duplicateMedicines = selectedMedicine.filter(medicine => existingMedicines.includes(medicine));
-
-      if (duplicateMedicines.length > 0) {
-        setDuplicateAlertMessage(`Medicines "${duplicateMedicines.join(', ')}" are already in the group.`);
-        return;
-      }
-
-      const newMedicines = selectedMedicine.map((medicine) => {
-        const foundMedicine = mockMedicines.find(item => item.label === medicine);
-        return createData(medicine, foundMedicine ? foundMedicine.noOfMedicine : '0');
-      });
-
-      setSortedRows((prevRows) => [...prevRows, ...newMedicines]);
-
-      // Close modal and reset state
-      setOpenAddMedicineModal(false);
-      setSelectedMedicine([]);
-      setDuplicateAlertMessage(null);
-
-      // Scroll to the bottom of the table with a slight delay
-      setTimeout(() => {
-        if (tableContainerRef.current) {
-          tableContainerRef.current.scrollTop = tableContainerRef.current.scrollHeight;
-        }
-      }, 100);  // Adjust the delay as needed
-
-      // Show success alert
-      setAlertMessage(`Medicines "${selectedMedicine.join(', ')}" have been added to the group.`);
-      setShowAlert(true);
-      setAlertVisible(true);
+    if (selectedMedicine.length === 0) {
+      setDuplicateAlertMessage("Please select at least one medicine.");
+      return;
     }
+
+    const existingMedicines = sortedRows.map(row => row.medicineName);
+    const duplicateMedicines = selectedMedicine.filter(medicine => existingMedicines.includes(medicine));
+
+    if (duplicateMedicines.length > 0) {
+      setDuplicateAlertMessage(`Medicines "${duplicateMedicines.join(', ')}" are already in the group.`);
+      return;
+    }
+
+    // const newMedicines = selectedMedicine.map((medicine) => {
+    //   const foundMedicine = mockMedicines.find(item => item.label === medicine);
+    //   return createData(medicine, foundMedicine ? foundMedicine.noOfMedicine : '0');
+    // });
+
+    // setSortedRows((prevRows) => [...prevRows, ...newMedicines]);
+
+    // Show success alert before closing the modal
+    setAlertMessage(`Medicines "${selectedMedicine.join(', ')}" have been added to the group.`);
+    setShowAlert(true);
+    setAlertVisible(true);
+
+    // Close modal and reset state
+    setOpenAddMedicineModal(false);
+    setSelectedMedicine([]);
+    setDuplicateAlertMessage(null);
+
+    // Scroll to the bottom of the table with a slight delay
+    setTimeout(() => {
+      if (tableContainerRef.current) {
+        tableContainerRef.current.scrollTop = tableContainerRef.current.scrollHeight;
+      }
+    }, 100);  // Adjust the delay as needed
   };
 
-  const handleSort = (key: keyof typeof rows[0]) => {
+
+  const handleSort = (key: 'medicineName' | 'noOfMedicine') => {
     const direction =
       sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
 
@@ -118,7 +155,7 @@ const ViewGroupDetails = () => {
           : parseInt(b[key], 10) - parseInt(a[key], 10);
       }
 
-      // For other string-based keys like 'groupName'
+      // For other string-based keys like 'medicineName'
       if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
       if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
       return 0;
@@ -129,35 +166,104 @@ const ViewGroupDetails = () => {
   };
 
 
+  const handleViewDetails = (medicineName: string) => {
+    navigate(`/admin/inventory/view-medicines-description/${medicineName}`);
+  };
+
+
+  const [selectedNoOfMedicine, setSelectedNoOfMedicine] = useState<string>(''); // New state for the editable noOfMedicine
+
+  // For Edit Medicine Group Modal
+  const handleEditItem = (medicineName: string) => {
+    const row = sortedRows.find((row) => row.medicineName === medicineName);
+
+    if (row) {
+      setSelectedGroupName(row.medicineName);
+      setSelectedNoOfMedicine(row.noOfMedicine);
+      setIsEditMode(true);
+    }
+  };
+
+
+  const handleSaveEdit = async () => {
+    try {
+      const response = await axios.post('/admin/update-product-stock', {
+        medicineName: selectedGroupName,
+        newStock: selectedNoOfMedicine, // Ensure this is converted to a number if required
+      });
+
+      if (response.status === 200) {
+        setAlertMessage('Stock updated successfully!');
+        setShowAlert(true);
+        setAlertVisible(true);
+        setIsEditMode(false)
+
+        // Optionally, update the local state to reflect the change
+        setSortedRows((prevRows) =>
+          prevRows.map((row) =>
+            row.medicineName === selectedGroupName
+              ? { ...row, noOfMedicine: selectedNoOfMedicine }
+              : row
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating stock:', error);
+      setAlertMessage('Failed to update stock.');
+      setShowAlert(true);
+    }
+
+    // Hide the alert after 3 seconds
+    setTimeout(() => {
+      setAlertVisible(false);
+    }, 3000);
+  };
+
 
   const handleDeleteItemTable = (groupName: string) => {
     setSelectedGroupName(groupName);
     setDeleteType('item');
-    setOpenDialog(true);
+    setOpenRemoveItemDialog(true); // Open remove item dialog
   };
+
 
   const handleDeleteGroup = () => {
     setDeleteType('group');
     setOpenDialog(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteType === 'item' && selectedGroupName) {
-      const updatedRows = sortedRows.filter((row) => row.groupName !== selectedGroupName);
+      // Remove the item from the local state
+      const updatedRows = sortedRows.filter((row) => row.medicineName !== selectedGroupName);
       setSortedRows(updatedRows);
       setAlertMessage(`Item "${selectedGroupName}" has been deleted.`);
-    } else if (deleteType === 'group') {
-      navigate('/manager/inventory/view-medicines-group', {
-        state: { successMessage: 'Group deleted successfully!' },
-      });
+    } else if (deleteType === 'group' && selectedGroupName) {
+      try {
+        // Send the delete request to the backend API for the group
+        const response = await axios.delete(`/admin/delete-categories-view/${groupName}`);
+
+        // If deletion was successful, navigate and show success message
+        if (response.status === 200) {
+          navigate('/admin/inventory/view-medicines-group', {
+            state: { successMessage: 'Group deleted successfully!' },
+          });
+        } else {
+          // Handle cases where deletion wasn't successful
+          setAlertMessage('Failed to delete group. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error deleting group:', error);
+        setAlertMessage('Failed to delete group due to a server error.');
+      }
     }
 
     // Show the alert after deletion
     setShowAlert(true);
     setAlertVisible(true); // Ensure the alert is visible immediately
 
-    // Reset the state to prevent multiple consecutive pop-ups without user action
-    setOpenDialog(false); // Close the confirmation dialog
+    // Close the confirmation dialog
+    setOpenDialog(false);
 
     // Reset the alert message after a brief delay to allow animation
     setTimeout(() => {
@@ -190,6 +296,62 @@ const ViewGroupDetails = () => {
     }
   }, [showAlert]);
 
+  const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>, groupName: string) => {
+    if (event.target.checked) {
+      setSelectedRows((prevSelectedRows) => [...prevSelectedRows, groupName]);
+    } else {
+      setSelectedRows((prevSelectedRows) => prevSelectedRows.filter((name) => name !== groupName));
+    }
+  };
+
+  const handleSelectAllChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      setSelectedRows(sortedRows.map((row) => row.medicineName));
+    } else {
+      setSelectedRows([]);
+    }
+  };
+
+  const handleDeleteButtonClick = () => {
+    setDeleteType('item');
+    setOpenDialog(true);
+  };
+
+  // New function to handle multiple item deletions
+  const confirmDeleteMultiple = async () => {
+    if (deleteType === 'item' && selectedRows.length > 0) {
+      try {
+        // Directly pass the selectedRows array as the groupNames
+        const response = await axios.delete('/admin/delete-categories', {
+          data: { groupNames: selectedRows }  // No need to map, as selectedRows are already strings
+        });
+  
+        if (response.status === 200) {
+          navigate('/admin/inventory/view-medicines-group', {
+            state: { successMessage: 'Items deleted successfully!' },
+          });
+        } else {
+          setAlertMessage('Failed to delete items. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error deleting items:', error);
+        setAlertMessage('Failed to delete items due to a server error.');
+      }
+    }
+  
+    // Show the alert after deletion
+    setShowAlert(true);
+    setAlertVisible(true); // Ensure the alert is visible immediately
+    setOpenDialog(false);
+  
+    setTimeout(() => {
+      setAlertMessage(null); // Clear alert message
+      setShowAlert(false); // Hide the alert
+      setAlertVisible(false); // Ensure alert animation completes
+    }, 3500); // Time for alert message duration
+  };
+  
+
   return (
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
       {/* Breadcrumbs */}
@@ -201,8 +363,8 @@ const ViewGroupDetails = () => {
           justifyContent: { xs: 'center', sm: 'flex-start' },
         }}
       >
-        <Link color="inherit" onClick={handleBreadcrumbClick('/manager/inventory')}>Inventory</Link>
-        <Link color="inherit" onClick={handleBreadcrumbClick('/manager/inventory/view-medicines-group')}>Medicine Group</Link>
+        <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory')}>Inventory</Link>
+        <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory/view-medicines-group')}>Medicine Group</Link>
         <Typography color="text.primary">{groupName}</Typography>
       </Breadcrumbs>
 
@@ -212,17 +374,17 @@ const ViewGroupDetails = () => {
           <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{groupName}</Typography>
           <Typography variant="body1">Detailed view of a medicine group.</Typography>
         </Box>
-        <Button variant="contained" onClick={handleAddNewItemClick} sx={{ backgroundColor: '#01A768', color: '#fff', '&:hover': { backgroundColor: '#017F4A' } }}>
+        {/* <Button variant="contained" onClick={handleAddNewItemClick} sx={{ backgroundColor: '#01A768', color: '#fff', '&:hover': { backgroundColor: '#017F4A' } }}>
           <AddIcon /> Add New Item
-        </Button>
+        </Button> */}
       </Box>
 
       {/* Add Medicine Modal */}
-      <Dialog
+      {/* <Dialog
         open={openAddMedicineModal}
         onClose={(event, reason) => {
           if (reason !== 'backdropClick') {
-            setOpenAddMedicineModal(false); // Close the modal only for non-backdrop clicks
+            handleCloseModal()
           }
         }}
         fullWidth
@@ -279,7 +441,7 @@ const ViewGroupDetails = () => {
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'space-between', padding: 2 }}>
           <Button
-            onClick={() => setOpenAddMedicineModal(false)}
+            onClick={() => handleCloseModal()}
             variant="outlined"
             color="secondary"
             sx={{ borderRadius: 2, padding: '10px 20px' }}
@@ -300,7 +462,7 @@ const ViewGroupDetails = () => {
             Add Medicine
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog> */}
 
 
       {/* Search */}
@@ -328,14 +490,54 @@ const ViewGroupDetails = () => {
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              {['Medicine Name', 'No of Medicine', 'Action'].map((header, index) => (
-                <TableCell key={index} sx={{ fontWeight: 'bold', position: 'sticky', top: 0, backgroundColor: 'white' }}>
-                  {header === 'Action' ? header : (
-                    <Stack direction="row" alignItems="center" onClick={() => handleSort(header === 'Medicine Name' ? 'groupName' : 'noOfMedicine')}>
+              <TableCell
+                padding="checkbox"
+                sx={{
+                  fontWeight: 'bold',
+                  position: 'sticky',
+                  top: 0,
+                  backgroundColor: 'white',
+                  zIndex: 3, // Ensure it's above other headers
+                  paddingLeft: 6, // Add padding to the left of the checkbox column
+                  paddingRight: 4,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedRows.length === sortedRows.length}
+                  onChange={handleSelectAllChange}
+                  style={{ transform: 'scale(1.1)' }} // Increase the size of the checkbox
+                />
+              </TableCell>
+              {['Medicine Name', 'Stocks', 'Action'].map((header, index) => (
+                <TableCell
+                  key={index}
+                  sx={{
+                    fontWeight: 'bold',
+                    position: 'sticky',
+                    top: 0,
+                    backgroundColor: 'white',
+                  }}
+                >
+                  {header === 'Action' ? (
+                    header
+                  ) : (
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      onClick={() =>
+                        handleSort(header === 'Medicine Name' ? 'medicineName' : 'noOfMedicine')
+                      }
+                    >
                       {header}
-                      {sortConfig.key === (header === 'Medicine Name' ? 'groupName' : 'noOfMedicine') && (
-                        sortConfig.direction === 'asc' ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />
-                      )}
+                      {sortConfig.key ===
+                        (header === 'Medicine Name' ? 'medicineName' : 'noOfMedicine') && (
+                          sortConfig.direction === 'asc' ? (
+                            <ArrowDropUpIcon />
+                          ) : (
+                            <ArrowDropDownIcon />
+                          )
+                        )}
                     </Stack>
                   )}
                 </TableCell>
@@ -344,13 +546,42 @@ const ViewGroupDetails = () => {
           </TableHead>
           <TableBody>
             {filteredRows.map((row) => (
-              <TableRow key={row.groupName}>
-                <TableCell>{row.groupName}</TableCell>
+              <TableRow key={row.medicineName}>
+                <TableCell
+                  padding="checkbox"
+                  sx={{
+                    paddingLeft: 6, // Add padding to the left of the checkbox column
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.includes(row.medicineName)}
+                    onChange={(event) => handleCheckboxChange(event, row.medicineName)}
+                  />
+                </TableCell>
+                <TableCell>{row.medicineName}</TableCell>
                 <TableCell>{row.noOfMedicine}</TableCell>
                 <TableCell>
-                  <Button variant="text" onClick={() => handleDeleteItemTable(row.groupName)} sx={{ paddingRight: '5px', color: '#F0483E', display: 'flex', alignItems: 'center', '&:hover': { color: '#b71c1c' } }}>
-                    <DeleteOutlineIcon sx={{ marginRight: 1 }} /> Remove from Group
-                  </Button>
+                  <div className="flex flex-row">
+                    <IconButton
+                      onClick={() => handleViewDetails(row.medicineName)}
+                      sx={{ color: '#2BA3B6', mr: 0 }}
+                    >
+                      <Visibility sx={{ fontSize: 24 }} />
+                    </IconButton>
+                    <IconButton
+                      onClick={() => handleEditItem(row.medicineName)}
+                      sx={{ color: '#1D7DFA', mr: 0 }}
+                    >
+                      <Edit sx={{ fontSize: 24 }} />
+                    </IconButton>
+                    <IconButton
+                      onClick={() => handleDeleteItemTable(row.medicineName)}
+                      sx={{ color: '#D83049' }}
+                    >
+                      <Delete sx={{ fontSize: 24 }} />
+                    </IconButton>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -358,22 +589,211 @@ const ViewGroupDetails = () => {
         </Table>
       </TableContainer>
 
-      {/* Confirmation Dialog for Item Deletion */}
-      <Dialog open={openDialog} onClose={() => { }} BackdropProps={{ onClick: (event) => event.stopPropagation() }} disableEscapeKeyDown>
-        <DialogTitle><WarningIcon sx={{ color: 'red', marginRight: 1 }} />{deleteType === 'item' ? 'Confirm Item Deletion' : 'Confirm Group Deletion'}</DialogTitle>
-        <DialogContent>
-          <Typography>
-            {deleteType === 'item' ? 'Are you sure you want to delete this medicine from the group? This action cannot be undone.' : 'Are you sure you want to delete the entire group? This action cannot be undone.'}
+
+      {/* Edit Medicine Modal */}
+      <Dialog
+        open={isEditMode}
+        onClose={() => setIsEditMode(false)}
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            padding: 2,
+            boxShadow: 5,
+            maxWidth: '567px'
+          },
+        }}
+        BackdropProps={{
+          onClick: (event) => event.stopPropagation() // Prevent closing modal when clicking outside
+        }}
+      >
+        <DialogTitle>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', textAlign: 'center', mb: 1 }}>
+            Edit Medicine Group
           </Typography>
+          <Typography variant="body2" sx={{ textAlign: 'center', color: 'text.secondary' }}>
+            Update the details of the medicine group below.
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
+            {/* Group Name TextField (non-editable) */}
+            <TextField
+              label="Group Name"
+              value={selectedGroupName}
+              variant="outlined"
+              disabled // Non-editable field
+              fullWidth
+            />
+
+            {/* Number of Medicine TextField (editable) */}
+            <TextField
+              label="Number of Medicines"
+              value={selectedNoOfMedicine}
+              onChange={(e) => setSelectedNoOfMedicine(e.target.value)} // Handle changes
+              variant="outlined"
+              fullWidth
+            />
+          </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)} color="secondary">Cancel</Button>
-          <Button onClick={confirmDelete} color="primary">Confirm</Button>
+        <DialogActions sx={{ justifyContent: 'space-between', padding: 2 }}>
+          <Button
+            onClick={() => setIsEditMode(false)}
+            variant="outlined"
+            color="secondary"
+            sx={{ borderRadius: 2, padding: '10px 20px' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveEdit} // You need to implement handleSaveEdit function to save the changes
+            variant="contained"
+            color="primary"
+            sx={{
+              borderRadius: 2,
+              padding: '10px 20px',
+              backgroundColor: '#01A768',
+              '&:hover': { backgroundColor: '#017F4A' },
+            }}
+          >
+            Save Changes
+          </Button>
         </DialogActions>
       </Dialog>
 
+
+      {/* Remove Item Modal */}
+      <Dialog
+        open={openRemoveItemDialog}
+        onClose={() => setOpenRemoveItemDialog(false)}
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            padding: 2,
+            boxShadow: 5,
+            maxWidth: "567px",
+          },
+        }}
+        BackdropProps={{
+          onClick: (event) => event.stopPropagation() // Prevent closing the modal when clicking outside
+        }}
+      >
+        <DialogTitle>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', textAlign: 'left' }}>
+            Confirm Item Removal
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ textAlign: 'left', color: 'text.secondary' }}>
+            Are you sure you want to remove {selectedGroupName} from the group? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'flex-end' }}>
+          <Button
+            onClick={() => setOpenRemoveItemDialog(false)}
+            variant="outlined"
+            color="secondary"
+            sx={{ borderRadius: 2 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              confirmDelete(); // Call the confirmDelete function to handle the deletion
+              setOpenRemoveItemDialog(false); // Close the modal after the deletion
+            }}
+            variant="contained"
+            color="error" // Change the color to red
+            sx={{
+              borderRadius: 2,
+              padding: '10px 20px',
+              backgroundColor: '#D32F2F', // Red color
+              '&:hover': { backgroundColor: '#9A0007' }, // Darker red on hover
+            }}
+          >
+            Remove Item
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
+
+      {/* Delete Button (shown only when items are selected) */}
+      {selectedRows.length > 0 && (
+        <Button
+          variant="contained"
+          sx={{
+            backgroundColor: 'white',
+            color: '#F0483E',
+            padding: '15px 24px',
+            border: '1px solid #F0483E',
+            marginTop: '31px',
+            marginRight: '21px',
+            textTransform: 'none',
+            fontWeight: 'bold',
+            '&:hover': {
+              backgroundColor: '#FFF5F5',
+            },
+          }}
+          startIcon={<DeleteOutlineIcon sx={{ color: '#F0483E' }} />}
+          onClick={handleDeleteButtonClick}
+        >
+          Delete Medicine
+        </Button>
+      )}
+
+      {/* Confirmation Dialog for Item Deletion */}
+      <Dialog open={openDialog} onClose={() => { }} BackdropProps={{ onClick: (event) => event.stopPropagation() }} disableEscapeKeyDown>
+        <DialogTitle>
+          <WarningIcon sx={{ color: 'red', marginRight: 1 }} />
+          {deleteType === 'item'
+            ? (selectedRows.length === 1 ? 'Confirm Item Deletion' : 'Confirm Multiple Item Deletion')
+            : 'Confirm Group Deletion'}
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            {deleteType === 'item'
+              ? (selectedRows.length === 1
+                ? 'Are you sure you want to delete this medicine from the group? This action cannot be undone.'
+                : `Are you sure you want to delete the selected medicines from the group? This action cannot be undone.`)
+              : 'Are you sure you want to delete the entire group? This action cannot be undone.'}
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)} color="secondary">Cancel</Button>
+          <Button
+            onClick={deleteType === 'item'
+              ? (selectedRows.length === 1
+                ? confirmDelete
+                : confirmDeleteMultiple)
+              : confirmDelete
+            }
+            color="primary"
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
+
       {/* Delete Group Button */}
-      <Button variant="contained" onClick={handleDeleteGroup} sx={{ marginTop: '22px', backgroundColor: '#FFFFFF', color: '#F0483E', padding: '12px 25px', border: '1px solid #F0483E', display: 'flex', alignItems: 'center', '&:hover': { backgroundColor: '#F0483E', color: 'white', border: '1px solid #F0483E' }, '&:hover svg': { color: 'white' } }}>
+      <Button variant="contained" onClick={handleDeleteGroup}
+        sx={{
+          marginTop: '30px',
+          backgroundColor: 'white',
+          color: '#F0483E',
+          padding: '15px 24px',
+          border: '1px solid #F0483E',
+          textTransform: 'none', // Optional: Disable uppercase text
+          fontWeight: 'bold',
+          '&:hover': {
+            backgroundColor: '#FFF5F5', // Light background on hover
+          },
+        }}>
         <DeleteOutlineIcon sx={{ paddingRight: '5px' }} /> Delete Group
       </Button>
 

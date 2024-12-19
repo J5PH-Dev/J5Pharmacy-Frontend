@@ -84,7 +84,7 @@ exports.addMedicineGroup = async (req, res) => {
 
 
 // Delete category by name
-exports.deleteCategory = async (req, res) => {
+exports.deleteCategoryView = async (req, res) => {
     const { groupName } = req.params; // Get the group name from the URL parameters
 
     try {
@@ -260,5 +260,109 @@ exports.getMedicinesAndStock = async (req, res) => {
     } catch (error) {
         console.error('Error fetching medicines:', error);
         res.status(500).json({ message: 'Failed to fetch medicines', error });
+    }
+};
+
+// Update product stock
+exports.updateProductStock = async (req, res) => {
+    const { medicineName, newStock } = req.body;
+
+    if (!medicineName || newStock === undefined) {
+        return res.status(400).json({ message: 'Medicine name and new stock are required' });
+    }
+
+    try {
+        // Update the stock in the database
+        const [result] = await db.query(
+            `UPDATE products SET stock = ? WHERE name = ?`,
+            [newStock, medicineName]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Medicine not found' });
+        }
+
+        res.status(200).json({ message: 'Stock updated successfully' });
+    } catch (error) {
+        console.error('Error updating stock:', error);
+        res.status(500).json({ message: 'Failed to update stock', error });
+    }
+};
+
+
+exports.deleteCategory = async (req, res) => {
+    const { groupName } = req.params;
+
+    if (!groupName) {
+        return res.status(400).json({ message: 'Group name is required' });
+    }
+
+    try {
+        // Delete the category from the database
+        const [result] = await db.query(
+            `DELETE FROM category WHERE name = ?`,
+            [groupName]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Category not found' });
+        }
+
+        res.status(200).json({ message: 'Category deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting category:', error);
+        res.status(500).json({ message: 'Failed to delete category', error });
+    }
+};
+
+// Update products in the category to have NULL categoryId instead of deleting the category
+exports.deleteMultipleCategories = async (req, res) => {
+    const { groupNames } = req.body; // Expects an array of group names
+
+    if (!Array.isArray(groupNames) || groupNames.length === 0) {
+        return res.status(400).json({ message: 'Group names are required' });
+    }
+
+    try {
+        // Loop through each group name and update the products in the category
+        for (let groupName of groupNames) {
+            // Check if the category exists
+            const [categoryExists] = await db.query('SELECT * FROM category WHERE name = ?', [groupName]);
+
+            if (categoryExists.length === 0) {
+                continue; // Skip non-existing categories
+            }
+
+            // Update the products to set the categoryId to NULL (or another appropriate value)
+            await db.query(
+                'UPDATE products SET category = NULL WHERE category = (SELECT category_id FROM category WHERE name = ?)',
+                [groupName]
+            );
+        }
+
+        res.status(200).json({ message: 'Products in categories updated successfully' });
+    } catch (error) {
+        console.error('Error updating products in categories:', error);
+        res.status(500).json({ message: 'Failed to update products in categories', error });
+    }
+};
+
+    exports.getLowStockProducts = async (req, res) => {
+    try {
+        // Query the database to get products with stock <= 30
+        const [lowStockProducts] = await db.query(
+            'SELECT name, barcode, category, stock FROM products WHERE stock <= 30'
+        );
+
+        // Check if products are found
+        if (lowStockProducts.length === 0) {
+            return res.status(200).json({ message: 'No products with stock below 30.' });
+        }
+
+        // Return the products
+        res.status(200).json({ products: lowStockProducts });
+    } catch (error) {
+        console.error('Error fetching low stock products:', error);
+        res.status(500).json({ message: 'Failed to fetch low stock products.', error });
     }
 };
