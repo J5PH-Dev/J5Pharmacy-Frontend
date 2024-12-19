@@ -1,129 +1,144 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthContextType, AuthState, UserRole } from '../types/auth.types';
-import { authService } from '../services/authService';
+import * as authService from '../services/authService';
+
+interface AuthContextType {
+    isAuthenticated: boolean;
+    user: any;
+    loading: boolean;
+    pmsLogin: (employee_id: string, password: string) => Promise<void>;
+    posLogin: (pin_code: string) => Promise<void>;
+    login: (employee_id: string, password: string) => Promise<void>;
+    logout: () => void;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user database - replace with actual backend integration
-const MOCK_USERS: Record<number, { employeeId: number; role: UserRole; name: string }> = {
-  123: { employeeId: 123, role: UserRole.ADMIN, name: 'Admin User' },
-  456: { employeeId: 456, role: UserRole.MANAGER, name: 'Manager User' },
-  678: { employeeId: 678, role: UserRole.PHARMACIST, name: 'Pharmacist User' },
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const navigate = useNavigate();
-  const [authState, setAuthState] = useState<AuthState>(() => {
-    // Clear any existing session on app start
-    localStorage.removeItem('user');
-    return {
-      isAuthenticated: false,
-      user: null,
-      isLoading: false,
-      error: null,
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [user, setUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        // Check for token and user data on mount
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        
+        if (token && userData) {
+            authService.setAuthToken(token);
+            setUser(JSON.parse(userData));
+            setIsAuthenticated(true);
+        }
+        
+        setLoading(false);
+    }, []);
+
+    const login = async (employee_id: string, password: string) => {
+        try {
+            const response = await authService.pmsLogin(employee_id, password);
+            
+            if (!response.user) {
+                throw new Error('Invalid response: user data missing');
+            }
+
+            authService.setAuthToken(response.token);
+            localStorage.setItem('user', JSON.stringify(response.user));
+            
+            setUser(response.user);
+            setIsAuthenticated(true);
+            
+            // Navigate based on user role
+            const userRole = response.user.role;
+            if (userRole === 'ADMIN') {
+                navigate('/admin/dashboard');
+            } else if (userRole === 'MANAGER') {
+                navigate('/manager/dashboard');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            throw error;
+        }
     };
-  });
 
-  const getInitialRouteForRole = (role: UserRole): string => {
-    switch (role) {
-      case UserRole.ADMIN:
-        return '/admin/dashboard';
-      case UserRole.MANAGER:
-        return '/manager/dashboard';
-      case UserRole.PHARMACIST:
-        return '/pos';
-      default:
-        return '/login';
-    }
-  };
+    const pmsLogin = async (employee_id: string, password: string) => {
+        try {
+            const response = await authService.pmsLogin(employee_id, password);
+            
+            if (!response.user) {
+                throw new Error('Invalid response: user data missing');
+            }
 
-  const login = async (employeeId: string, password: string) => {
-    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-    try {
-      // Convert employeeId to number for comparison
-      const empId = parseInt(employeeId, 10);
-      if (isNaN(empId)) {
-        throw new Error('Invalid Employee ID');
-      }
+            authService.setAuthToken(response.token);
+            localStorage.setItem('user', JSON.stringify(response.user));
+            
+            setUser(response.user);
+            setIsAuthenticated(true);
 
-      // Mock authentication - replace with actual backend call
-      const mockUser = MOCK_USERS[empId];
-      if (!mockUser) {
-        throw new Error('Invalid credentials');
-      }
+            // PMS users go through loading screen
+            navigate('/loading-screen');
+        } catch (error) {
+            console.error('Login error:', error);
+            throw error;
+        }
+    };
 
-      // Store user in localStorage
-      localStorage.setItem('user', JSON.stringify(mockUser));
+    const posLogin = async (pin_code: string) => {
+        try {
+            const response = await authService.posLogin(pin_code);
+            
+            if (!response.pharmacist) {
+                throw new Error('Invalid response: pharmacist data missing');
+            }
 
-      setAuthState({
-        isAuthenticated: true,
-        user: mockUser,
-        isLoading: false,
-        error: null,
-      });
+            // Store pharmacist data
+            const pharmacistData = {
+                ...response.pharmacist,
+                staffId: response.pharmacist.staffId,
+                isPOS: true
+            };
+            
+            authService.setAuthToken(response.token);
+            localStorage.setItem('user', JSON.stringify(pharmacistData));
+            
+            setUser(pharmacistData);
+            setIsAuthenticated(true);
+            
+            // POS users also go through loading screen now
+            navigate('/loading-screen');
+        } catch (error) {
+            console.error('POS Login error:', error);
+            throw error;
+        }
+    };
 
-      // Navigate based on role
-      const initialRoute = getInitialRouteForRole(mockUser.role);
-      navigate(initialRoute);
-    } catch (error) {
-      setAuthState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'Invalid credentials',
-      }));
-      throw error; // Re-throw to handle in the component
-    }
-  };
+    const logout = () => {
+        authService.logout();
+        authService.removeAuthToken();
+        setUser(null);
+        setIsAuthenticated(false);
+        navigate('/login');
+    };
 
-  const logout = () => {
-    localStorage.removeItem('user');
-    setAuthState({
-      isAuthenticated: false,
-      user: null,
-      isLoading: false,
-      error: null,
-    });
-    navigate('/login');
-  };
-
-  const resetPassword = async (employeeId: string, email: string) => {
-    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-    try {
-      // TODO: Implement actual password reset logic
-      setAuthState(prev => ({
-        ...prev,
-        isLoading: false,
-      }));
-      return true;
-    } catch (error) {
-      setAuthState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'Password reset failed',
-      }));
-      return false;
-    }
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{
-        ...authState,
-        login,
-        logout,
-        resetPassword,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+    return (
+        <AuthContext.Provider value={{
+            isAuthenticated,
+            user,
+            loading,
+            pmsLogin,
+            posLogin,
+            login,
+            logout
+        }}>
+            {children}
+        </AuthContext.Provider>
+    );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 };

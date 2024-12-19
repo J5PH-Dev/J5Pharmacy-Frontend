@@ -4,6 +4,7 @@ const helmet = require('helmet');
 require('dotenv').config();
 const { testConnection } = require('./config/database');
 const InventoryRoutes = require('./routes/InventoryRoutes'); // Import the inventory routes
+const authRoutes = require('./routes/auth.routes'); // Import auth routes
 
 const app = express();
 
@@ -29,7 +30,8 @@ app.get('/', (req, res) => {
 // Test database connection
 testConnection();
 
-// Use inventory routes
+// Routes
+app.use('/api/auth', authRoutes); // Add auth routes
 app.use('/', InventoryRoutes);
 
 // Start server
@@ -43,3 +45,4 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!' });
 });
+

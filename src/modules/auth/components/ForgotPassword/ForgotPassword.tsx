@@ -4,11 +4,14 @@ import { TextField, Button } from '@mui/material';
 import Footer from '../Footer';
 import logo from '../../assets/icon.png';
 import CloseIcon from '@mui/icons-material/Close';
+import { forgotPassword } from '../../services/authService';
 
 const ForgotPassword: React.FC = () => {
   const [employeeId, setEmployeeId] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({
     employeeId: '',
     email: '',
@@ -44,26 +47,37 @@ const ForgotPassword: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null); // Clear any previous errors
+    setError(null);
+    setSuccess(null);
 
     if (!validateFields()) {
-      return; // Don't submit the form if there are validation errors
+      return;
     }
 
+    setIsLoading(true);
+
     try {
-      if (employeeId === '12345') { // Example check for valid employee ID
-        if (email === 'user@example.com') { // Example check for valid email
-          navigate('/email-verification-code'); // Navigate only if both ID and email are correct
-        } else {
-          setError('Email not found in our system.');
-          setFieldErrors((prev) => ({ ...prev, email: 'Email not found' }));
-        }
-      } else {
-        setError('Employee ID not found in our system.');
-        setFieldErrors((prev) => ({ ...prev, employeeId: 'Employee ID not found' }));
+      const response = await forgotPassword(employeeId, email);
+      setSuccess(response.message);
+      // Optionally navigate to verification page after short delay
+      setTimeout(() => {
+        navigate('/email-verification-code', { 
+          state: { 
+            employeeId,
+            email 
+          }
+        });
+      }, 2000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to process request. Please try again.');
+      if (err.message.includes('employee')) {
+        setFieldErrors(prev => ({ ...prev, employeeId: 'Employee ID not found' }));
       }
-    } catch (err) {
-      setError('Unable to process your request. Please try again later.');
+      if (err.message.includes('email')) {
+        setFieldErrors(prev => ({ ...prev, email: 'Email not found' }));
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -87,10 +101,15 @@ const ForgotPassword: React.FC = () => {
           Enter your Employee ID and email to reset your password
         </p>
 
-        {/* Error Message Box */}
         {error && (
           <div className="w-full max-w-md mt-5 px-4 py-2 bg-red-100 text-red-600 rounded-md border border-red-300">
             {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="w-full max-w-md mt-5 px-4 py-2 bg-green-100 text-green-600 rounded-md border border-green-300">
+            {success}
           </div>
         )}
 
@@ -103,12 +122,13 @@ const ForgotPassword: React.FC = () => {
             onChange={(e) => {
               setEmployeeId(e.target.value);
               setFieldErrors((prev) => ({ ...prev, employeeId: '' }));
-              setError(null); // Clear error when user starts typing
+              setError(null);
             }}
             fullWidth
             variant="outlined"
-            error={!!fieldErrors.employeeId || !!error}
+            error={!!fieldErrors.employeeId}
             helperText={fieldErrors.employeeId}
+            disabled={isLoading}
           />
 
           <TextField
@@ -123,16 +143,19 @@ const ForgotPassword: React.FC = () => {
             }}
             fullWidth
             variant="outlined"
-            error={!!fieldErrors.email || !!error}
+            error={!!fieldErrors.email}
             helperText={fieldErrors.email}
+            disabled={isLoading}
           />
 
-          {/* Reset Password Button */}
           <button
             type="submit"
-            className="w-full mt-1 py-3 bg-[#2563eb] text-white rounded-lg font-semibold hover:bg-[#1d4ed8] active:bg-[#1e40af] transition-colors mb-1"
+            className={`w-full mt-1 py-3 bg-[#2563eb] text-white rounded-lg font-semibold 
+              ${!isLoading ? 'hover:bg-[#1d4ed8] active:bg-[#1e40af]' : 'opacity-70 cursor-not-allowed'} 
+              transition-colors mb-1`}
+            disabled={isLoading}
           >
-            Reset Password
+            {isLoading ? 'Sending Reset Instructions...' : 'Reset Password'}
           </button>
         </form>
 
@@ -141,6 +164,7 @@ const ForgotPassword: React.FC = () => {
             onClick={() => navigate('/login')}
             type="button"
             className="w-full text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors"
+            disabled={isLoading}
           >
             Back to Login
           </button>

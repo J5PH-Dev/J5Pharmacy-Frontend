@@ -20,8 +20,8 @@ import { UserRole } from './modules/auth/types/auth.types';
 import axios from 'axios';
 
 // Set Axios defaults
-axios.defaults.baseURL = "http://localhost:5000";  // Adjust the URL according to your backend
-axios.defaults.withCredentials = true;  // Allow cookies to be sent with requests
+axios.defaults.baseURL = "http://localhost:5000";
+axios.defaults.withCredentials = true;
 
 // ProtectedRoute component
 const ProtectedRoute: React.FC<{
@@ -31,25 +31,30 @@ const ProtectedRoute: React.FC<{
   const { user } = useAuth();
 
   if (!user) {
-    // Redirect to login if not authenticated
     return <Navigate to="/login" />;
   }
 
+  // Check if it's a POS user (pharmacist)
+  if (user.staffId || user.isPOS) {
+    // If trying to access non-POS routes, redirect to POS
+    if (!allowedRoles?.includes(UserRole.PHARMACIST)) {
+      return <Navigate to="/pos" />;
+    }
+    return <>{children}</>;
+  }
+
+  // For PMS users (Admin/Manager)
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Redirect based on user role if unauthorized
     switch (user.role) {
-      case UserRole.PHARMACIST:
-        return <Navigate to="/pos" />;
       case UserRole.ADMIN:
         return <Navigate to="/admin/dashboard" />;
       case UserRole.MANAGER:
         return <Navigate to="/manager/dashboard" />;
       default:
-        return <Navigate to="/admin/dashboard" />;
+        return <Navigate to="/login" />;
     }
   }
 
-  // Render children if authorized
   return <>{children}</>;
 };
 
@@ -97,17 +102,17 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Redirect root to appropriate dashboard based on role */}
+      {/* Redirect root based on user type */}
       <Route
         path="/"
         element={
           user ? (
-            user.role === UserRole.ADMIN ? (
+            user.staffId || user.isPOS ? (
+              <Navigate to="/pos" replace />
+            ) : user.role === UserRole.ADMIN ? (
               <Navigate to="/admin/dashboard" replace />
             ) : user.role === UserRole.MANAGER ? (
               <Navigate to="/manager/dashboard" replace />
-            ) : user.role === UserRole.PHARMACIST ? (
-              <Navigate to="/pos" replace />
             ) : (
               <Navigate to="/login" replace />
             )

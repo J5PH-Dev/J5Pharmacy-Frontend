@@ -1,61 +1,90 @@
-import { User, UserRole, UserWithoutPassword } from '../types/User';
+import axios from 'axios';
 
-// Mock user database - replace with actual backend integration
-const mockUsers: User[] = [
-  {
-    employeeId: 123,
-    role: UserRole.ADMIN,
-    password: 'admin123',
-    name: 'Admin User',
-  },
-  {
-    employeeId: 456,
-    role: UserRole.MANAGER,
-    password: 'manager123',
-    name: 'Manager User',
-  },
-  {
-    employeeId: 678,
-    role: UserRole.PHARMACIST,
-    password: 'pharm123',
-    name: 'Pharmacist User',
-  },
-];
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-export const authService = {
-  login: async (employeeId: string, password: string): Promise<UserWithoutPassword> => {
-    const numericEmployeeId = parseInt(employeeId, 10);
-    const user = mockUsers.find(u => u.employeeId === numericEmployeeId && u.password === password);
+export interface LoginResponse {
+    token: string;
+    user?: {
+        name: string;
+        role: string;
+        employeeId: string;
+        branchId: number;
+    };
+    pharmacist?: {
+        name: string;
+        staffId: number;
+        branchId: number;
+        sessionId: number;
+    };
+}
 
-    if (!user) {
-      throw new Error('Invalid credentials');
-    }
-    if (user.role === UserRole.MANAGER) {
-      window.location.href = '/manager/dashboard';
-    } else if (user.role === UserRole.ADMIN) {
-      window.location.href = '/admin/dashboard';
-    }
-    
-    // For pharmacists, redirect directly to POS
-    if (user.role === UserRole.PHARMACIST) {
-      window.location.href = '/pos';
-    } else if (user.role === UserRole.ADMIN) {
-      window.location.href = '/admin/dashboard';
-    }
+export const pmsLogin = async (employee_id: string, password: string): Promise<LoginResponse> => {
+    const response = await axios.post(`${API_URL}/auth/pms/login`, {
+        employee_id,
+        password
+    });
+    return response.data;
+};
 
-    // Remove password before returning the user
-    const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword as UserWithoutPassword;
-  },
+export const posLogin = async (pin_code: string): Promise<LoginResponse> => {
+    const response = await axios.post(`${API_URL}/auth/pos/login`, {
+        pin_code
+    });
+    return response.data;
+};
 
-  logout: async (): Promise<void> => {
-    // Clear any stored user data
+export const logout = () => {
+    localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/login';
-  },
+};
 
-  getCurrentUser: (): User | null => {
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
-  },
+export const getToken = () => {
+    return localStorage.getItem('token');
+};
+
+export const setAuthToken = (token: string) => {
+    localStorage.setItem('token', token);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+};
+
+export const removeAuthToken = () => {
+    localStorage.removeItem('token');
+    delete axios.defaults.headers.common['Authorization'];
+};
+
+export const forgotPassword = async (employee_id: string, email: string) => {
+    try {
+        const response = await axios.post(`${API_URL}/auth/forgot-password`, {
+            employee_id,
+            email
+        });
+        return response.data;
+    } catch (error: any) {
+        throw error.response?.data || { message: 'Error processing request' };
+    }
+};
+
+export const verifyResetToken = async (employee_id: string, token: string) => {
+    try {
+        const response = await axios.post(`${API_URL}/auth/verify-reset-token`, {
+            employee_id,
+            token
+        });
+        return response.data;
+    } catch (error: any) {
+        throw error.response?.data || { message: 'Error verifying token' };
+    }
+};
+
+export const resetPassword = async (employee_id: string, token: string, new_password: string) => {
+    try {
+        const response = await axios.post(`${API_URL}/auth/reset-password`, {
+            employee_id,
+            token,
+            new_password
+        });
+        return response.data;
+    } catch (error: any) {
+        throw error.response?.data || { message: 'Error resetting password' };
+    }
 };
