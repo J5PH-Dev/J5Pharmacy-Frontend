@@ -5,6 +5,9 @@ require('dotenv').config();
 const { testConnection } = require('./config/database');
 const InventoryRoutes = require('./routes/InventoryRoutes'); // Import the inventory routes
 const authRoutes = require('./routes/auth.routes'); // Import auth routes
+const cashReconciliationRoutes = require('./routes/cashReconciliation.routes');
+const transactionRoutes = require('./routes/transaction.routes');
+const productRoutes = require('./routes/productRoutes'); // Import product routes
 
 const app = express();
 
@@ -33,6 +36,9 @@ testConnection();
 // Routes
 app.use('/api/auth', authRoutes); // Add auth routes
 app.use('/', InventoryRoutes);
+app.use('/api/cash-reconciliation', cashReconciliationRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/products', productRoutes); // Add product routes
 
 // Start server
 const PORT = process.env.PORT || 5000;
