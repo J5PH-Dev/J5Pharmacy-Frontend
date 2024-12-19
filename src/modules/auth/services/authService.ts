@@ -15,6 +15,9 @@ export interface LoginResponse {
         staffId: number;
         branchId: number;
         sessionId: number;
+        salesSessionId: number;
+        branch_name: string;
+        loginTime: string;
     };
 }
 
@@ -36,6 +39,7 @@ export const posLogin = async (pin_code: string): Promise<LoginResponse> => {
 export const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('salesSessionId');
 };
 
 export const getToken = () => {

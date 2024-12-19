@@ -7,7 +7,7 @@ exports.getInventoryStats = async (req, res) => {
         const [rows] = await db.query(`
       SELECT
         (SELECT COUNT(*) FROM products) AS medicinesAvailable,
-        (SELECT COUNT(*) FROM group_categories) AS medicineGroups,
+        (SELECT COUNT(*) FROM group_category) AS medicineGroups,
         (SELECT COUNT(*) FROM products WHERE stock < 50) AS medicineShortage
     `);
 

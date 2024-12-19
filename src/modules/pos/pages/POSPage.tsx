@@ -9,6 +9,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import Badge from '@mui/material/Badge';
 import Tooltip from '@mui/material/Tooltip';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import axios from 'axios';
 
 // Import auth context
 import { useAuth } from '../../../modules/auth/contexts/AuthContext';
@@ -234,53 +235,81 @@ const POSPage: React.FC = () => {
     );
   };
 
-  const handleHoldTransaction = (note: string) => {
-    const timestamp = new Date().toISOString();
-    const transaction: HeldTransaction = {
-      id: `HOLD-${Date.now()}`,
-      items: cartItems,
-      total: total,
-      timestamp: timestamp,
-      holdTimestamp: timestamp,
-      status: 'held',
-      prescriptionRequired: cartItems.some(item => item.requiresPrescription),
-      prescriptionVerified: false,
-      discountType: discountType,
-      holdReason: note,
-      customerId,
-      customerName,
-      starPointsId
-    };
+  const handleHoldTransaction = async (note: string) => {
+    try {
+      const response = await axios.post('http://localhost:5000/api/products/hold', {
+        salesSessionId: localStorage.getItem('salesSessionId'),
+        customerId: customerId,
+        items: cartItems,
+        holdNumber: Date.now(), // You might want to implement a better numbering system
+        note: note
+      });
 
-    setHeldTransactions(prev => [...prev, transaction]);
-    setCartItems([]);
-    setDiscountType('None');
-    setCustomDiscountValue(undefined);
-    setCustomerId(undefined);
-    setCustomerName(undefined);
-    setStarPointsId(undefined);
-    showMessage('Transaction held successfully', 'success');
+      if (response.data) {
+        setCartItems([]);
+        setDiscountType('None');
+        setCustomDiscountValue(undefined);
+        setCustomerId(undefined);
+        setCustomerName(undefined);
+        setStarPointsId(undefined);
+        showMessage('Transaction held successfully', 'success');
+      }
+    } catch (error) {
+      console.error('Error holding transaction:', error);
+      showMessage('Failed to hold transaction', 'error');
+    }
   };
 
-  const handleRecallTransaction = (transaction: HeldTransaction) => {
+  const fetchHeldTransactions = async () => {
+    try {
+      const salesSessionId = localStorage.getItem('salesSessionId');
+      const response = await axios.get(`http://localhost:5000/api/products/held-transactions?salesSessionId=${salesSessionId}`);
+      if (response.data) {
+        setHeldTransactions(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching held transactions:', error);
+      showMessage('Failed to fetch held transactions', 'error');
+    }
+  };
+
+  const handleRecallTransaction = async (transaction: HeldTransaction) => {
     // Check if cart is not empty
     if (cartItems.length > 0) {
       showMessage('Please clear the current cart before recalling a transaction', 'error');
       return;
     }
 
-    // Set cart items from held transaction
-    setCartItems(transaction.items);
-    setDiscountType(transaction.discountType);
-    if (transaction.customerId) setCustomerId(transaction.customerId);
-    if (transaction.customerName) setCustomerName(transaction.customerName);
-    if (transaction.starPointsId) setStarPointsId(transaction.starPointsId);
+    try {
+      const salesSessionId = localStorage.getItem('salesSessionId');
+      const response = await axios.get(`http://localhost:5000/api/products/recall?salesSessionId=${salesSessionId}&holdNumber=${transaction.id}`);
+      
+      if (response.data) {
+        // Set cart items from held transaction
+        setCartItems(response.data.items);
+        setDiscountType(transaction.discountType);
+        if (transaction.customerId) setCustomerId(transaction.customerId);
+        if (transaction.customerName) setCustomerName(transaction.customerName);
+        if (transaction.starPointsId) setStarPointsId(transaction.starPointsId);
 
-    // Remove the transaction from held transactions
-    setHeldTransactions(prev => prev.filter(t => t.id !== transaction.id));
-    setIsRecallDialogOpen(false);
-    showMessage('Transaction recalled successfully', 'success');
+        // Delete the held transaction
+        await axios.delete(`http://localhost:5000/api/products/hold/${salesSessionId}/${transaction.id}`);
+        
+        setIsRecallDialogOpen(false);
+        showMessage('Transaction recalled successfully', 'success');
+        
+        // Refresh the held transactions list
+        fetchHeldTransactions();
+      }
+    } catch (error) {
+      console.error('Error recalling transaction:', error);
+      showMessage('Failed to recall transaction', 'error');
+    }
   };
+
+  useEffect(() => {
+    fetchHeldTransactions();
+  }, []);
 
   useEffect(() => {
     const totals = calculateTotals(cartItems, discountType, customDiscountValue);
@@ -325,8 +354,21 @@ const POSPage: React.FC = () => {
     );
   };
 
-  // Handle manual search
-  const handleManualSearch = (query: string) => {
+  // Add new function for API search
+  const searchProducts = async (query: string) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/products/search?${
+        query.length >= 13 ? `barcode=${query}` : `query=${query}`
+      }`);
+      return response.data;
+    } catch (error) {
+      console.error('Error searching products:', error);
+      return [];
+    }
+  };
+
+  // Update handleManualSearch
+  const handleManualSearch = async (query: string) => {
     setSearchQuery(query);
     
     // Close dialog if query is empty
@@ -337,10 +379,7 @@ const POSPage: React.FC = () => {
     }
 
     if (query.length >= 3) {
-      const results = sampleItems.filter(item => 
-        item.name.toLowerCase().includes(query.toLowerCase()) ||
-        (item.barcode?.toLowerCase() || '').includes(query.toLowerCase())
-      );
+      const results = await searchProducts(query);
       setSearchResults(results);
     } else {
       setSearchResults([]);
@@ -425,11 +464,11 @@ const POSPage: React.FC = () => {
     setSelectedIndex(0);
   };
 
-  // Add barcode scanning handler
+  // Update barcode scanning handler
   useEffect(() => {
     const BARCODE_SCAN_TIMEOUT = 50; // ms between keystrokes for barcode scanner
 
-    const handleBarcodeScanner = (event: KeyboardEvent) => {
+    const handleBarcodeScanner = async (event: KeyboardEvent) => {
       // Skip if the event originated from an input element
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
         return;
@@ -441,8 +480,9 @@ const POSPage: React.FC = () => {
       if (currentTime - lastKeyTime < BARCODE_SCAN_TIMEOUT) {
         if (event.key === 'Enter' && barcodeBuffer) {
           // Search for product with this barcode
-          const product = sampleItems.find(item => item.barcode === barcodeBuffer);
-          if (product) {
+          const products = await searchProducts(barcodeBuffer);
+          if (products.length > 0) {
+            const product = products[0];
             handleAddProduct({ ...product, quantity: preSelectedQuantity });
             showMessage(`Added ${preSelectedQuantity}x ${product.name} to cart`, 'success');
           } else {

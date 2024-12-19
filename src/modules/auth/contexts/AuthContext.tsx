@@ -100,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             authService.setAuthToken(response.token);
             localStorage.setItem('user', JSON.stringify(pharmacistData));
+            localStorage.setItem('salesSessionId', response.pharmacist.salesSessionId.toString());
             
             setUser(pharmacistData);
             setIsAuthenticated(true);
@@ -115,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = () => {
         authService.logout();
         authService.removeAuthToken();
+        localStorage.removeItem('salesSessionId');
         setUser(null);
         setIsAuthenticated(false);
         navigate('/login');
