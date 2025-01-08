@@ -364,7 +364,7 @@ const ViewGroupDetails = () => {
         }}
       >
         <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory')}>Inventory</Link>
-        <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory/view-medicines-group')}>Medicine Group</Link>
+        <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory/view-medicines-group')}>Product Categories</Link>
         <Typography color="text.primary">{groupName}</Typography>
       </Breadcrumbs>
 
@@ -372,7 +372,7 @@ const ViewGroupDetails = () => {
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{groupName}</Typography>
-          <Typography variant="body1">Detailed view of a medicine group.</Typography>
+          <Typography variant="body1">Detailed view of a product category.</Typography>
         </Box>
         {/* <Button variant="contained" onClick={handleAddNewItemClick} sx={{ backgroundColor: '#01A768', color: '#fff', '&:hover': { backgroundColor: '#017F4A' } }}>
           <AddIcon /> Add New Item

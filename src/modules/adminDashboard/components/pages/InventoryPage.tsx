@@ -7,7 +7,7 @@ import axios from 'axios';
 
 const InventoryPage = () => {
   const [stats, setStats] = useState({
-    medicinesAvailable: 0,
+    productsAvailable: 0,
     medicineGroups: 0,
     medicineShortage: 0,
   });
@@ -50,7 +50,7 @@ const InventoryPage = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await axios.get('/admin/inventory');
+        const response = await axios.get('/admin/inventory/stats');
         setStats(response.data);
       } catch (error) {
         console.error('Error fetching inventory stats:', error);
@@ -65,8 +65,8 @@ const InventoryPage = () => {
     {
       borderColor: '#03A9F5',
       icon: <Medication sx={{ fontSize: 40 }} />,
-      NumberAmount: stats.medicinesAvailable,
-      subtitle: 'Medicines Available',
+      NumberAmount: stats.productsAvailable,
+      subtitle: 'Products Available',
       buttonText: 'View Full Details',
       route: '/admin/inventory/view-medicines-available',
     },
@@ -74,7 +74,7 @@ const InventoryPage = () => {
       borderColor: '#01A768',
       icon: <Group sx={{ fontSize: 40 }} />,
       NumberAmount: stats.medicineGroups,
-      subtitle: 'Medicine Categories',
+      subtitle: 'Product Categories',
       buttonText: 'View Categories >>',
       route: '/admin/inventory/view-medicines-group',
     },
@@ -82,7 +82,7 @@ const InventoryPage = () => {
       borderColor: '#F0483E',
       icon: <Warning sx={{ fontSize: 40 }} />,
       NumberAmount: stats.medicineShortage,
-      subtitle: 'Medicine Shortage',
+      subtitle: 'Product Shortage',
       buttonText: 'Resolve Now >>',
       route: '/admin/inventory/medicine-shortage',
     },

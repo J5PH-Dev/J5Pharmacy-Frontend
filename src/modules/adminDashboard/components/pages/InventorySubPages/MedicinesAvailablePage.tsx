@@ -1,5 +1,5 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
-import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Alert, DialogTitle, DialogContent, Dialog, FormControlLabel, DialogActions, Checkbox, IconButton } from '@mui/material';
+import React, { useState, useEffect, ChangeEvent, useMemo, useRef } from 'react';
+import { Box, Typography, Breadcrumbs, Link, Button, Stack, Autocomplete, TextField, InputAdornment, Theme, useTheme, SelectChangeEvent, FormControl, InputLabel, Select, OutlinedInput, MenuItem, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Alert, DialogTitle, DialogContent, Dialog, FormControlLabel, DialogActions, Checkbox, IconButton, TablePagination, Grid, CircularProgress, Switch, FormHelperText } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add'; // Add Material UI icon
 import { useNavigate, useParams } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
@@ -10,6 +10,14 @@ import CheckIcon from '@mui/icons-material/Check';
 import { Edit, Delete, Visibility } from '@mui/icons-material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CheckBox from '@mui/icons-material/CheckBox';
+import ArchiveIcon from '@mui/icons-material/Archive';
+import ExportDialog from '../../common/ExportDialog';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import CategoryIcon from '@mui/icons-material/Category';
 
 
 const ITEM_HEIGHT = 48;
@@ -23,15 +31,31 @@ const MenuProps = {
   },
 };
 
+interface BranchInventory {
+  branch_id: number;
+  stock: number;
+  expiryDate: string | null;
+  branch_name?: string;
+}
+
 interface Medicine {
   medicineID: string;
   name: string;
+  brand_name: string;
   barcode: string;
   category: string;
   price: number;
   stock: number;
+  createdAt: string;
+  updatedAt: string;
+  branch_inventory?: BranchInventory[];
+  [key: string]: any; // Allow dynamic properties for branch inventory data
 }
 
+interface SortConfig {
+  key: keyof Medicine;
+  direction: 'asc' | 'desc';
+}
 
 function getStyles(name: string, personName: string[], theme: Theme) {
   return {
@@ -41,49 +65,205 @@ function getStyles(name: string, personName: string[], theme: Theme) {
   };
 }
 
+interface DeleteMedicine {
+  barcode: string;
+  name: string;
+}
+
+// Add interface for API error response
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
+
+// Add new interfaces for branch inventory
+interface BranchInventoryInput {
+  branchId: number;
+  stock: number;
+  expiryDate: string | null;
+}
+
+interface Branch {
+  branch_id: number;
+  branch_name: string;
+  branch_code: string;
+  location: string;
+  branch_manager: string;
+  contact_number: string;
+  email: string;
+}
+
+// Update the errors interface
+interface ValidationErrors {
+  medicineName: boolean;
+  medicineID: boolean;
+  groupName: boolean;
+  price: boolean;
+  stockQty: boolean;
+  howToUse: boolean;
+  sideEffects: boolean;
+}
+
+// Add interface for category
+interface Category {
+  category_id: number;
+  name: string;
+  prefix: string;
+}
+
+// Add the dosage units array
+const DOSAGE_UNITS = [
+  'mg',
+  'mcg',
+  'g',
+  'kg',
+  'ml',
+  'l',
+  'tablet',
+  'capsule',
+  'pill',
+  'patch',
+  'spray',
+  'drop',
+  'mg/ml',
+  'mcg/ml',
+  'mg/l',
+  'mcg/l',
+  'mg/g',
+  'mcg/g',
+  'IU',
+  'mEq',
+  'mmol',
+  'unit',
+  'puff',
+  'application',
+  'sachet',
+  'suppository',
+  'ampoule',
+  'vial',
+  'syringe',
+  'piece'
+];
+
+// Add new interface for date filters
+interface DateFilter {
+  startDate: string;
+  endDate: string;
+  type: 'createdAt' | 'updatedAt' | null;
+}
+
 const MedicinesAvailablePage = () => {
   const theme = useTheme();
-  const [personName, setPersonName] = React.useState<string[]>([]);
-  const [sortedRows, setSortedRows] = React.useState<any[]>([]);  // Initialize as an empty array
+  const [sortedRows, setSortedRows] = React.useState<any[]>([]);
   const [originalRows, setOriginalRows] = useState<Medicine[]>([]);
   const [filteredRows, setFilteredRows] = useState<Medicine[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set()); // To store selected row ids (medicineID)
-  const [selectAll, setSelectAll] = useState<boolean>(false); // To track the "select all" checkbox state
   const location = useLocation();
   const [successMessageFromDeletion, setsuccessMessageFromDeletion] = useState(location.state?.successMessage);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isModalOpen, setModalOpen] = useState(false);
   const navigate = useNavigate();
-
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [medicineToDelete, setMedicineToDelete] = useState<string | null>(null);
-  // New state for confirmation modal
-  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
-  const [medicinesToDelete, setMedicinesToDelete] = useState<string[]>([]); // For multiple selected medicines
-  const [categories, setCategories] = useState<string[]>([]);
+  const [medicineToDelete, setMedicineToDelete] = useState<DeleteMedicine | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [showAllWarningOpen, setShowAllWarningOpen] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [archiveReason, setArchiveReason] = useState('');
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchInventory, setBranchInventory] = useState<BranchInventoryInput[]>([]);
+  const [showBranchInventory, setShowBranchInventory] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilter>({
+    startDate: '',
+    endDate: '',
+    type: null
+  });
+  const [currentUser, setCurrentUser] = useState<{
+    employeeId: string;
+    name: string;
+  } | null>(null);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [showCreatedDateFilter, setShowCreatedDateFilter] = useState(false);
+  const [showUpdatedDateFilter, setShowUpdatedDateFilter] = useState(false);
+  const [createdDateFilter, setCreatedDateFilter] = useState({ startDate: '', endDate: '' });
+  const [updatedDateFilter, setUpdatedDateFilter] = useState({ startDate: '', endDate: '' });
+  const [tempCreatedDateFilter, setTempCreatedDateFilter] = useState({ startDate: '', endDate: '' });
+  const [tempUpdatedDateFilter, setTempUpdatedDateFilter] = useState({ startDate: '', endDate: '' });
+  const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  const preSelectedCategory = location.state?.preSelectedCategory;
+  const [useBarcodePrefix, setUseBarcodePrefix] = useState(false);
+  const [useBarcodeScanner, setUseBarcodeScanner] = useState(false);
+  const [isWaitingForScan, setIsWaitingForScan] = useState(false);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+
+  // Load user information on mount
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        console.log('User data from localStorage:', userData); // Add logging
+        setCurrentUser({
+          employeeId: userData.employee_id || userData.employeeId, // Handle both cases
+          name: userData.name
+        });
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        setErrorMessage('Error loading user information. Please try logging in again.');
+      }
+    }
+  }, []);
 
   // Fetch data from the API on component mount
   useEffect(() => {
-    const fetchMedicines = async () => {
+    const fetchMedicines = async (retryCount = 0) => {
+      setIsLoading(true);
       try {
-        const response = await axios.get<Medicine[]>('/admin/inventory/view-medicines-available');
-        setOriginalRows(response.data); // Store the unfiltered data
-        setFilteredRows(response.data);  // Set filtered rows
-        setSortedRows(response.data);     // Set sorted rows from API
+        const response = await axios.get<Medicine[]>('/admin/inventory/view-medicines-available', {
+          params: {
+            orderBy: sortConfig.key || 'updatedAt',
+            sortDirection: sortConfig.direction,
+            createdStartDate: createdDateFilter.startDate || undefined,
+            createdEndDate: createdDateFilter.endDate || undefined,
+            updatedStartDate: updatedDateFilter.startDate || undefined,
+            updatedEndDate: updatedDateFilter.endDate || undefined
+          }
+        });
+        console.log('Fetched medicines:', response.data);
+        setOriginalRows(response.data);
+        setFilteredRows(response.data);
+        setSortedRows(response.data);
+        setSuccessMessage(null);
       } catch (error) {
         console.error('Error fetching medicines:', error);
+        if (retryCount < 3) {
+          const delay = Math.pow(2, retryCount) * 1000;
+          console.log(`Retrying in ${delay}ms...`);
+          setTimeout(() => fetchMedicines(retryCount + 1), delay);
+        } else {
+          setSuccessMessage('Error loading medicines. Please try refreshing the page.');
+        }
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchMedicines();
-  }, []);
+  }, [sortConfig, createdDateFilter, updatedDateFilter]);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('/admin/inventory/get-categories');
-        setCategories(response.data); // Assuming the API returns an array of strings
+        const response = await axios.get('/admin/inventory/categories');
+        setCategories(response.data);
       } catch (error) {
         console.error('Error fetching categories:', error);
       }
@@ -92,16 +272,25 @@ const MedicinesAvailablePage = () => {
     fetchCategories();
   }, []);
 
+  useEffect(() => {
+    if (preSelectedCategory) {
+        setCategoryFilter(preSelectedCategory);
+    }
+  }, [preSelectedCategory]);
 
   const [newMedicineData, setNewMedicineData] = useState({
     name: '',
+    brand_name: '',
     barcode: '',
     category: '',
     price: '',
-    stock: '',
     description: '',
     sideEffects: '',
-    requiresPrescription: 0, // Add this field
+    dosage_amount: '',
+    dosage_unit: '',
+    pieces_per_box: '',
+    critical: '',
+    requiresPrescription: 0,
   });
 
   const [errors, setErrors] = useState({
@@ -121,71 +310,166 @@ const MedicinesAvailablePage = () => {
     }));
   };
 
+  // Add function to fetch branches
+  const fetchBranches = async () => {
+    try {
+      const response = await axios.get('/admin/inventory/branches');
+      setBranches(response.data);
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+    }
+  };
+
+  // Call fetchBranches when component mounts
+  useEffect(() => {
+    fetchBranches();
+  }, []);
+
+  // Add function to handle branch inventory changes
+  const handleBranchInventoryChange = (branchId: number, field: 'stock' | 'expiryDate', value: string) => {
+    setBranchInventory(prev => {
+      const existing = prev.find(b => b.branchId === branchId);
+      if (existing) {
+        return prev.map(b => b.branchId === branchId ? {
+          ...b,
+          [field]: field === 'stock' ? Number(value) || 0 : value || null
+        } : b);
+      }
+      return [...prev, {
+        branchId,
+        stock: field === 'stock' ? Number(value) || 0 : 0,
+        expiryDate: field === 'expiryDate' ? value || null : null
+      }];
+    });
+  };
+
   // Validate inputs and add data to table
   const handleSaveNewItem = async () => {
-    const validationErrors = {
+    const validationErrors: ValidationErrors = {
       medicineName: !newMedicineData.name,
       medicineID: !newMedicineData.barcode,
       groupName: !newMedicineData.category,
-      stockQty: !newMedicineData.stock,
-      price: !newMedicineData.price,  // Add validation for price
+      price: !newMedicineData.price,
+      stockQty: false,
       howToUse: !newMedicineData.description,
       sideEffects: !newMedicineData.sideEffects,
     };
 
     setErrors(validationErrors);
 
-    // Check if any validation errors exist
-    const hasErrors = Object.values(validationErrors).some((error) => error);
-    if (hasErrors) return;
-
-    console.log('New Medicine Data:', newMedicineData);
+    if (Object.values(validationErrors).some((error) => error)) return;
 
     try {
-      // POST request to save the new item
-      await axios.post('/admin/inventory/add-medicine', newMedicineData);
+      setIsLoading(true);
+      console.log('Sending data:', {
+        ...newMedicineData,
+        price: parseFloat(newMedicineData.price),
+        dosage_amount: newMedicineData.dosage_amount ? parseFloat(newMedicineData.dosage_amount) : 0,
+        pieces_per_box: newMedicineData.pieces_per_box ? parseInt(newMedicineData.pieces_per_box) : 0,
+        critical: newMedicineData.critical ? parseInt(newMedicineData.critical) : 0,
+        branchInventory
+      });
 
-      // Close the modal and reset the form
-      handleModalClose();
-      resetForm();
-      setSuccessMessage(`${newMedicineData.name} has been added successfully!`);
+      const productResponse = await axios.post('/admin/inventory/add-medicine', {
+        ...newMedicineData,
+        price: parseFloat(newMedicineData.price),
+        dosage_amount: newMedicineData.dosage_amount ? parseFloat(newMedicineData.dosage_amount) : 0,
+        pieces_per_box: newMedicineData.pieces_per_box ? parseInt(newMedicineData.pieces_per_box) : 0,
+        critical: newMedicineData.critical ? parseInt(newMedicineData.critical) : 0,
+        branchInventory
+      });
 
-      // Refresh the medicines list
-      const response = await axios.get('/admin/inventory/view-medicines-available');
-      setFilteredRows(response.data);  // Update table rows
-      setSortedRows(response.data);    // Update sorted rows
+      if (productResponse.data.success) {
+        handleModalClose();
+        resetForm();
+        setSuccessMessage(`${newMedicineData.name} has been added successfully!`);
+        
+        // Refresh the medicines list
+        const response = await axios.get('/admin/inventory/view-medicines-available');
+        setFilteredRows(response.data);
+        setSortedRows(response.data);
+      }
     } catch (error) {
       console.error('Error adding new item:', error);
+      const apiError = error as ApiError;
+      setSuccessMessage(apiError.response?.data?.message || 'Error adding new item');
+    } finally {
+      setIsLoading(false);
     }
   };
 
 
   // Handle change for modal inputs
-  const handleModalInputChange = (key: string, value: string) => {
-    setNewMedicineData((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+  const handleModalInputChange = (field: keyof typeof newMedicineData, value: any) => {
+    setNewMedicineData(prev => ({ ...prev, [field]: value }));
+    
+    // If category changes and barcode prefix is enabled, clear the barcode
+    if (field === 'category' && useBarcodePrefix) {
+      const selectedCategory = categories.find(c => c.name === value);
+      if (selectedCategory) {
+        axios.get(`/admin/inventory/next-barcode/${selectedCategory.category_id}`)
+          .then(response => {
+            setNewMedicineData(prev => ({ ...prev, barcode: response.data.barcode }));
+          })
+          .catch(error => {
+            console.error('Error getting next barcode:', error);
+            setErrorMessage('Failed to generate barcode');
+          });
+      }
+    }
+
+    // Clear any validation errors for the field
+    if (field in errors) {
+      setErrors(prev => ({ ...prev, [field]: false }));
+    }
   };
 
   const handleChange = (event: SelectChangeEvent<string>) => {
     const { value } = event.target;
+    setCategoryFilter(value);
+    setPage(0);
 
-    setPersonName([value]); // Update with selected category
+    let newFilteredRows = originalRows;
 
-    // If "All" is selected, show all rows
-    if (value === 'All') {
-      setFilteredRows(sortedRows); // Display all rows if "All" is selected
-    } else {
-      // Filter rows based on the selected category
-      const newFilteredRows = sortedRows.filter(row =>
-        row.category === value
-      );
-
-      setFilteredRows(newFilteredRows.length > 0 ? newFilteredRows : []);
+    // Apply category filter
+    if (value !== 'All') {
+      newFilteredRows = newFilteredRows.filter(row => row.category === value);
     }
+
+    // Apply search filter if there's a search query
+    if (searchQuery) {
+      const searchTerm = searchQuery.toLowerCase();
+      newFilteredRows = newFilteredRows.filter(row =>
+        (row.name?.toLowerCase() || '').includes(searchTerm) ||
+        (row.brand_name?.toLowerCase() || '').includes(searchTerm) ||
+        (row.barcode?.toLowerCase() || '').includes(searchTerm)
+      );
+    }
+
+    setFilteredRows(newFilteredRows);
   };
 
+  // Add effect to filter rows when categoryFilter changes
+  useEffect(() => {
+    let newFilteredRows = originalRows;
+
+    // Apply category filter
+    if (categoryFilter !== 'All') {
+      newFilteredRows = newFilteredRows.filter(row => row.category === categoryFilter);
+    }
+
+    // Apply search filter if there's a search query
+    if (searchQuery) {
+      const searchTerm = searchQuery.toLowerCase();
+      newFilteredRows = newFilteredRows.filter(row =>
+        (row.name?.toLowerCase() || '').includes(searchTerm) ||
+        (row.brand_name?.toLowerCase() || '').includes(searchTerm) ||
+        (row.barcode?.toLowerCase() || '').includes(searchTerm)
+      );
+    }
+
+    setFilteredRows(newFilteredRows);
+  }, [categoryFilter, searchQuery, originalRows]);
 
   const handleBreadcrumbClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -203,43 +487,91 @@ const MedicinesAvailablePage = () => {
   };
 
 
-  const handleViewDetails = (medicineName: string) => {
-    navigate(`/admin/inventory/view-medicines-description/${medicineName}`);
+  const handleViewDetails = (barcode: string) => {
+    console.log('Viewing details for barcode:', barcode);
+    navigate(`/admin/inventory/view-medicines-description/${encodeURIComponent(barcode)}`);
   };
 
-  const handleEditItem = (medicineName: string) => {
-    navigate(`/admin/inventory/view-medicines-description/${medicineName}/edit-details`);
+  const handleEditItem = (barcode: string) => {
+    console.log('Editing item with barcode:', barcode);
+    navigate(`/admin/inventory/view-medicines-description/${encodeURIComponent(barcode)}/edit-details`);
   };
 
-  const handleDeleteItem = (barcode: string) => {
-    setMedicineToDelete(barcode); // Set the medicine name to be deleted
-    setIsDeleteModalOpen(true); // Open the confirmation modal
+  const handleDeleteItem = (barcode: string, name: string) => {
+    setSelectedItems([barcode]); // Set only this item as selected
+    setMedicineToDelete({ barcode, name });
+    setIsDeleteModalOpen(true);
   };
 
   // Function to handle delete item confirmation
   const handleConfirmDeleteItem = async () => {
-    if (medicineToDelete) {
-      try {
-        // Send DELETE request to the backend with the barcode
-        const response = await axios.delete(`/admin/inventory/delete-medicine/${medicineToDelete}`);
+    console.log('Starting archive process...');
+    console.log('Selected items:', selectedItems);
+    console.log('Archive reason:', archiveReason);
+    console.log('Current user:', currentUser); // Add logging
 
-        if (response.status === 200) {
-          // Update the rows in the frontend after successful deletion
-          setSortedRows((prevRows) => prevRows.filter((row) => row.barcode !== medicineToDelete));
-          setFilteredRows((prevRows) => prevRows.filter((row) => row.barcode !== medicineToDelete));
+    if (!archiveReason) {
+      console.log('Validation failed: Missing required fields');
+      setErrorMessage('Please provide a reason for archiving');
+      return;
+    }
 
-          setSuccessMessage(`Successfully deleted medicine with barcode: ${medicineToDelete}`);
-        } else {
-          setSuccessMessage('Failed to delete medicine.');
-        }
+    if (!currentUser) {
+      console.log('No user information available');
+      setErrorMessage('User information not available. Please try again.');
+      return;
+    }
 
-        // Reset delete state
-        setMedicineToDelete(null);
-        setIsDeleteModalOpen(false);
-      } catch (error) {
-        console.error('Error deleting item:', error);
-        setSuccessMessage('An error occurred while deleting the medicine.');
+    setIsLoading(true);
+    try {
+      const archivePromises = selectedItems.map(async (barcode) => {
+        console.log(`Sending archive request for barcode: ${barcode} with user:`, currentUser); // Add logging
+        return axios.post(`/admin/inventory/archive-product/${barcode}`, {
+          employee_id: currentUser.employeeId,
+          userName: currentUser.name,
+          reason: archiveReason
+        });
+      });
+
+      const results = await Promise.all(archivePromises);
+      console.log('Archive responses:', results);
+
+      const allSuccessful = results.every(response => response.data.success);
+      if (allSuccessful) {
+        console.log('All archives successful, updating UI...');
+        const removedBarcodes = selectedItems;
+        setOriginalRows(prev => prev.filter(row => !removedBarcodes.includes(row.barcode)));
+        setFilteredRows(prev => prev.filter(row => !removedBarcodes.includes(row.barcode)));
+        setSortedRows(prev => prev.filter(row => !removedBarcodes.includes(row.barcode)));
+        setSelectedItems([]);
+        
+        setSuccessMessage(`Successfully archived ${selectedItems.length} item(s)`);
+      } else {
+        console.log('Some archives failed');
+        setSuccessMessage('Some items could not be archived. Please try again.');
       }
+
+      setArchiveReason('');
+      setMedicineToDelete(null);
+      setIsDeleteModalOpen(false);
+    } catch (error: unknown) {
+      console.error('Error details:', {
+        error,
+        isAxiosError: axios.isAxiosError(error),
+        response: axios.isAxiosError(error) ? error.response : null,
+        request: axios.isAxiosError(error) ? error.request : null,
+      });
+
+      const apiError = error as ApiError;
+      const errorMessage = apiError.response?.data?.message || 'An error occurred while archiving the medicines.';
+      console.error('Error archiving items:', {
+        message: errorMessage,
+        originalError: error
+      });
+      setSuccessMessage(errorMessage);
+    } finally {
+      console.log('Archive process completed');
+      setIsLoading(false);
     }
   };
 
@@ -251,78 +583,29 @@ const MedicinesAvailablePage = () => {
   };
 
 
-  const handleDeleteItemMultiple = () => {
-    // Open the confirmation modal
-    setIsConfirmDeleteModalOpen(true);
-  };
-
-
-  const handleConfirmDelete = async () => {
-    // Get the list of selected medicine barcodes based on the selected rows' IDs
-    const barcodesToDelete = Array.from(selectedRows).map(
-      (selectedID) => filteredRows.find((row) => row.medicineID === selectedID)?.barcode
-    ).filter(Boolean); // Remove any undefined values in case some IDs were invalid
-
-    // If there are selected medicines to delete
-    if (barcodesToDelete.length > 0) {
-      try {
-        // Send the request to the backend to delete the medicines
-        await axios.post('/admin/inventory/delete-medicines', { barcodes: barcodesToDelete });
-
-        // Remove selected medicines from sortedRows and filteredRows
-        const updatedRows = sortedRows.filter(
-          (row) => !barcodesToDelete.includes(row.barcode)
-        );
-        const updatedFilteredRows = filteredRows.filter(
-          (row) => !barcodesToDelete.includes(row.barcode)
-        );
-
-        // Update the state with the new rows
-        setSortedRows(updatedRows);
-        setFilteredRows(updatedFilteredRows);
-
-        // Set success message
-        setSuccessMessage('Selected medicines deleted successfully!');
-        setSelectedRows(new Set()); // Clear the selected rows
-      } catch (error) {
-        console.error('Error deleting medicines:', error);
-        setSuccessMessage('Failed to delete medicines');
-      }
-    }
-
-    // Close the confirmation modal after deletion
-    setIsConfirmDeleteModalOpen(false);
-  };
-
-
-  // Function to handle cancel delete
-  const cancelDelete = () => {
-    setMedicinesToDelete([]); // Clear the selected medicines
-    setIsConfirmDeleteModalOpen(false); // Close the modal
-  };
-
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     const query = event.target.value;
     setSearchQuery(query);
 
-    const filteredData = originalRows.filter(row =>
-      row.name.toLowerCase().includes(query.toLowerCase())
-    );
-    setFilteredRows(filteredData);
-  };
+    let newFilteredRows = originalRows;
 
+    // Apply category filter if one is selected
+    if (categoryFilter !== 'All') {
+      newFilteredRows = newFilteredRows.filter(row => row.category === categoryFilter);
+    }
 
-  useEffect(() => {
-    let filteredData = filteredRows;
-
-    if (searchQuery !== '') {
-      filteredData = filteredData.filter(row =>
-        row.name.toLowerCase().includes(searchQuery.toLowerCase())
+    // Apply search filter
+    if (query) {
+      const searchTerm = query.toLowerCase();
+      newFilteredRows = newFilteredRows.filter(row =>
+        (row.name?.toLowerCase() || '').includes(searchTerm) ||
+        (row.brand_name?.toLowerCase() || '').includes(searchTerm) ||
+        (row.barcode?.toLowerCase() || '').includes(searchTerm)
       );
     }
 
-    setFilteredRows(filteredData);
-  }, [searchQuery, filteredRows]);
+    setFilteredRows(newFilteredRows);
+  };
 
 
   useEffect(() => {
@@ -339,14 +622,18 @@ const MedicinesAvailablePage = () => {
 
   const resetForm = () => {
     setNewMedicineData({
-      name: '', // Changed from 'medicineName'
-      barcode: '', // Changed from 'medicineID'
-      category: '', // Changed from 'groupName'
+      name: '',
+      brand_name: '',
+      barcode: '',
+      category: '',
       price: '',
-      stock: '', // Changed from 'stockQty'
-      description: '', // Changed from 'howToUse'
+      description: '',
       sideEffects: '',
-      requiresPrescription: 0, // Keep this field
+      dosage_amount: '',
+      dosage_unit: '',
+      pieces_per_box: '',
+      critical: '',
+      requiresPrescription: 0,
     });
 
     setErrors({
@@ -358,32 +645,53 @@ const MedicinesAvailablePage = () => {
       howToUse: false,
       sideEffects: false,
     });
+
+    setBranchInventory([]);
   };
 
 
-  const handleRowSelect = (medicineID: string) => {
-    const newSelectedRows = new Set(selectedRows);
+  // Function to handle page change
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
 
-    if (newSelectedRows.has(medicineID)) {
-      newSelectedRows.delete(medicineID);  // Deselect the row
+  // Function to handle rows per page change
+  const handleChangeRowsPerPage = (event: SelectChangeEvent<string>) => {
+    const value = event.target.value;
+    if (value === 'all') {
+      setShowAllWarningOpen(true); // Only show warning, don't change rowsPerPage yet
     } else {
-      newSelectedRows.add(medicineID);  // Select the row
+      setRowsPerPage(parseInt(value, 10));
+      setPage(0);
     }
-
-    setSelectedRows(newSelectedRows);
-    // "Select all" state should depend on whether all rows are selected or not
-    setSelectAll(newSelectedRows.size === filteredRows.length);
   };
 
-  const handleSelectAll = () => {
-    if (selectAll) {
-      setSelectedRows(new Set());  // Unselect all rows
-    } else {
-      const allRowIDs = new Set(filteredRows.map((row) => row.medicineID)); // Select all rows
-      setSelectedRows(allRowIDs);
-    }
-    setSelectAll(!selectAll);  // Toggle "select all" checkbox
+  // Function to handle show all confirmation
+  const handleShowAllConfirm = () => {
+    setRowsPerPage(filteredRows.length);
+    setPage(0);
+    setShowAllWarningOpen(false);
   };
+
+  // Function to handle show all cancellation
+  const handleShowAllCancel = () => {
+    setShowAllWarningOpen(false);
+    // Reset to previous value or default to 10
+    setRowsPerPage(10);
+  };
+
+  // Reset to default view (10 items) when component unmounts or user navigates away
+  useEffect(() => {
+    return () => {
+      setRowsPerPage(10);
+      setPage(0);
+    };
+  }, []);
+
+  // Get current page rows
+  const paginatedRows = React.useMemo(() => {
+    return filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [filteredRows, page, rowsPerPage]);
 
   // Remove the success message after 3 seconds
   useEffect(() => {
@@ -397,9 +705,370 @@ const MedicinesAvailablePage = () => {
     }
   }, [successMessageFromDeletion]);
 
-  return (
+  const handleSelectItem = (barcode: string) => {
+    if (!selectionMode) return;
+    
+    setSelectedItems(prev => {
+      const isSelected = prev.includes(barcode);
+      if (isSelected) {
+        return prev.filter(id => id !== barcode);
+      } else {
+        return [...prev, barcode];
+      }
+    });
+  };
 
-    <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const currentPageBarcodes = paginatedRows.map(row => row.barcode);
+      setSelectedItems(currentPageBarcodes);
+    } else {
+      setSelectedItems([]);
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedItems.length === 0) return;
+    
+    // Find the names of selected products
+    const selectedProducts = paginatedRows.filter(row => selectedItems.includes(row.barcode));
+    const selectedNames = selectedProducts.map(product => product.name).join(", ");
+    
+    setMedicineToDelete({ 
+      barcode: selectedItems[0], // We'll use this as a reference
+      name: selectedNames
+    });
+    setIsDeleteModalOpen(true);
+  };
+
+  // Add sorting handler
+  const handleSort = (key: keyof Medicine) => {
+    setSortConfig(prevConfig => ({
+      key,
+      direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Add refresh function
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get<Medicine[]>('/admin/inventory/view-medicines-available', {
+        params: {
+          orderBy: sortConfig.key || 'updatedAt',
+          sortDirection: sortConfig.direction
+        }
+      });
+      setOriginalRows(response.data);
+      setFilteredRows(response.data);
+      setSortedRows(response.data);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add toggle selection mode function
+  const toggleSelectionMode = () => {
+    setSelectionMode(prev => !prev);
+    if (selectionMode) {
+      setSelectedItems([]); // Clear selections when turning off selection mode
+    }
+  };
+
+  // Add date filter function
+  const handleDateFilterChange = (field: keyof DateFilter, value: string) => {
+    setDateFilter(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    if (field === 'type' || (dateFilter.startDate && dateFilter.endDate)) {
+      const filtered = originalRows.filter(row => {
+        if (!dateFilter.type) return true;
+        
+        const dateStr = dateFilter.type === 'createdAt' ? row.createdAt : row.updatedAt;
+        if (!dateStr) return true;
+
+        const date = new Date(dateStr);
+        const start = dateFilter.startDate ? new Date(dateFilter.startDate) : null;
+        const end = dateFilter.endDate ? new Date(dateFilter.endDate) : null;
+
+        if (start && end) {
+          return date >= start && date <= end;
+        }
+        return true;
+      });
+      setFilteredRows(filtered);
+    }
+  };
+
+  // Add useEffect to fetch user info
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const employeeId = localStorage.getItem('employeeId');
+        if (employeeId) {
+          const response = await axios.get(`/admin/users/${employeeId}`);
+          setCurrentUser({
+            employeeId,
+            name: response.data.name
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
+  const handleExportClick = () => {
+    setIsExportDialogOpen(true);
+  };
+
+  const handleExportClose = () => {
+    setIsExportDialogOpen(false);
+  };
+
+  const exportColumns = useMemo(() => {
+    const baseColumns = [
+      { field: 'name', header: 'Product Name' },
+      { field: 'brand_name', header: 'Brand Name' },
+      { field: 'barcode', header: 'Barcode' },
+      { field: 'category', header: 'Category' },
+      { field: 'price', header: 'Price' },
+      { field: 'createdAt', header: 'Created At' },
+      { field: 'updatedAt', header: 'Updated At' }
+    ];
+
+    // Add columns for each branch's stock and expiry date
+    branches.forEach(branch => {
+      baseColumns.push(
+        { field: `branch_${branch.branch_id}_stock`, header: `${branch.branch_name} Stock` },
+        { field: `branch_${branch.branch_id}_expiry`, header: `${branch.branch_name} Expiry` }
+      );
+    });
+
+    return baseColumns;
+  }, [branches]);
+
+  const handleCreatedDateFilterChange = (field: 'startDate' | 'endDate', value: string) => {
+    setTempCreatedDateFilter(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleUpdatedDateFilterChange = (field: 'startDate' | 'endDate', value: string) => {
+    setTempUpdatedDateFilter(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleApplyCreatedDateFilter = () => {
+    setCreatedDateFilter(tempCreatedDateFilter);
+    setShowCreatedDateFilter(false);
+  };
+
+  const handleApplyUpdatedDateFilter = () => {
+    setUpdatedDateFilter(tempUpdatedDateFilter);
+    setShowUpdatedDateFilter(false);
+  };
+
+  const handleClearCreatedDateFilter = () => {
+    setTempCreatedDateFilter({ startDate: '', endDate: '' });
+    setCreatedDateFilter({ startDate: '', endDate: '' });
+    setShowCreatedDateFilter(false);
+  };
+
+  const handleClearUpdatedDateFilter = () => {
+    setTempUpdatedDateFilter({ startDate: '', endDate: '' });
+    setUpdatedDateFilter({ startDate: '', endDate: '' });
+    setShowUpdatedDateFilter(false);
+  };
+
+  const processedProducts = useMemo(() => {
+    let filtered = [...originalRows];
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.brand_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.barcode.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Category filter
+    if (categoryFilter !== 'All') {
+      filtered = filtered.filter(product =>
+        product.category.toLowerCase() === categoryFilter.toLowerCase()
+      );
+    }
+
+    // Created Date filter
+    if (createdDateFilter.startDate || createdDateFilter.endDate) {
+      filtered = filtered.filter(product => {
+        const createdDate = new Date(product.createdAt).setHours(0, 0, 0, 0);
+        const start = createdDateFilter.startDate ? new Date(createdDateFilter.startDate).setHours(0, 0, 0, 0) : null;
+        const end = createdDateFilter.endDate ? new Date(createdDateFilter.endDate).setHours(23, 59, 59, 999) : null;
+
+        if (start && end) {
+          return createdDate >= start && createdDate <= end;
+        } else if (start) {
+          return createdDate >= start;
+        } else if (end) {
+          return createdDate <= end;
+        }
+        return true;
+      });
+    }
+
+    // Updated Date filter
+    if (updatedDateFilter.startDate || updatedDateFilter.endDate) {
+      filtered = filtered.filter(product => {
+        const updatedDate = new Date(product.updatedAt).setHours(0, 0, 0, 0);
+        const start = updatedDateFilter.startDate ? new Date(updatedDateFilter.startDate).setHours(0, 0, 0, 0) : null;
+        const end = updatedDateFilter.endDate ? new Date(updatedDateFilter.endDate).setHours(23, 59, 59, 999) : null;
+
+        if (start && end) {
+          return updatedDate >= start && updatedDate <= end;
+        } else if (start) {
+          return updatedDate >= start;
+        } else if (end) {
+          return updatedDate <= end;
+        }
+        return true;
+      });
+    }
+
+    // Add branch inventory data to each product
+    filtered = filtered.map(product => {
+      const enhancedProduct: Medicine = { ...product };
+      
+      branches.forEach(branch => {
+        const branchInventory = product.branch_inventory?.find((bi: BranchInventory) => bi.branch_id === branch.branch_id);
+        enhancedProduct[`branch_${branch.branch_id}_stock`] = branchInventory?.stock?.toString() || '0';
+        enhancedProduct[`branch_${branch.branch_id}_expiry`] = branchInventory?.expiryDate || 'N/A';
+      });
+
+      return enhancedProduct;
+    });
+
+    // Sort
+    if (sortConfig && sortConfig.key) {
+      filtered.sort((a: Medicine, b: Medicine) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+        
+        if (aValue === undefined || bValue === undefined) return 0;
+        
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+        }
+        
+        const aStr = String(aValue).toLowerCase();
+        const bStr = String(bValue).toLowerCase();
+        
+        if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [originalRows, searchQuery, categoryFilter, createdDateFilter, updatedDateFilter, sortConfig, branches]);
+
+  // Effect to handle barcode prefix
+  useEffect(() => {
+    if (useBarcodePrefix && newMedicineData.category) {
+      // Get next available barcode for the selected category
+      const selectedCategory = categories.find(c => c.name === newMedicineData.category);
+      if (selectedCategory) {
+        axios.get(`/admin/inventory/next-barcode/${selectedCategory.category_id}`)
+          .then(response => {
+            handleModalInputChange('barcode', response.data.barcode);
+          })
+          .catch(error => {
+            console.error('Error getting next barcode:', error);
+            setErrorMessage('Failed to generate barcode');
+          });
+      }
+    }
+  }, [useBarcodePrefix, newMedicineData.category]);
+
+  // Effect to handle barcode scanner
+  useEffect(() => {
+    let scannedBarcode = '';
+    let lastKeyTime = Date.now();
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (!useBarcodeScanner || !isWaitingForScan) return;
+
+      const currentTime = Date.now();
+      if (currentTime - lastKeyTime > 100) {
+        // If delay between keystrokes is too long, start a new barcode
+        scannedBarcode = '';
+      }
+      lastKeyTime = currentTime;
+
+      if (e.key === 'Enter') {
+        // Barcode scan complete
+        if (scannedBarcode) {
+          handleModalInputChange('barcode', scannedBarcode);
+          setIsWaitingForScan(false);
+          scannedBarcode = '';
+        }
+      } else {
+        scannedBarcode += e.key;
+      }
+    };
+
+    if (useBarcodeScanner) {
+      window.addEventListener('keypress', handleKeyPress);
+      setIsWaitingForScan(true);
+      if (barcodeInputRef.current) {
+        barcodeInputRef.current.focus();
+      }
+    }
+
+    return () => {
+      window.removeEventListener('keypress', handleKeyPress);
+    };
+  }, [useBarcodeScanner]);
+
+  // Handle barcode scanner toggle
+  const handleBarcodeScannerToggle = (checked: boolean) => {
+    setUseBarcodeScanner(checked);
+    if (checked) {
+      setUseBarcodePrefix(false);
+      setNewMedicineData(prev => ({ ...prev, barcode: '' }));
+    }
+  };
+
+  // Handle barcode prefix toggle
+  const handleBarcodePrefixToggle = (checked: boolean) => {
+    setUseBarcodePrefix(checked);
+    if (checked) {
+      setUseBarcodeScanner(false);
+      if (newMedicineData.category) {
+        const selectedCategory = categories.find(c => c.name === newMedicineData.category);
+        if (selectedCategory) {
+          axios.get(`/admin/inventory/next-barcode/${selectedCategory.category_id}`)
+            .then(response => {
+              setNewMedicineData(prev => ({ ...prev, barcode: response.data.barcode }));
+            })
+            .catch(error => {
+              console.error('Error getting next barcode:', error);
+              setErrorMessage('Failed to generate barcode');
+            });
+        }
+      } else {
+        setErrorMessage('Please select a category first');
+        setUseBarcodePrefix(false);
+      }
+    }
+  };
+
+  return (
+    <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3, mb: 5 }}>
       <Box>
         {/* Medicine Deleted Alert Message */}
         {successMessageFromDeletion && (
@@ -422,397 +1091,800 @@ const MedicinesAvailablePage = () => {
         <Link color="inherit" href="/" onClick={handleBreadcrumbClick}>
           Inventory
         </Link>
-        <Typography color="text.primary">List of Medicine</Typography>
+        <Typography color="text.primary">Products Available</Typography>
       </Breadcrumbs>
 
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
         <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', display: 'none' }}>
             Medicines Available
           </Typography>
-          <Typography variant="body1" sx={{ mt: -1 }}>
+          <Typography variant="body1" sx={{ display: 'none' }}>
             List of medicines available for sales.
           </Typography>
         </Box>
+      </Box>
 
-        <Box sx={{ mt: { xs: '27px', sm: 0 }, textAlign: 'center' }}>
-          <Button variant="contained" sx={{ backgroundColor: '#01A768', color: '#fff', fontWeight: 'medium', textTransform: 'none', '&:hover': { backgroundColor: '#017F4A' }, display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }} onClick={handleAddNewItemClick}>
-            <AddIcon />
+      {/* Table Controls */}
+      <Box sx={{ 
+        backgroundColor: 'white',
+        padding: 2,
+        borderRadius: 1,
+        boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
+        mb: 3,
+        mt: 2
+      }}>
+        {/* Action Buttons Group */}
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 1,
+          mb: 2,
+          flexWrap: 'wrap'
+        }}>
+          <Button
+            variant="contained"
+            sx={{ 
+              backgroundColor: '#01A768', 
+              color: '#fff', 
+              fontWeight: 'medium', 
+              textTransform: 'none', 
+              '&:hover': { backgroundColor: '#017F4A' }
+            }}
+            onClick={handleAddNewItemClick}
+            startIcon={<AddIcon />}
+          >
             Add New Item
           </Button>
+          <Button
+            variant="contained"
+            color="inherit"
+            onClick={handleExportClick}
+            startIcon={<FileDownloadIcon />}
+            sx={{ textTransform: 'none' }}
+          >
+            Export
+          </Button>
+          <Button
+            variant="contained"
+            color="inherit"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            startIcon={<RefreshIcon />}
+            sx={{ textTransform: 'none' }}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            color="inherit"
+            onClick={() => navigate('/admin/inventory/archived')}
+            startIcon={<ArchiveIcon />}
+            sx={{ textTransform: 'none' }}
+          >
+            View Archive
+          </Button>
+          <Button
+            variant="contained"
+            color="inherit"
+            onClick={() => navigate('/admin/inventory/view-medicines-group')}
+            startIcon={<CategoryIcon />}
+            sx={{ textTransform: 'none' }}
+          >
+            View Categories
+          </Button>
+
+          <Box sx={{ flexGrow: 1 }} /> {/* Spacer */}
+
+          <Button
+            variant="contained"
+            color={selectionMode ? "primary" : "inherit"}
+            onClick={toggleSelectionMode}
+            startIcon={<CheckBox />}
+            sx={{ textTransform: 'none' }}
+          >
+            Selection Mode {selectionMode ? 'ON' : 'OFF'}
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={handleDeleteSelected}
+            disabled={selectedItems.length === 0}
+            sx={{ textTransform: 'none' }}
+          >
+            Delete Selected ({selectedItems.length})
+          </Button>
+        </Box>
+
+        {/* Search and Filters Group */}
+        <Box sx={{ 
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          gap: 2,
+          alignItems: { xs: 'stretch', md: 'center' },
+          justifyContent: 'space-between',
+          position: 'relative'
+        }}>
+          <Box sx={{ display: 'flex', gap: 2, flex: 1 }}>
+            <TextField
+              label="Search Product, Brand, Barcode"
+              value={searchQuery}
+              onChange={handleSearch}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                minWidth: { xs: '100%', md: '300px' },
+                backgroundColor: '#fff',
+              }}
+            />
+
+            <FormControl sx={{ minWidth: { xs: '100%', md: '200px' } }}>
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={categoryFilter}
+                label="Category"
+                onChange={handleChange}
+              >
+                <MenuItem value="All">All</MenuItem>
+                {categories.map((category) => (
+                  <MenuItem key={category.category_id} value={category.name}>
+                    {category.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Button
+              variant="outlined"
+              onClick={() => setShowCreatedDateFilter(!showCreatedDateFilter)}
+              sx={{ minWidth: { xs: '100%', md: 'auto' } }}
+            >
+              {createdDateFilter.startDate || createdDateFilter.endDate ? 'Created Date Filter Active' : 'Created Date Filter'}
+            </Button>
+
+            <Button
+              variant="outlined"
+              onClick={() => setShowUpdatedDateFilter(!showUpdatedDateFilter)}
+              sx={{ minWidth: { xs: '100%', md: 'auto' } }}
+            >
+              {updatedDateFilter.startDate || updatedDateFilter.endDate ? 'Updated Date Filter Active' : 'Updated Date Filter'}
+            </Button>
+          </Box>
+
+          <FormControl sx={{ minWidth: { xs: '100%', md: '150px' } }}>
+            <InputLabel>Show entries</InputLabel>
+            <Select
+              value={rowsPerPage.toString()}
+              onChange={handleChangeRowsPerPage}
+              label="Show entries"
+            >
+              <MenuItem value={10}>10 entries</MenuItem>
+              <MenuItem value={25}>25 entries</MenuItem>
+              <MenuItem value={50}>50 entries</MenuItem>
+              <MenuItem value={100}>100 entries</MenuItem>
+              <MenuItem value="all">Show all</MenuItem>
+            </Select>
+          </FormControl>
+
+          {showCreatedDateFilter && (
+            <Paper sx={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              mt: 1,
+              p: 2,
+              zIndex: 1000,
+              minWidth: 300,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2
+            }}>
+              <Typography variant="subtitle2">Created Date Filter</Typography>
+              <TextField
+                label="Start Date"
+                type="date"
+                value={tempCreatedDateFilter.startDate}
+                onChange={(e) => handleCreatedDateFilterChange('startDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+              <TextField
+                label="End Date"
+                type="date"
+                value={tempCreatedDateFilter.endDate}
+                onChange={(e) => handleCreatedDateFilterChange('endDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                <Button
+                  size="small"
+                  onClick={handleClearCreatedDateFilter}
+                >
+                  Clear
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleApplyCreatedDateFilter}
+                >
+                  Apply
+                </Button>
+              </Box>
+            </Paper>
+          )}
+
+          {showUpdatedDateFilter && (
+            <Paper sx={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              mt: 1,
+              p: 2,
+              zIndex: 1000,
+              minWidth: 300,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2
+            }}>
+              <Typography variant="subtitle2">Updated Date Filter</Typography>
+              <TextField
+                label="Start Date"
+                type="date"
+                value={tempUpdatedDateFilter.startDate}
+                onChange={(e) => handleUpdatedDateFilterChange('startDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+              <TextField
+                label="End Date"
+                type="date"
+                value={tempUpdatedDateFilter.endDate}
+                onChange={(e) => handleUpdatedDateFilterChange('endDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                <Button
+                  size="small"
+                  onClick={handleClearUpdatedDateFilter}
+                >
+                  Clear
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleApplyUpdatedDateFilter}
+                >
+                  Apply
+                </Button>
+              </Box>
+            </Paper>
+          )}
         </Box>
       </Box>
 
+      {/* Table */}
+      <Box sx={{ 
+        backgroundColor: 'white',
+        borderRadius: 1,
+        boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
+        mb: 4,
+        height: 'calc(100vh - 350px)',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative'
+      }}>
+        {isLoading && (
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            zIndex: 1,
+          }}>
+            <CircularProgress />
+          </Box>
+        )}
+        <TableContainer>
+          <Table stickyHeader>
+            <TableHead>
+              <TableRow>
+                {selectionMode && (
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedItems.length > 0 && selectedItems.length === processedProducts.length}
+                      indeterminate={selectedItems.length > 0 && selectedItems.length < processedProducts.length}
+                      onChange={(event) => {
+                        if (event.target.checked) {
+                          setSelectedItems(processedProducts.map(product => product.barcode));
+                        } else {
+                          setSelectedItems([]);
+                        }
+                      }}
+                    />
+                  </TableCell>
+                )}
+                <TableCell 
+                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                  onClick={() => handleSort('name')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    Product Name
+                    {sortConfig.key === 'name' && (
+                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell 
+                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                  onClick={() => handleSort('brand_name')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    Brand Name
+                    {sortConfig.key === 'brand_name' && (
+                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell 
+                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                  onClick={() => handleSort('barcode')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    Barcode
+                    {sortConfig.key === 'barcode' && (
+                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell 
+                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                  onClick={() => handleSort('category')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    Category
+                    {sortConfig.key === 'category' && (
+                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell 
+                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                  onClick={() => handleSort('price')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    Price
+                    {sortConfig.key === 'price' && (
+                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell 
+                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                  onClick={() => handleSort('stock')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    Stock Quantity
+                    {sortConfig.key === 'stock' && (
+                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell 
+                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                  onClick={() => handleSort('createdAt')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    Created at
+                    {sortConfig.key === 'createdAt' && (
+                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {paginatedRows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    No items available for the selected category.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedRows.map((row) => (
+                  <TableRow 
+                    key={row.barcode}
+                    onClick={() => handleSelectItem(row.barcode)}
+                    sx={{
+                      cursor: selectionMode ? 'pointer' : 'default',
+                      backgroundColor: selectedItems.includes(row.barcode) ? 'rgba(25, 118, 210, 0.08)' : 'inherit',
+                      '&:hover': {
+                        backgroundColor: selectionMode ? 'rgba(25, 118, 210, 0.12)' : 'rgba(0, 0, 0, 0.04)'
+                      }
+                    }}
+                  >
+                    {selectionMode && (
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          checked={selectedItems.includes(row.barcode)}
+                          onChange={() => handleSelectItem(row.barcode)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </TableCell>
+                    )}
+                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.brand_name}</TableCell>
+                    <TableCell>{row.barcode}</TableCell>
+                    <TableCell>{row.category}</TableCell>
+                    <TableCell>{row.price}</TableCell>
+                    <TableCell>{row.stock}</TableCell>
+                    <TableCell>{row.createdAt ? new Date(row.createdAt).toLocaleString() : 'N/A'}</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewDetails(row.barcode);
+                          }} 
+                          sx={{ color: '#2BA3B6' }}
+                        >
+                          <Visibility />
+                        </IconButton>
+                        <IconButton 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditItem(row.barcode);
+                          }} 
+                          sx={{ color: '#1D7DFA' }}
+                        >
+                          <Edit />
+                        </IconButton>
+                        <IconButton 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteItem(row.barcode, row.name);
+                          }} 
+                          sx={{ color: '#D83049' }}
+                        >
+                          <Delete />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-      {/* Modal */}
+        <Box sx={{ 
+          mt: 'auto',
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          p: 2,
+          borderTop: '1px solid rgba(224, 224, 224, 1)'
+        }}>
+          <TablePagination
+            component="div"
+            count={filteredRows.length}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            rowsPerPageOptions={[]}
+          />
+        </Box>
+      </Box>
+
+      {/* Add New Item Modal */}
       <Dialog
         open={isModalOpen}
         onClose={(event, reason) => {
           if (reason !== "backdropClick") {
             handleModalClose();
-            resetForm(); // Reset the form when modal closes
           }
         }}
         fullWidth
         maxWidth="md"
       >
-        <Box sx={{ p: 3 }}>
-          <DialogTitle sx={{ fontSize: '25px' }}> Add New Medicine Item</DialogTitle>
-          <DialogTitle sx={{ mt: '-30px', fontSize: '15px', fontWeight: 'normal' }}>
-            Provide the necessary details to add a new medicine to your inventory.
-          </DialogTitle>
+        <DialogTitle>Add New Product Item</DialogTitle>
           <DialogContent>
-            <div className="flex flex-row flex-wrap gap-5 mt-1">
-              <TextField
-                label="Medicine Name"
-                value={newMedicineData.name}
-                onChange={(e) => {
-                  handleModalInputChange('name', e.target.value);
-                  if (errors.medicineName) {
-                    setErrors((prevErrors) => ({
-                      ...prevErrors,
-                      medicineName: false,
-                    }));
-                  }
-                }}
-                variant="outlined"
-                sx={{ width: 340, backgroundColor: 'white' }}
-                error={errors.medicineName}
-                helperText={errors.medicineName ? "This field is required" : ""}
-              />
-              <TextField
-                label="Medicine ID"
-                value={newMedicineData.barcode}
-                onChange={(e) => {
-                  handleModalInputChange('barcode', e.target.value);
-                  if (errors.medicineID) {
-                    setErrors((prevErrors) => ({
-                      ...prevErrors,
-                      medicineID: false,
-                    }));
-                  }
-                }}
-                variant="outlined"
-                sx={{ width: 340, backgroundColor: 'white' }}
-                error={errors.medicineID}
-                helperText={errors.medicineID ? "This field is required" : ""}
-              />
-            </div>
-
-            <div className="flex flex-row flex-wrap gap-5 mt-4">
-              <FormControl sx={{ width: 340, backgroundColor: 'white' }}>
-                <InputLabel>Medicine Group</InputLabel>
-                <Select
-                  value={newMedicineData.category}
-                  onChange={(e) => {
-                    handleModalInputChange('category', e.target.value);
-                    if (errors.groupName) {
-                      setErrors((prevErrors) => ({
-                        ...prevErrors,
-                        groupName: false,
-                      }));
-                    }
-                  }}
-                  error={errors.groupName}
-                >
-                  {categories.map((name) => (
-                    <MenuItem key={name} value={name} style={getStyles(name, personName, theme)}>
-                      {name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <TextField
-                label="Price"
-                type="number"
-                value={newMedicineData.price}
-                onChange={(e) => {
-                  handleModalInputChange('price', e.target.value);
-                  if (errors.price) {
-                    setErrors((prevErrors) => ({
-                      ...prevErrors,
-                      price: false,
-                    }));
-                  }
-                }}
-                variant="outlined"
-                sx={{ width: 340, backgroundColor: 'white' }}
-                error={errors.price}
-                helperText={errors.price ? "This field is required" : ""}
-              />
-            </div>
-
-            <div className="flex flex-row flex-wrap gap-5 mt-4">
-              <TextField
-                label="Quantity in Number"
-                type="number"
-                value={newMedicineData.stock}
-                onChange={(e) => {
-                  handleModalInputChange('stock', e.target.value);
-                  if (errors.stockQty) {
-                    setErrors((prevErrors) => ({
-                      ...prevErrors,
-                      stockQty: false,
-                    }));
-                  }
-                }}
-                variant="outlined"
-                sx={{ width: 340, backgroundColor: 'white' }}
-                error={errors.stockQty}
-                helperText={errors.stockQty ? "This field is required" : ""}
-              />
-            </div>
-
-            <div className="flex flex-col flex-wrap gap-5 mt-4">
-              <TextField
-                label="How to use"
-                multiline
-                rows={4}
-                value={newMedicineData.description}
-                onChange={(e) => {
-                  handleModalInputChange('description', e.target.value);
-                  if (errors.howToUse) {
-                    setErrors((prevErrors) => ({
-                      ...prevErrors,
-                      howToUse: false,
-                    }));
-                  }
-                }}
-                sx={{ width: '100%', backgroundColor: 'white' }}
-                error={errors.howToUse}
-                helperText={errors.howToUse ? "This field is required" : ""}
-              />
-              <TextField
-                label="Side Effects"
-                multiline
-                rows={4}
-                value={newMedicineData.sideEffects}
-                onChange={(e) => {
-                  handleModalInputChange('sideEffects', e.target.value);
-                  if (errors.sideEffects) {
-                    setErrors((prevErrors) => ({
-                      ...prevErrors,
-                      sideEffects: false,
-                    }));
-                  }
-                }}
-                sx={{ width: '100%', backgroundColor: 'white' }}
-                error={errors.sideEffects}
-                helperText={errors.sideEffects ? "This field is required" : ""}
-              />
-            </div>
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={newMedicineData.requiresPrescription === 1} // Ensure the checkbox reflects the state
-                  onChange={handleCheckboxChange} // Handle checkbox change
+          <Box sx={{ mt: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Product Name"
+                  value={newMedicineData.name}
+                  onChange={(e) => handleModalInputChange('name', e.target.value)}
+                  error={errors.medicineName}
+                  helperText={errors.medicineName ? "This field is required" : ""}
                 />
-              }
-              label="Requires Prescription"
-              sx={{ marginTop: 1 }}
-            />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Brand Name"
+                  value={newMedicineData.brand_name}
+                  onChange={(e) => handleModalInputChange('brand_name', e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth error={errors.groupName}>
+                  <InputLabel>Category</InputLabel>
+                  <Select
+                    value={newMedicineData.category}
+                    label="Category"
+                    onChange={(e) => handleModalInputChange('category', e.target.value)}
+                  >
+                    {categories.map((category) => (
+                      <MenuItem key={category.category_id} value={category.name}>
+                        {category.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.groupName && (
+                    <FormHelperText>This field is required</FormHelperText>
+                  )}
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={useBarcodePrefix}
+                        onChange={(e) => handleBarcodePrefixToggle(e.target.checked)}
+                        disabled={!newMedicineData.category}
+                      />
+                    }
+                    label="Use Barcode Prefix"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={useBarcodeScanner}
+                        onChange={(e) => handleBarcodeScannerToggle(e.target.checked)}
+                      />
+                    }
+                    label="Scan Barcode"
+                  />
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Barcode"
+                  value={newMedicineData.barcode}
+                  onChange={(e) => handleModalInputChange('barcode', e.target.value)}
+                  error={errors.medicineID}
+                  helperText={errors.medicineID ? "This field is required" : useBarcodePrefix ? "Auto-generated barcode" : ""}
+                  disabled={useBarcodePrefix}
+                  inputRef={barcodeInputRef}
+                  InputProps={{
+                    endAdornment: useBarcodeScanner && isWaitingForScan && (
+                      <InputAdornment position="end">
+                        <CircularProgress size={20} />
+                      </InputAdornment>
+                    ),
+                    readOnly: useBarcodePrefix
+                  }}
+                  placeholder={useBarcodeScanner ? "Waiting for barcode scan..." : ""}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Price"
+                  type="number"
+                  value={newMedicineData.price}
+                  onChange={(e) => handleModalInputChange('price', e.target.value)}
+                  error={errors.price}
+                  helperText={errors.price ? "This field is required" : ""}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">₱</InputAdornment>,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Dosage Amount"
+                  type="number"
+                  value={newMedicineData.dosage_amount}
+                  onChange={(e) => handleModalInputChange('dosage_amount', e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Dosage Unit</InputLabel>
+                  <Select
+                    value={newMedicineData.dosage_unit}
+                    label="Dosage Unit"
+                    onChange={(e) => handleModalInputChange('dosage_unit', e.target.value)}
+                  >
+                    {DOSAGE_UNITS.map((unit) => (
+                      <MenuItem key={unit} value={unit}>
+                        {unit}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Pieces per Box"
+                  type="number"
+                  value={newMedicineData.pieces_per_box}
+                  onChange={(e) => handleModalInputChange('pieces_per_box', e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Critical Level"
+                  type="number"
+                  value={newMedicineData.critical}
+                  onChange={(e) => handleModalInputChange('critical', e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>Branch Inventory</Typography>
+                <TableContainer component={Paper} sx={{ mb: 2 }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Branch</TableCell>
+                        <TableCell align="right">Stock</TableCell>
+                        <TableCell align="right">Expiry Date</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {branches.map((branch) => (
+                        <TableRow key={branch.branch_id}>
+                          <TableCell>{branch.branch_name}</TableCell>
+                          <TableCell align="right">
+                            <TextField
+                              type="number"
+                              size="small"
+                              value={branchInventory.find(b => b.branchId === branch.branch_id)?.stock || ''}
+                              onChange={(e) => handleBranchInventoryChange(branch.branch_id, 'stock', e.target.value)}
+                              InputProps={{ inputProps: { min: 0 } }}
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            <TextField
+                              type="date"
+                              size="small"
+                              value={branchInventory.find(b => b.branchId === branch.branch_id)?.expiryDate || ''}
+                              onChange={(e) => handleBranchInventoryChange(branch.branch_id, 'expiryDate', e.target.value)}
+                              InputLabelProps={{ shrink: true }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Description"
+                  multiline
+                  rows={4}
+                  value={newMedicineData.description}
+                  onChange={(e) => handleModalInputChange('description', e.target.value)}
+                  error={errors.howToUse}
+                  helperText={errors.howToUse ? "This field is required" : ""}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Side Effects"
+                  multiline
+                  rows={4}
+                  value={newMedicineData.sideEffects}
+                  onChange={(e) => handleModalInputChange('sideEffects', e.target.value)}
+                  error={errors.sideEffects}
+                  helperText={errors.sideEffects ? "This field is required" : ""}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={newMedicineData.requiresPrescription === 1}
+                      onChange={handleCheckboxChange}
+                    />
+                  }
+                  label="Requires Prescription"
+                />
+              </Grid>
+            </Grid>
+          </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleModalClose} sx={{ color: '#666' }}>
-              Cancel
-            </Button>
-            <Button variant="contained" onClick={handleSaveNewItem}>
-              Add New
+          <Button onClick={handleModalClose}>Cancel</Button>
+          <Button variant="contained" onClick={handleSaveNewItem} color="primary">
+            Add Item
             </Button>
           </DialogActions>
-        </Box>
       </Dialog>
 
-
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 3, mt: 2 }}>
-        <TextField
-          label="Search Medicine Inventory"
-          value={searchQuery}
-          onChange={handleSearch}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            backgroundColor: '#fff',
-            borderRadius: '4px',
-            width: '400px',
-            boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
-            flexShrink: 0,
-          }}
-        />
-        <FormControl sx={{ width: '250px', sm: 0, backgroundColor: 'white' }}>
-          <InputLabel>- Select Category -</InputLabel>
-          <Select
-            value={personName[0]} // Use the first (and only) selected value
-            label="Filter by Category"
-            onChange={handleChange}
-            MenuProps={MenuProps}
-            input={<OutlinedInput label="Filter by Category" />}
-          >
-            {/* Add "All" as the default option */}
-            <MenuItem key="all" value="All" style={getStyles('All', personName, theme)}>
-              All
-            </MenuItem>
-            {categories.map((name) => (
-              <MenuItem key={name} value={name} style={getStyles(name, personName, theme)}>
-                {name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-      </Box>
-
-      <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: 'auto', boxShadow: 'none' }}>
-        <Table aria-label="medicines-table" stickyHeader>
-          <TableHead sx={{ backgroundColor: 'white', zIndex: 1 }}>
-            <TableRow>
-              <TableCell
-                padding="checkbox"
-                sx={{
-                  fontWeight: 'bold',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'white',
-                  zIndex: 3, // Ensure it's above other headers
-                }}
-              >
-                <Checkbox
-                  checked={selectAll}
-                  onChange={handleSelectAll}
-                  color="primary"
-                />
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Medicine Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Barcode</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Price</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Stock Quantity</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {/* Check if filteredRows is empty */}
-            {filteredRows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} sx={{ textAlign: 'center', padding: '16px' }}>
-                  No items available for the selected category.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredRows.map(row => (
-                <TableRow key={row.medicineID}>
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedRows.has(row.medicineID)}
-                      onChange={() => handleRowSelect(row.medicineID)}
-                      color="primary"
-                    />
-                  </TableCell>
-                  <TableCell>{row.name}</TableCell>
-                  <TableCell>{row.barcode}</TableCell>
-                  <TableCell>{row.category}</TableCell>
-                  <TableCell>{row.price}</TableCell>
-                  <TableCell>{row.stock}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-row">
-                      <IconButton onClick={() => handleViewDetails(row.name)} sx={{ color: '#2BA3B6', mr: 0 }}>
-                        <Visibility sx={{ fontSize: 24 }} />
-                      </IconButton>
-                      <IconButton onClick={() => handleEditItem(row.name)} sx={{ color: '#1D7DFA', mr: 0 }}>
-                        <Edit sx={{ fontSize: 24 }} />
-                      </IconButton>
-                      <IconButton onClick={() => handleDeleteItem(row.barcode)} sx={{ color: '#D83049' }}>
-                        <Delete sx={{ fontSize: 24 }} />
-                      </IconButton>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {/* Show All Warning Dialog */}
+      <Dialog
+        open={showAllWarningOpen}
+        onClose={handleShowAllCancel}
+      >
+        <DialogTitle>Warning</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Showing all items at once may cause the system to become slow. Are you sure you want to proceed?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleShowAllCancel}>Cancel</Button>
+          <Button onClick={handleShowAllConfirm} variant="contained" color="primary">
+            Show All
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
       <Dialog
         open={isDeleteModalOpen}
         onClose={handleDeleteModalClose}
         aria-labelledby="delete-confirmation-dialog-title"
-        PaperProps={{ style: { padding: '10px' } }} // Add padding to the modal
+        PaperProps={{ style: { padding: '10px' } }}
       >
         <DialogTitle id="delete-confirmation-dialog-title">
-          Confirm Delete
+          Archive {selectedItems.length > 1 ? 'Multiple Items' : 'Item'}
         </DialogTitle>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete "{medicineToDelete}"? This action cannot be undone.
+          <Typography sx={{ mb: 2 }}>
+            Are you sure you want to archive {selectedItems.length > 1 ? 'these medicines' : 'the medicine'}: "{medicineToDelete?.name}"?
+            This will move the item(s) to the archive.
           </Typography>
+          <TextField
+            fullWidth
+            label="Reason for archiving"
+            multiline
+            rows={3}
+            value={archiveReason}
+            onChange={(e) => setArchiveReason(e.target.value)}
+            required
+            error={!archiveReason}
+            helperText={!archiveReason ? "Please provide a reason for archiving" : ""}
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteModalClose} color="secondary">
+          <Button onClick={handleDeleteModalClose} color="inherit">
             Cancel
           </Button>
-          <Button onClick={handleConfirmDeleteItem} color="primary" variant="contained">
-            Delete
+          <Button
+            onClick={handleConfirmDeleteItem} 
+            color="error" 
+            variant="contained"
+            disabled={!archiveReason}
+          >
+            Archive
           </Button>
         </DialogActions>
       </Dialog>
-
-      {selectedRows.size > 0 && (
-        <Button
-          variant="contained"
-          sx={{
-            backgroundColor: 'white',
-            color: '#F0483E',
-            padding: '15px 24px',
-            border: '1px solid #F0483E',
-            marginTop: '20px',
-            textTransform: 'none', // Optional: Disable uppercase text
-            fontWeight: 'bold',
-            '&:hover': {
-              backgroundColor: '#FFF5F5', // Light background on hover
-            },
-          }}
-          onClick={handleDeleteItemMultiple}
-          startIcon={<DeleteIcon sx={{ color: '#F0483E' }} />}
-        >
-          Delete Medicine
-        </Button>
-      )}
-
-      {/* Confirmation Modal */}
-      <Dialog
-        open={isConfirmDeleteModalOpen}
-        onClose={cancelDelete}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>Confirm Deletion</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete the following medicine(s)?
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold' }}>
-            {medicinesToDelete.join(', ')}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelDelete} color="primary">
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={handleConfirmDelete} color="error">
-            Confirm
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-
 
       {/* Medicine Deleted Alert Message */}
       <Box>
@@ -832,6 +1904,15 @@ const MedicinesAvailablePage = () => {
           </Alert>
         )}
       </Box>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={isExportDialogOpen}
+        onClose={handleExportClose}
+        data={filteredRows}
+        columns={exportColumns}
+        filename="products_available"
+      />
     </Box>
   );
 };
