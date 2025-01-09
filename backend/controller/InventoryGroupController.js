@@ -1,82 +1,75 @@
 const db = require('../config/database').pool; // Import the promisePool from your database configuration
-
+const timeZoneUtil = require('../utils/timeZoneUtil');
 
 // Fetch medicine groups and counts dynamically
 exports.getMedicineGroups = async (req, res) => {
-    const categoryMap = {
-        1: 'BRANDED',
-        2: 'GENERIC',
-        3: 'COSMETICS',
-        4: 'DIAPER',
-        5: 'FACE AND BODY',
-        6: 'GALENICALS',
-        7: 'MILK',
-        8: 'PILLS AND CONTRACEPTIVES',
-        9: 'SYRUP',
-        10: 'OTHERS',
-    };
-
     try {
-        // Step 1: Query to get all categories from the category table
+        // Get all categories with product counts using LEFT JOIN
         const [categories] = await db.query(`
-            SELECT category_id, name FROM category
+            SELECT 
+                c.category_id,
+                c.name,
+                c.prefix,
+                COALESCE(COUNT(CASE WHEN p.is_active = 1 THEN p.id END), 0) as product_count
+            FROM category c
+            LEFT JOIN products p ON p.category = c.category_id AND p.is_active = 1
+            GROUP BY c.category_id, c.name, c.prefix
+            ORDER BY c.name ASC
         `);
 
-        // Step 2: Query to get the count of products per category from the products table
-        const [products] = await db.query(`
-            SELECT category, COUNT(*) AS noOfMedicine
-            FROM products
-            GROUP BY category
-        `);
+        // Map the results
+        const result = categories.map(category => ({
+            category_id: category.category_id,
+            name: category.name,
+            prefix: category.prefix,
+            product_count: parseInt(category.product_count) || 0
+        }));
 
-        // Step 3: Map the results by joining the category names with the product counts
-        const result = categories.map(category => {
-            // Find the product count for the current category
-            const productCount = products.find(product => product.category === category.category_id);
-
-            // Get the category name using the categoryMap
-            const groupName = categoryMap[category.category_id] || category.name; // Fallback to the name if not found in categoryMap
-
-            return {
-                groupName, // Category name from categoryMap
-                noOfMedicine: productCount ? productCount.noOfMedicine : 0 // Product count (0 if no products found)
-            };
-        });
-
-        res.status(200).json(result); // Return the result as JSON
+        res.status(200).json(result);
     } catch (error) {
         console.error('Error fetching medicine groups:', error);
         res.status(500).json({ message: 'Failed to fetch medicine groups', error });
     }
 };
 
-// Add a new medicine group/cate// Add a new medicine group/category
+// Add a new medicine group/category
 exports.addMedicineGroup = async (req, res) => {
-    const { categoryName } = req.body;
+    const { name, prefix } = req.body;
 
-    if (!categoryName || typeof categoryName !== 'string') {
+    if (!name || typeof name !== 'string') {
         return res.status(400).json({ message: 'Category name is required and must be a string.' });
     }
 
     try {
+        await db.query('START TRANSACTION');
+
         // Check if the category already exists
         const [existingCategory] = await db.query(
             'SELECT * FROM category WHERE name = ? LIMIT 1',
-            [categoryName]
+            [name]
         );
 
         if (existingCategory.length > 0) {
+            await db.query('ROLLBACK');
             return res.status(409).json({ message: 'Category already exists.' });
         }
 
-        // Insert the new category into the database
-        await db.query(
-            'INSERT INTO category (name) VALUES (?)', // Corrected SQL query
-            [categoryName]
+        // Insert the new category into the database with prefix
+        const [result] = await db.query(
+            'INSERT INTO category (name, prefix) VALUES (?, ?)',
+            [name, prefix || '']
         );
 
+        // Initialize the barcode counter for this category
+        await db.query(
+            'INSERT INTO category_barcode_counter (category_id, last_number) VALUES (?, 0)',
+            [result.insertId]
+        );
+
+        await db.query('COMMIT');
         res.status(201).json({ message: 'New category added successfully.' });
     } catch (error) {
+        await db.query('ROLLBACK');
         console.error('Error adding new category:', error);
         res.status(500).json({ message: 'Failed to add new category', error });
     }
@@ -134,28 +127,48 @@ exports.deleteCategories = async (req, res) => {
 };
 
 exports.updateMedicineGroup = async (req, res) => {
-    const { groupName, categoryId } = req.body; // Assuming the front-end sends groupName and categoryId
-    try {
-        // Step 1: Check if category exists in the database
-        const [existingCategory] = await db.query(`
-            SELECT * FROM category WHERE category_id = ?
-        `, [categoryId]);
+    const { categoryId, name, prefix } = req.body;
 
-        if (!existingCategory.length) {
+    if (!categoryId || !name) {
+        return res.status(400).json({ message: 'Category ID and name are required.' });
+    }
+
+    // Don't allow updating NO CATEGORY (ID: 12)
+    if (categoryId === 12) {
+        return res.status(400).json({ message: 'Cannot modify NO CATEGORY as it is a system category' });
+    }
+
+    try {
+        // Check if category exists
+        const [existingCategory] = await db.query(
+            'SELECT * FROM category WHERE category_id = ?',
+            [categoryId]
+        );
+
+        if (existingCategory.length === 0) {
             return res.status(404).json({ message: 'Category not found' });
         }
 
-        // Step 2: Update the category in the database
-        await db.query(`
-            UPDATE category 
-            SET name = ? 
-            WHERE category_id = ?
-        `, [groupName, categoryId]);
+        // Check if new name already exists for a different category
+        const [duplicateName] = await db.query(
+            'SELECT * FROM category WHERE name = ? AND category_id != ?',
+            [name, categoryId]
+        );
+
+        if (duplicateName.length > 0) {
+            return res.status(409).json({ message: 'A category with this name already exists' });
+        }
+
+        // Update the category
+        await db.query(
+            'UPDATE category SET name = ?, prefix = ? WHERE category_id = ?',
+            [name, prefix || '', categoryId]
+        );
 
         res.status(200).json({ message: 'Category updated successfully' });
     } catch (error) {
-        console.error('Error updating medicine group:', error);
-        res.status(500).json({ message: 'Failed to update medicine group', error });
+        console.error('Error updating category:', error);
+        res.status(500).json({ message: 'Failed to update category', error });
     }
 };
 
@@ -364,5 +377,166 @@ exports.deleteMultipleCategories = async (req, res) => {
     } catch (error) {
         console.error('Error fetching low stock products:', error);
         res.status(500).json({ message: 'Failed to fetch low stock products.', error });
+    }
+};
+
+// Archive a category
+exports.archiveCategory = async (req, res) => {
+    const { categoryId } = req.params;
+    const { archivedBy } = req.body;
+
+    if (!categoryId || !archivedBy) {
+        return res.status(400).json({ message: 'Category ID and user ID are required' });
+    }
+
+    // Don't allow archiving of NO CATEGORY (ID: 12)
+    if (categoryId === '12') {
+        return res.status(400).json({ message: 'Cannot archive NO CATEGORY as it is a system category' });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // Get category details before archiving
+        const [category] = await connection.query(
+            'SELECT * FROM category WHERE category_id = ?',
+            [categoryId]
+        );
+
+        if (category.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ message: 'Category not found' });
+        }
+
+        // Get affected products
+        const [affectedProducts] = await connection.query(
+            'SELECT id, name, brand_name FROM products WHERE category = ? AND is_active = TRUE',
+            [categoryId]
+        );
+
+        // Insert into category_archive
+        await connection.query(
+            `INSERT INTO category_archive (
+                category_id, name, prefix, archived_by, archived_at
+            ) VALUES (?, ?, ?, ?, ${timeZoneUtil.getMySQLTimestamp()})`,
+            [categoryId, category[0].name, category[0].prefix, archivedBy]
+        );
+
+        // Update products to set category to NO CATEGORY (12)
+        await connection.query(
+            'UPDATE products SET category = 12 WHERE category = ?',
+            [categoryId]
+        );
+
+        // Delete from category table
+        await connection.query(
+            'DELETE FROM category WHERE category_id = ?',
+            [categoryId]
+        );
+
+        await connection.commit();
+        res.json({ 
+            message: 'Category archived successfully',
+            affectedProducts: affectedProducts
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Error archiving category:', error);
+        res.status(500).json({ message: 'Failed to archive category' });
+    } finally {
+        connection.release();
+    }
+};
+
+exports.getCategoryProducts = async (req, res) => {
+    const { categoryId } = req.params;
+
+    try {
+        // Get products that would be affected by archiving this category
+        const [affectedProducts] = await db.query(
+            'SELECT id, name, brand_name FROM products WHERE category = ? AND is_active = 1',
+            [categoryId]
+        );
+
+        res.json({ 
+            affectedProducts: affectedProducts
+        });
+    } catch (error) {
+        console.error('Error getting category products:', error);
+        res.status(500).json({ message: 'Failed to get category products' });
+    }
+};
+
+// Get next available barcode number for a category
+exports.getNextBarcode = async (req, res) => {
+    const { categoryId } = req.params;
+
+    try {
+        // Get category prefix
+        const [category] = await db.query(
+            'SELECT prefix FROM category WHERE category_id = ?',
+            [categoryId]
+        );
+
+        if (!category || category.length === 0) {
+            throw new Error('Category not found');
+        }
+
+        const prefix = category[0].prefix;
+        if (!prefix) {
+            throw new Error('Category has no prefix defined');
+        }
+
+        // Get current counter value
+        const [counter] = await db.query(`
+            SELECT COALESCE(last_number + 1, 1) as next_number 
+            FROM category_barcode_counter 
+            WHERE category_id = ?
+        `, [categoryId]);
+
+        // If no counter exists yet, start with 1
+        const nextNumber = counter.length > 0 ? counter[0].next_number : 1;
+        const barcode = `${prefix}-${nextNumber.toString().padStart(5, '0')}`;
+
+        // Check if barcode exists
+        const [existingProduct] = await db.query(
+            'SELECT id FROM products WHERE barcode = ?',
+            [barcode]
+        );
+
+        if (existingProduct.length > 0) {
+            // If exists, try next number
+            req.params.startFrom = nextNumber + 1;
+            return this.getNextBarcode(req, res);
+        }
+
+        res.json({ barcode });
+    } catch (error) {
+        console.error('Error getting next barcode:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Increment barcode counter for a category
+exports.incrementBarcodeCounter = async (categoryId, barcode) => {
+    try {
+        await db.query('START TRANSACTION');
+
+        // Extract the number from the barcode
+        const number = parseInt(barcode.split('-')[1]);
+
+        // Update or insert the counter
+        await db.query(`
+            INSERT INTO category_barcode_counter (category_id, last_number)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE last_number = ?
+        `, [categoryId, number, number]);
+
+        await db.query('COMMIT');
+    } catch (error) {
+        await db.query('ROLLBACK');
+        console.error('Error incrementing barcode counter:', error);
+        throw error;
     }
 };

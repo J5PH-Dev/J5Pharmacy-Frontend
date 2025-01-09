@@ -182,7 +182,7 @@ const LoginPage = () => {
                 error={!!error.pin}
                 type="password"
                 inputProps={{
-                  maxLength: 4,
+                  maxLength: 10,
                   pattern: '[0-9]*',
                   inputMode: 'numeric',
                 }}

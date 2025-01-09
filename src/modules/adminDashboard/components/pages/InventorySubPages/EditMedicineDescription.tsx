@@ -1,95 +1,179 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Box, Typography, Breadcrumbs, Link, Button, Stack, TextField, InputAdornment, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Alert, Autocomplete, Checkbox, FormControlLabel, Card, CardActionArea, CardMedia, CardContent, Divider, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { useParams } from 'react-router-dom';
-import WarningIcon from '@mui/icons-material/Warning';
-import CancelIcon from '@mui/icons-material/Cancel';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Breadcrumbs, Link, Button, TextField, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Checkbox, Dialog, DialogTitle, DialogContent, DialogActions, Alert, SelectChangeEvent } from '@mui/material';
+import { useNavigate, useParams } from 'react-router-dom';
 import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
 import axios from 'axios';
 
+// Add the dosage units array
+const DOSAGE_UNITS = [
+    'mg',
+    'mcg',
+    'g',
+    'kg',
+    'ml',
+    'l',
+    'tablet',
+    'capsule',
+    'pill',
+    'patch',
+    'spray',
+    'drop',
+    'mg/ml',
+    'mcg/ml',
+    'mg/l',
+    'mcg/l',
+    'mg/g',
+    'mcg/g',
+    'IU',
+    'mEq',
+    'mmol',
+    'unit',
+    'puff',
+    'application',
+    'sachet',
+    'suppository',
+    'ampoule',
+    'vial',
+    'syringe',
+    'piece'
+];
+
 interface MedicineDetails {
+    medicineInfo: {
+        id: number;
+        barcode: string;
+        name: string;
+        brand_name: string;
+        category_name: string;
+        description: string;
+        sideEffects: string;
+        dosage_amount: number;
+        dosage_unit: string;
+        price: string;
+        total_stock: number;
+        pieces_per_box: number;
+        expiryDate: string;
+        requiresPrescription: number;
+    };
+}
+
+// Add Category interface
+interface Category {
+    category_id: number;
     name: string;
-    barcode: string;
-    group: string;
-    instructions: string;
-    sideEffects: string;
-    brand_name: string;
-    price: number;
-    stock: number;
-    dosage_amount: number;
-    dosage_unit: string;
-    pieces_per_box: number;
-    expiryDate: string;
-    requiresPrescription: number;
+    prefix: string;
 }
 
 const EditMedicineDescription = () => {
     const navigate = useNavigate();
     const { medicineName } = useParams<{ medicineName: string }>();
-    const [openDialog, setOpenDialog] = useState(false);  // State for the confirmation dialog
-    const [categories, setCategories] = useState<string[]>([]);  // State for categories
-    const [dialogType, setDialogType] = useState<'cancel' | 'save'>('cancel'); // To toggle dialog type
+    const [openDialog, setOpenDialog] = useState(false);
+    const [dialogType, setDialogType] = useState<'save' | 'cancel'>('save');
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    const [medicineDetails, setMedicineDetails] = useState<MedicineDetails>({
+    const [formData, setFormData] = useState({
         name: '',
-        barcode: '',
-        group: '',
-        instructions: '',
-        sideEffects: '',
         brand_name: '',
-        price: 0,
-        stock: 0,
-        dosage_amount: 0,
+        barcode: '',
+        category: '',
+        price: '',
+        pieces_per_box: '',
+        dosage_amount: '',
         dosage_unit: '',
-        pieces_per_box: 0,
-        expiryDate: '',
-        requiresPrescription: 0,
+        description: '',
+        sideEffects: '',
+        requiresPrescription: false
     });
 
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await axios.get('/admin/inventory/get-categories');
-                setCategories(response.data); // Assuming the API returns an array of strings
+                const response = await axios.get('/admin/inventory/categories');
+                console.log('Categories from API:', response.data);
+                setCategories(response.data);
             } catch (error) {
                 console.error('Error fetching categories:', error);
             }
         };
 
-        fetchCategories();
-    }, []);
-
-    useEffect(() => {
         const fetchMedicineDetails = async () => {
             try {
                 const response = await axios.get(`/admin/inventory/view-medicines-description/${medicineName}`);
-                const medicineData = response.data.data;
+                const { medicineInfo } = response.data;
+                console.log('Medicine details from API:', medicineInfo);
+                
+                // Remove peso sign if it exists in the price
+                const cleanPrice = medicineInfo.price.startsWith('₱') ? 
+                    medicineInfo.price.substring(1) : medicineInfo.price;
 
-                setMedicineDetails({
-                    name: medicineData.name || '',
-                    barcode: medicineData.barcode || '',
-                    group: medicineData.category || '',
-                    instructions: medicineData.description || 'No instructions available',
-                    sideEffects: medicineData.sideEffects || 'No side effects listed',
-                    brand_name: medicineData.brand_name || '',
-                    price: medicineData.price || 0,
-                    stock: medicineData.stock || 0,
-                    dosage_amount: medicineData.dosage_amount || 0,
-                    dosage_unit: medicineData.dosage_unit || 'mg',
-                    pieces_per_box: medicineData.pieces_per_box || 0,
-                    expiryDate: medicineData.expiryDate || 'N/A',
-                    requiresPrescription: Number(medicineData.requiresPrescription) || 0,  // Ensuring it's a number
+                setFormData({
+                    name: medicineInfo.name,
+                    brand_name: medicineInfo.brand_name,
+                    barcode: medicineInfo.barcode,
+                    category: medicineInfo.category_name,
+                    price: cleanPrice,
+                    pieces_per_box: medicineInfo.pieces_per_box.toString(),
+                    dosage_amount: medicineInfo.dosage_amount.toString(),
+                    dosage_unit: medicineInfo.dosage_unit,
+                    description: medicineInfo.description,
+                    sideEffects: medicineInfo.sideEffects,
+                    requiresPrescription: medicineInfo.requiresPrescription === 1
                 });
             } catch (error) {
                 console.error('Error fetching medicine details:', error);
+                setErrorMessage('Error fetching medicine details');
             }
         };
 
+        fetchCategories();
         fetchMedicineDetails();
     }, [medicineName]);
 
-    const handleGroupChange = (event: SelectChangeEvent<string>) => {
-        setMedicineDetails((prev) => ({ ...prev, group: event.target.value }));
+    const handleInputChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        let value = event.target.value;
+        
+        // Remove the peso sign if it's the price field and starts with ₱
+        if (field === 'price' && value.startsWith('₱')) {
+            value = value.substring(1);
+        }
+        
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handleSelectChange = (field: string) => (event: SelectChangeEvent) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: event.target.value
+        }));
+    };
+
+    const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData(prev => ({
+            ...prev,
+            requiresPrescription: event.target.checked
+        }));
+    };
+
+    const handleCategoryChange = (event: any) => {
+        setFormData(prev => ({
+            ...prev,
+            category: event.target.value
+        }));
+    };
+
+    const handleDialogOpen = (type: 'save' | 'cancel') => {
+        setDialogType(type);
+        setOpenDialog(true);
+    };
+
+    const handleDialogClose = () => {
+        setOpenDialog(false);
     };
 
     const handleBreadcrumbClick = (path: string) => (e: React.MouseEvent) => {
@@ -97,272 +181,201 @@ const EditMedicineDescription = () => {
         navigate(path);
     };
 
-
-    // Open confirmation dialog for Cancel or Save
-    const handleDialogOpen = (type: 'cancel' | 'save') => {
-        setDialogType(type);
-        setOpenDialog(true);
+    const handleCancel = () => {
+        navigate(`/admin/inventory/view-medicines-description/${medicineName}`);
     };
 
-    // Close the dialog without any action
-    const cancelAction = () => {
-        setOpenDialog(false); // Close dialog
-    };
+    const handleSave = async () => {
+        try {
+            // Remove peso sign from price if present
+            const priceValue = formData.price.startsWith('₱') ? 
+                formData.price.substring(1) : formData.price;
 
-    // Handle confirm action based on dialog type
-    const confirmAction = async () => {
-        if (dialogType === 'cancel') {
-            // Navigate to the view-medicines-description page with a success message
-            navigate(`/admin/inventory/view-medicines-description/${medicineName}`, {
-                state: { successMessage: `Cancelled editing ${medicineName}` },
+            await axios.post(`/admin/inventory/edit-medicine/${medicineName}`, {
+                name: formData.name,
+                brand_name: formData.brand_name,
+                barcode: formData.barcode,
+                category: formData.category,
+                price: priceValue,
+                description: formData.description,
+                sideEffects: formData.sideEffects,
+                dosage_amount: parseInt(formData.dosage_amount),
+                dosage_unit: formData.dosage_unit,
+                pieces_per_box: parseInt(formData.pieces_per_box),
+                requiresPrescription: formData.requiresPrescription ? 1 : 0
             });
-        } else {
-            navigate(`/admin/inventory/view-medicines-description/${medicineName}`, {
-                state: { successMessage: `${medicineName} details have been successfully saved!` },
-            });
-            try {
-                // Prepare the updated medicine details
-                const updatedMedicine = {
-                    name: medicineDetails.name,
-                    barcode: medicineDetails.barcode,
-                    group: medicineDetails.group, // Ensure this is included in the request
-                    instructions: medicineDetails.instructions,
-                    sideEffects: medicineDetails.sideEffects,
-                    brand_name: medicineDetails.brand_name,
-                    price: medicineDetails.price,
-                    stock: medicineDetails.stock,
-                    dosage_amount: medicineDetails.dosage_amount,
-                    dosage_unit: medicineDetails.dosage_unit,
-                    pieces_per_box: medicineDetails.pieces_per_box,
-                    expiryDate: medicineDetails.expiryDate,
-                    requiresPrescription: medicineDetails.requiresPrescription,
-                };
 
-                // Ensure the backend URL includes the medicineName parameter
-                const response = await axios.put(
-                    `/admin/inventory/update-medicine-description/${medicineName}`,
-                    updatedMedicine,
-                    {
-                        headers: { 'Content-Type': 'application/json' }, // Explicitly set content-type
-                    }
-                );
-
-                // Handle success
-                if (response.status === 200) {
-                    navigate(`/admin/inventory/view-medicines-description/${medicineName}`, {
-                        state: { successMessage: `${medicineName} details have been successfully saved!` },
-                    });
-                }
-            } catch (error: any) {
-                console.error('Error saving medicine details:', error?.response?.data || error.message);
-                alert(error?.response?.data?.message || 'Error saving changes');
-            } finally {
-                setOpenDialog(false); // Close the dialog after attempting the save
-            }
+            setSuccessMessage('Medicine details updated successfully');
+            setTimeout(() => {
+                navigate(`/admin/inventory/view-medicines-description/${formData.barcode}`, {
+                    state: { successMessage: 'Medicine details updated successfully' }
+                });
+            }, 1500);
+        } catch (error: any) {
+            setErrorMessage(error.response?.data?.message || 'Error updating medicine details');
         }
+        handleDialogClose();
     };
 
-
+    // Function to get display name
+    const getDisplayName = () => {
+        if (!formData) return 'Loading...';
+        return formData.brand_name ? `${formData.name} (${formData.brand_name})` : formData.name;
+    };
 
     return (
         <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
             {/* Breadcrumbs */}
-            <Breadcrumbs
-                aria-label="breadcrumb"
-                sx={{
-                    mb: 2,
-                    display: 'flex',
-                    justifyContent: { xs: 'center', sm: 'flex-start' },
-                }}
-            >
-                <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory')}>Inventory</Link>
-                <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory/view-medicines-available')}>List of Medicine</Link>
+            <Breadcrumbs aria-label="breadcrumb" sx={{ marginBottom: '16px', display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+                <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory')}>
+                    Inventory
+                </Link>
+                <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory/view-medicines-available')}>
+                    Products Available
+                </Link>
                 <Link color="inherit" onClick={handleBreadcrumbClick(`/admin/inventory/view-medicines-description/${medicineName}`)}>
-                    {medicineName}
+                    {getDisplayName()}
                 </Link>
                 <Typography color="text.primary">Edit Details</Typography>
             </Breadcrumbs>
 
-            {/* Page Header */}
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{medicineName}</Typography>
-                    <Typography variant="body1">Update the details and information of the selected medicine.</Typography>
+            {/* Messages */}
+            {successMessage && (
+                <Alert severity="success" sx={{ mb: 2 }}>{successMessage}</Alert>
+            )}
+            {errorMessage && (
+                <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>
+            )}
+
+            {/* Form */}
+            <Box sx={{ 
+                backgroundColor: 'white',
+                borderRadius: 1,
+                boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
+                p: 3
+            }}>
+                <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>Edit Medicine Details</Typography>
+
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, mb: 3 }}>
+                    <TextField
+                        label="Medicine Name"
+                        value={formData.name}
+                        onChange={handleInputChange('name')}
+                        fullWidth
+                        required
+                    />
+                    <TextField
+                        label="Brand Name"
+                        value={formData.brand_name}
+                        onChange={handleInputChange('brand_name')}
+                        fullWidth
+                        required
+                    />
+                    <TextField
+                        label="Barcode"
+                        value={formData.barcode}
+                        onChange={handleInputChange('barcode')}
+                        fullWidth
+                        required
+                    />
+                    <FormControl fullWidth required>
+                        <InputLabel>Category</InputLabel>
+                        <Select
+                            value={formData.category}
+                            onChange={handleCategoryChange}
+                            label="Category"
+                        >
+                            {categories.map((category) => (
+                                <MenuItem key={category.category_id} value={category.name}>
+                                    {category.name}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                    <TextField
+                        label="Price"
+                        value={formData.price}
+                        onChange={handleInputChange('price')}
+                        fullWidth
+                        required
+                        type="text"
+                        InputProps={{
+                            startAdornment: <Typography>₱</Typography>
+                        }}
+                    />
+                    <TextField
+                        label="Pieces per Box"
+                        value={formData.pieces_per_box}
+                        onChange={handleInputChange('pieces_per_box')}
+                        fullWidth
+                        required
+                        type="number"
+                    />
+                    <TextField
+                        label="Dosage Amount"
+                        value={formData.dosage_amount}
+                        onChange={handleInputChange('dosage_amount')}
+                        fullWidth
+                        required
+                        type="number"
+                    />
+                    <FormControl fullWidth required>
+                        <InputLabel>Dosage Unit</InputLabel>
+                        <Select
+                            value={formData.dosage_unit}
+                            onChange={handleSelectChange('dosage_unit')}
+                            label="Dosage Unit"
+                        >
+                            {DOSAGE_UNITS.map((unit) => (
+                                <MenuItem key={unit} value={unit}>
+                                    {unit}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
                 </Box>
-            </Box>
 
-            {/* Content Section */}
-            <div className='flex flex-row flex-wrap gap-5 mt-11'>
                 <TextField
-                    label="Medicine Name"
-                    value={medicineDetails.name}
-                    onChange={(e) => setMedicineDetails((prev) => ({ ...prev, name: e.target.value }))}
-                    variant="outlined"
-                    sx={{ width: 340, backgroundColor: 'white' }}
-                />
-                <TextField
-                    label="Medicine Brand Name"
-                    value={medicineDetails.brand_name}
-                    onChange={(e) => setMedicineDetails((prev) => ({ ...prev, brand_name: e.target.value }))}
-                    variant="outlined"
-                    sx={{ width: 340, backgroundColor: 'white' }}
-                />
-                <TextField
-                    id="outlined-basic"
-                    label="Barcode"
-                    value={medicineDetails.barcode}
-                    onChange={(e) => setMedicineDetails((prev) => ({ ...prev, barcode: e.target.value }))}
-                    variant="outlined"
-                    sx={{ width: 340, backgroundColor: 'white' }}
-                />
-                {/* Medicine Group Selection */}
-                <FormControl fullWidth sx={{ width: 340, backgroundColor: 'white' }}>
-                    <InputLabel id="medicine-group-label">Medicine Group</InputLabel>
-                    <Select
-                        labelId="medicine-group-label"
-                        id="Category"
-                        label="Category"
-                        value={medicineDetails.group}
-                        onChange={(e) => setMedicineDetails((prev) => ({ ...prev, group: e.target.value }))}
-                    >
-                        {categories.map((category) => (
-                            <MenuItem key={category} value={category}>
-                                {category}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-            </div>
-
-            <div className='flex flex-row flex-wrap gap-5 mt-6'>
-                {/* Price */}
-                <TextField
-                    label="Price"
-                    variant="outlined"
-                    value={medicineDetails.price}
-                    onChange={(e) => setMedicineDetails((prev) => ({
-                        ...prev,
-                        price: parseFloat(e.target.value) || 0,  // Convert to number
-                    }))}
-                    sx={{ width: 340, backgroundColor: 'white' }}
-                />
-                {/* Stock */}
-                <TextField
-                    label="Stock Available"
-                    variant="outlined"
-                    value={medicineDetails.stock}
-                    onChange={(e) => setMedicineDetails((prev) => ({
-                        ...prev,
-                        stock: parseInt(e.target.value, 10) || 0,  // Convert to number
-                    }))}
-                    sx={{ width: 340, backgroundColor: 'white' }}
-                />
-            </div>
-
-            <div className='flex flex-row flex-wrap gap-5 mt-6'>
-                {/* Dosage */}
-                <TextField
-                    label="Dosage"
-                    variant="outlined"
-                    value={`${medicineDetails.dosage_amount} ${medicineDetails.dosage_unit}`}  // Concatenate dosage amount and unit
-                    onChange={(e) => setMedicineDetails((prev) => ({
-                        ...prev,
-                        dosage_amount: parseFloat(e.target.value.split(' ')[0]) || 0,  // Assuming first part is amount
-                        dosage_unit: e.target.value.split(' ')[1] || '',  // Assuming second part is unit
-                    }))}
-                    sx={{ width: 340, backgroundColor: 'white' }}
-                />
-                {/* Pieces Per Box */}
-                <TextField
-                    label="Pieces Per Box"
-                    variant="outlined"
-                    value={medicineDetails.pieces_per_box}
-                    onChange={(e) => setMedicineDetails((prev) => ({
-                        ...prev,
-                        pieces_per_box: parseInt(e.target.value, 10) || 0,  // Convert to number
-                    }))}
-                    sx={{ width: 340, backgroundColor: 'white' }}
-                />
-                {/* Expiry Date */}
-                <TextField
-                    label="Expiry Date"
-                    variant="outlined"
-                    value={medicineDetails.expiryDate}
-                    onChange={(e) => setMedicineDetails((prev) => ({
-                        ...prev,
-                        expiryDate: e.target.value,
-                    }))}
-                    sx={{ width: 340, backgroundColor: 'white' }}
-                />
-            </div>
-
-            <div className="flex flex-col gap-5 mt-6 mb-7">
-                <TextField
-                    id="outlined-multiline-static"
-                    label="How to use"
-                    value={medicineDetails.instructions}
-                    onChange={(e) => setMedicineDetails((prev) => ({
-                        ...prev,
-                        instructions: e.target.value,
-                    }))}
+                    label="Description / How to Use"
+                    value={formData.description}
+                    onChange={handleInputChange('description')}
+                    fullWidth
+                    required
                     multiline
                     rows={4}
-                    sx={{
-                        width: '100%', // Full width on all screen sizes
-                        backgroundColor: 'white',
-                    }}
+                    sx={{ mb: 3 }}
                 />
+
                 <TextField
-                    id="outlined-multiline-static"
                     label="Side Effects"
-                    value={medicineDetails.sideEffects}
-                    onChange={(e) => setMedicineDetails((prev) => ({
-                        ...prev,
-                        sideEffects: e.target.value,
-                    }))}
+                    value={formData.sideEffects}
+                    onChange={handleInputChange('sideEffects')}
+                    fullWidth
+                    required
                     multiline
                     rows={4}
-                    sx={{
-                        width: '100%', // Full width on all screen sizes
-                        backgroundColor: 'white',
-                    }}
+                    sx={{ mb: 3 }}
                 />
-            </div>
 
-            <div className="flex flex-col sm:flex-row md:flex-row flex-wrap gap-5 mt-6 mb-7 w-full sm:w-auto md:w-auto justify-start sm:justify-between items-start sm:items-center">
                 <FormControlLabel
                     control={
                         <Checkbox
-                            checked={medicineDetails.requiresPrescription === 1} // Checkbox will be checked if value is 1
-                            onChange={(e) => setMedicineDetails((prev) => ({
-                                ...prev,
-                                requiresPrescription: e.target.checked ? 1 : 0, // Set to 1 if checked, 0 if unchecked
-                            }))}
-                            sx={{
-                                color: 'black',
-                                '&.Mui-checked': { color: 'black' },
-                            }}
+                            checked={formData.requiresPrescription}
+                            onChange={handleCheckboxChange}
                         />
                     }
                     label="Requires Prescription"
-                    sx={{
-                        marginTop: '-10px',
-                        marginBottom: '14px',
-                        '& .MuiFormControlLabel-label': {
-                            fontWeight: 600,
-                        },
-                    }}
+                    sx={{ mb: 3 }}
                 />
 
-                <div className="flex flex-col sm:flex-row md:flex-row gap-4 mt-4 sm:mt-0">
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                     <Button
                         variant="contained"
                         onClick={() => handleDialogOpen('cancel')}
+                        startIcon={<CancelIcon />}
                         sx={{
-                            backgroundColor: '#6F6F6F',
-                            padding: '13px 26px',
-                            color: '#fff',
-                            '&:hover': { backgroundColor: '#9F9F9F' },
+                            bgcolor: 'grey.500',
+                            '&:hover': { bgcolor: 'grey.600' }
                         }}
                     >
                         Cancel
@@ -370,48 +383,40 @@ const EditMedicineDescription = () => {
                     <Button
                         variant="contained"
                         onClick={() => handleDialogOpen('save')}
+                        startIcon={<SaveIcon />}
                         sx={{
-                            backgroundColor: '#01A768',
-                            padding: '13px 26px',
-                            color: '#fff',
-                            '&:hover': { backgroundColor: '#017F4A' },
+                            bgcolor: '#01A768',
+                            '&:hover': { bgcolor: '#017F4A' }
                         }}
                     >
-                        Save Details
+                        Save Changes
                     </Button>
-                </div>
-            </div>
-
-
-
-
-
-
+                </Box>
+            </Box>
 
             {/* Confirmation Dialog */}
-            <Dialog open={openDialog} onClose={cancelAction} BackdropProps={{ onClick: (event) => event.stopPropagation() }} disableEscapeKeyDown>
+            <Dialog open={openDialog} onClose={handleDialogClose}>
                 <DialogTitle>
-                    {dialogType === 'cancel' ? (
-                        <CancelIcon sx={{ color: 'red', marginRight: 1 }} />
-                    ) : (
-                        <SaveIcon sx={{ color: 'green', marginRight: 1 }} />
-                    )}
-                    {dialogType === 'cancel' ? 'Confirm Cancellation' : 'Confirm Save'}
+                    {dialogType === 'save' ? 'Save Changes' : 'Cancel Edit'}
                 </DialogTitle>
                 <DialogContent>
                     <Typography>
-                        {dialogType === 'cancel'
-                            ? 'Are you sure you want to cancel? Unsaved changes will be lost.'
-                            : 'Are you sure you want to save the details?'}
+                        {dialogType === 'save' 
+                            ? 'Are you sure you want to save these changes?'
+                            : 'Are you sure you want to cancel? All changes will be lost.'}
                     </Typography>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={cancelAction} color="secondary">Cancel</Button>
-                    <Button onClick={confirmAction} color="primary">Confirm</Button>
+                    <Button onClick={handleDialogClose}>No</Button>
+                    <Button 
+                        onClick={dialogType === 'save' ? handleSave : handleCancel}
+                        variant="contained"
+                        color={dialogType === 'save' ? 'primary' : 'error'}
+                    >
+                        Yes
+                    </Button>
                 </DialogActions>
             </Dialog>
-
-
         </Box>
     );
 };

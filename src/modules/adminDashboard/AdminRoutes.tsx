@@ -16,6 +16,8 @@ import ViewGroupDetails from './components/pages/InventorySubPages/ViewGroupDeta
 import EditMedicineDescription from './components/pages/InventorySubPages/EditMedicineDescription';
 import MedicineShortage from './components/pages/InventorySubPages/MedicineShortage';
 import ViewAllTransaction from './components/pages/reportSubPages/ViewAllTransaction'; 
+import ArchivedProductsPage from './components/pages/InventorySubPages/ArchivedProductsPage';
+import ArchivedCategoriesPage from './components/pages/InventorySubPages/ArchivedCategoriesPage';
 
 const AdminRoutes: React.FC = () => {
   return (
@@ -35,6 +37,8 @@ const AdminRoutes: React.FC = () => {
         <Route path="inventory/view-medicines-available" element={<MedicinesAvailablePage />} />
         <Route path="inventory/view-medicines-description/:medicineName" element={<ViewMedicineDescription />} />
         <Route path="inventory/view-medicines-description/:medicineName/edit-details" element={<EditMedicineDescription />} />
+        <Route path="inventory/archived" element={<ArchivedProductsPage />} />
+        <Route path="inventory/archived-categories" element={<ArchivedCategoriesPage />} />
 
         <Route path="inventory/view-medicines-group" element={<MedicineGroupPage />} />
         <Route path="inventory/view-medicines-group/:groupName" element={<ViewGroupDetails />} />

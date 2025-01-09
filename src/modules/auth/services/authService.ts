@@ -26,6 +26,21 @@ export const pmsLogin = async (employee_id: string, password: string): Promise<L
         employee_id,
         password
     });
+    
+    // Store user information in localStorage
+    if (response.data.user) {
+        const userData = {
+            ...response.data.user,
+            user_id: response.data.user.user_id
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+    }
+    
+    // Store token
+    if (response.data.token) {
+        setAuthToken(response.data.token);
+    }
+    
     return response.data;
 };
 
@@ -40,6 +55,7 @@ export const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('salesSessionId');
+    removeAuthToken();
 };
 
 export const getToken = () => {

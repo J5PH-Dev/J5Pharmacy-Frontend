@@ -72,7 +72,8 @@ const pmsLogin = async (req, res) => {
                 loginTime: loginTimestamp,
                 created_at: user.created_at,
                 updated_at: user.updated_at,
-                hired_at: user.hired_at
+                hired_at: user.hired_at,
+                user_id: user.user_id
             }
         });
     } catch (error) {
