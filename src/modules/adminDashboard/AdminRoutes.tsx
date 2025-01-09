@@ -18,6 +18,7 @@ import MedicineShortage from './components/pages/InventorySubPages/MedicineShort
 import ViewAllTransaction from './components/pages/reportSubPages/ViewAllTransaction'; 
 import ArchivedProductsPage from './components/pages/InventorySubPages/ArchivedProductsPage';
 import ArchivedCategoriesPage from './components/pages/InventorySubPages/ArchivedCategoriesPage';
+import ArchivedBranchesPage from './components/pages/BranchSubPages/ArchivedBranchesPage';
 
 const AdminRoutes: React.FC = () => {
   return (
@@ -47,6 +48,7 @@ const AdminRoutes: React.FC = () => {
 
 
         <Route path="branches" element={<BranchesPage />} />
+        <Route path="archived-branches" element={<ArchivedBranchesPage />} />
         
         <Route path="sales-report" element={<ReportsPage />} />
         <Route path="sales-report/view-all-transactions" element={<ViewAllTransaction />} />

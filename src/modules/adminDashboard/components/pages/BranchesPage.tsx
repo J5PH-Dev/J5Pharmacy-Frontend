@@ -1,1730 +1,1118 @@
-import React, { useState } from 'react';
-import { Box, Grid, Paper, Typography, Button, Modal, TextField, FormControl, Select, MenuItem, InputLabel, SelectChangeEvent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper as MuiPaper } from '@mui/material';
-import Slide from '@mui/material/Slide';
+import React, { useState, useEffect } from 'react';
+import {
+    Box,
+    Typography,
+    Button,
+    TextField,
+    FormControl,
+    Select,
+    MenuItem,
+    InputLabel,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    DialogActions,
+    Alert,
+    InputAdornment,
+    TablePagination,
+    Grid,
+    Breadcrumbs,
+    Link,
+    Stack,
+    Chip,
+    CircularProgress,
+    Switch,
+    FormControlLabel,
+    Checkbox
+} from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import ArchiveIcon from '@mui/icons-material/Archive';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit'; // Optional edit icon if desired
-import DeleteIcon from '@mui/icons-material/Delete'; // Optional delete icon if desired
-import AddIcon from '@mui/icons-material/Add'; // Add icon
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import * as XLSX from 'xlsx';
+import { useAuth } from '../../../auth/contexts/AuthContext';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import CheckBox from '@mui/icons-material/CheckBox';
+import ExportDialog from '../common/ExportDialog';
+
+interface Branch {
+    branch_id: number;
+    branch_code: string;
+    branch_name: string;
+    address: string;
+    city: string;
+    date_opened: string;
+    branch_manager: number;
+    manager_name?: string;
+    email?: string;
+    contact_number?: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+    is_archived: boolean;
+}
+
+interface Manager {
+    user_id: number;
+    name: string;
+    email: string;
+    phone: string;
+}
+
+interface SortConfig {
+    key: keyof Branch;
+    direction: 'asc' | 'desc';
+}
+
+interface ValidationErrors {
+    branch_code: boolean;
+    branch_name: boolean;
+    address: boolean;
+    city: boolean;
+    date_opened: boolean;
+    branch_manager: boolean;
+}
+
+interface FormData {
+    branch_code: string;
+    branch_name: string;
+    address: string;
+    city: string;
+    date_opened: string;
+    branch_manager: string;
+    is_active: boolean;
+}
 
 const BranchesPage = () => {
-  // State for branches, modal, new branch form, and contact editing
-  const [branches, setBranches] = useState([
-    {
-      id: 1,
-      name: 'Branch 1',
-      address: 'Ph. 10, Pcg 2, Bag..',
-      branchCode: 'PH349TY228',
-      city: 'New York',
-      dateOpen: '2020-01-01',
-      contacts: [{ id: 1, name: 'John Doe', contactNumber: '123-456-7890', position: 'Manager', email: 'john@example.com' }]
-    },
-    {
-      id: 2,
-      name: 'Branch 3',
-      address: 'Ph. 10, Pcg 2, Bag..',
-      branchCode: 'PH349TY228',
-      city: 'Los Angeles',
-      dateOpen: '2018-06-15',
-      contacts: [{ id: 2, name: 'Jane Smith', contactNumber: '987-654-3210', position: 'Assistant', email: 'jane@example.com' }]
-    },
-  ]);
-  
-  const [isBranchModalOpen, setIsBranchModalOpen] = useState(false); // Modal for branch details
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // Modal for editing contact info
-  const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false); // Modal for adding a new contact
-  const [selectedBranch, setSelectedBranch] = useState<any>(null); // Store selected branch details
-  const [selectedContact, setSelectedContact] = useState<any>(null); // Store selected contact for editing
-  const [contactForm, setContactForm] = useState({
-    name: '',
-    position: '',
-    employeeId: '',
-    email: '',
-    username: '',
-    contactNumber: '',
-  });  
-  const [newBranch, setNewBranch] = useState<{ name: string; branchCode: string; address: string;  manager: string; city: string; email: string; dateOpen: string; contactNumber: string; }>({
-    name: '',
-    branchCode: '',
-    address: '',
-    manager: '',
-    email: '',
-    city: '',
-    dateOpen: '',
-    contactNumber: '',
-  });
-  const [filter, setFilter] = useState<string>('All');
-  const navigate = useNavigate();
-
-  // Handle the opening of the branch modal when a branch is clicked
-  const handleBranchClick = (branch: any) => {
-    setSelectedBranch(branch);
-    setIsBranchModalOpen(true);
-  };
-
-  // Function to close the branch modal when done
-  const handleCloseBranchModal = () => {
-    setIsBranchModalOpen(false);
-    setSelectedBranch(null); // Clear selected branch when modal closes
-    
-  };
-
-  // Handle filter change
-  const handleFilterChange = (e: SelectChangeEvent<string>) => {
-    setFilter(e.target.value);
-  };
-
-  // Handle new branch form input
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-  
-    // Update the state for the new branch data
-    setNewBranch((prevBranch) => ({
-      ...prevBranch,
-      [name]: value, // Dynamically set the field that changed
-    }));
-    setValidationErrors((prev) => ({ ...prev, [name]: false })); // Clear error for this field
-  };
-  
-
-  // Function to handle adding a new branch
-  const [validationErrors, setValidationErrors] = useState({
-    name: false,
-    branchCode: false,
-    address: false,
-    manager: false,
-    city: false,
-    email: false,
-    dateOpen: false,
-    contactNumber: false,
-  });
-  const handleAddBranch = () => {
-    const errors = {
-      name: !newBranch.name.trim(),
-      branchCode: !newBranch.branchCode.trim(),
-      address: !newBranch.address.trim(),
-      manager: !newBranch.manager.trim(),
-      city: !newBranch.city.trim(),
-      email: !newBranch.email.trim(),
-      dateOpen: !newBranch.dateOpen.trim(),
-      contactNumber: !newBranch.contactNumber.trim(),
-    };
-  
-    if (Object.values(errors).some((error) => error)) {
-      setValidationErrors(errors);
-      return;
-    }
-  
-    // Assuming contactForm holds the contact details for the manager
-    const newContact = {
-      id: Date.now(), // Unique ID based on timestamp
-      name: contactForm.name,
-      position: contactForm.position,
-      employeeId: contactForm.employeeId,
-      email: contactForm.email,
-      username: contactForm.username,
-      contactNumber: contactForm.contactNumber,
-    };
-  
-    const newBranchObject = {
-      id: branches.length + 1, // Unique ID
-      name: newBranch.name,
-      branchCode: newBranch.branchCode,
-      address: newBranch.address,
-      city: newBranch.city,
-      email: newBranch.email,
-      dateOpen: newBranch.dateOpen,
-      contactNumber: newBranch.contactNumber,
-      manager: newBranch.manager, // Can store manager separately or inside contacts
-      contacts: [newContact], // Initialize with the contact information (manager as the first contact)
-    };
-  
-    setBranches((prevBranches) => [...prevBranches, newBranchObject]);
-  
-    // Reset the form and close the modal
-    setNewBranch({
-      name: "",
-      branchCode: "",
-      address: "",
-      manager: "",
-      city: "",
-      email: "",
-      dateOpen: "",
-      contactNumber: "",
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const [branches, setBranches] = useState<Branch[]>([]);
+    const [filteredBranches, setFilteredBranches] = useState<Branch[]>([]);
+    const [managers, setManagers] = useState<Manager[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [sortConfig, setSortConfig] = useState<SortConfig>({
+        key: 'branch_name',
+        direction: 'asc'
     });
-  
-    setContactForm({
-      name: "",
-      position: "",
-      employeeId: "",
-      email: "",
-      username: "",
-      contactNumber: "",
+
+    // Modal states
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+    const [archiveReason, setArchiveReason] = useState('');
+    const [isStatusChangeModalOpen, setIsStatusChangeModalOpen] = useState(false);
+    const [newStatus, setNewStatus] = useState(false);
+    const [selectedBranches, setSelectedBranches] = useState<number[]>([]);
+    const [selectionMode, setSelectionMode] = useState(false);
+
+    // Form states
+    const [formData, setFormData] = useState<FormData>({
+        branch_code: '',
+        branch_name: '',
+        address: '',
+        city: '',
+        date_opened: '',
+        branch_manager: '',
+        is_active: true
     });
-  
-    setValidationErrors({
-      name: false,
-      branchCode: false,
+
+    const [tempFormData, setTempFormData] = useState<FormData>({
+        branch_code: '',
+        branch_name: '',
+        address: '',
+        city: '',
+        date_opened: '',
+        branch_manager: '',
+        is_active: true
+    });
+
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({
+        branch_code: false,
+        branch_name: false,
       address: false,
-      manager: false,
       city: false,
-      email: false,
-      dateOpen: false,
-      contactNumber: false,
+        date_opened: false,
+        branch_manager: false
     });
-  
-    setIsBranchModalOpen(false); // Close the branch modal
-  };  
-  
-  // Edit Branch Modal
-  const [isEditBranchModalOpen, setIsEditBranchModalOpen] = useState(false); // State for edit branch modal
 
-  const handleOpenEditBranchModal = () => {
-    if (selectedBranch) {
-      setNewBranch({
-        name: selectedBranch.name || "",
-        branchCode: selectedBranch.branchCode || "",
-        address: selectedBranch.address || "",
-        manager: selectedBranch.manager || selectedBranch.contacts[0]?.name || "", // Use existing manager field or first contact
-        city: selectedBranch.city || "",
-        email: selectedBranch.email || "",
-        dateOpen: selectedBranch.dateOpen || "",
-        contactNumber: selectedBranch.contactNumber || "",
-      });
-  
-      setValidationErrors({
-        name: false,
-        branchCode: false,
-        address: false,
-        manager: false,
-        city: false,
-        email: false,
-        dateOpen: false,
-        contactNumber: false,
-      });
-  
-      setIsEditBranchModalOpen(true);
-    }
-  };  
-  
-  const handleCloseEditBranchModal = () => {
-    setIsEditBranchModalOpen(false);
-  };
-  
-  const handleSaveEditedBranch = () => {
-    const errors = {
-      name: !newBranch.name.trim(),
-      branchCode: !newBranch.branchCode.trim(),
-      address: !newBranch.address.trim(),
-      manager: !newBranch.manager.trim(), // Validate manager
-      city: !newBranch.city.trim(),
-      email: !newBranch.email.trim(),
-      dateOpen: !newBranch.dateOpen.trim(),
-      contactNumber: !newBranch.contactNumber.trim(),
+    const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+
+    const exportColumns = [
+      { field: 'branch_code', header: 'Branch Code' },
+      { field: 'branch_name', header: 'Branch Name' },
+      { field: 'address', header: 'Address' },
+      { field: 'city', header: 'City' },
+      { field: 'date_opened', header: 'Date Opened' },
+      { field: 'manager_name', header: 'Branch Manager' },
+      { field: 'email', header: 'Manager Email' },
+      { field: 'contact_number', header: 'Manager Contact' },
+      { field: 'is_active', header: 'Status' },
+      { field: 'created_at', header: 'Created At' },
+      { field: 'updated_at', header: 'Updated At' }
+    ];
+
+    useEffect(() => {
+        fetchBranches();
+        fetchManagers();
+    }, []);
+
+    useEffect(() => {
+        handleSearch();
+    }, [branches, searchQuery]);
+
+    const fetchBranches = async () => {
+        setIsLoading(true);
+        try {
+            const response = await axios.get('/api/admin/branches');
+            setBranches(response.data);
+            setFilteredBranches(response.data);
+            setError(null);
+        } catch (error: any) {
+            console.error('Error fetching branches:', error);
+            setError(error.response?.data?.message || 'Failed to fetch branches');
+        } finally {
+            setIsLoading(false);
+        }
     };
-  
-    if (Object.values(errors).some((error) => error)) {
+
+    const fetchManagers = async () => {
+        try {
+            const response = await axios.get('/api/admin/branch-managers');
+            setManagers(response.data);
+        } catch (error: any) {
+            console.error('Error fetching managers:', error);
+            setError(error.response?.data?.message || 'Failed to fetch managers');
+        }
+    };
+
+    const handleSearch = () => {
+        const query = searchQuery.toLowerCase();
+        const filtered = branches.filter(branch =>
+            branch.branch_name.toLowerCase().includes(query) ||
+            branch.branch_code.toLowerCase().includes(query) ||
+            branch.address.toLowerCase().includes(query) ||
+            branch.city.toLowerCase().includes(query) ||
+            (branch.manager_name?.toLowerCase().includes(query) || '')
+        );
+        setFilteredBranches(filtered);
+        setPage(0);
+    };
+
+    const handleAddBranch = async () => {
+        const errors: ValidationErrors = {
+            branch_code: !tempFormData.branch_code,
+            branch_name: !tempFormData.branch_name,
+            address: !tempFormData.address,
+            city: !tempFormData.city,
+            date_opened: !tempFormData.date_opened,
+            branch_manager: !tempFormData.branch_manager
+        };
+
+        if (Object.values(errors).some(error => error)) {
       setValidationErrors(errors);
       return;
     }
   
-    if (selectedBranch) {
-      // Update the branch data with the new manager and contact number
-      const updatedBranch = {
-        ...selectedBranch,
-        name: newBranch.name,
-        branchCode: newBranch.branchCode,
-        address: newBranch.address,
-        city: newBranch.city,
-        email: newBranch.email,
-        dateOpen: newBranch.dateOpen,
-        contactNumber: newBranch.contactNumber,
-        manager: newBranch.manager, // Update the manager
-      };
-  
-      // Update the branches state
-      setBranches((prevBranches) =>
-        prevBranches.map((branch) =>
-          branch.id === selectedBranch.id ? updatedBranch : branch
-        )
-      );
-  
-      // Update the selectedBranch state to reflect changes
-      setSelectedBranch(updatedBranch);
-  
-      setIsEditBranchModalOpen(false); // Close modal
-      setNewBranch({
-        name: "",
-        branchCode: "",
-        address: "",
-        manager: "",
-        city: "",
-        email: "",
-        dateOpen: "",
-        contactNumber: "",
-      }); // Reset newBranch form state
-  
-      setValidationErrors({
-        name: false,
-        branchCode: false,
-        address: false,
-        manager: false,
-        city: false,
-        email: false,
-        dateOpen: false,
-        contactNumber: false,
-      }); // Reset validation errors
-    }
-  };  
-  
-const [isViewModalOpen, setIsViewModalOpen] = useState(false); // State for the view modal
-const [viewedContact, setViewedContact] = useState<any>(null); // Store the selected contact for viewing
-
-const handleViewContact = (contact: any) => {
-  setViewedContact(contact);
-  setIsViewModalOpen(true);
-};
-
-const handleCloseViewModal = () => {
-  setIsViewModalOpen(false);
-  setViewedContact(null);
-};
-
-const handleCloseAddContactModal = () => {
-  setIsAddContactModalOpen(false); // Close the modal
-  setContactValidationErrors({
-    name: false,
-    position: false,
-    employeeId: false,
-    email: false,
-    username: false,
-    contactNumber: false,
-  }); // Reset validation errors
-};
-
-  // Function to handle editing contact info
-  const handleEditContact = (contact: any) => {
-    if (!contact || typeof contact !== 'object') {
-      console.error('Invalid contact object:', contact);
-      return;
-    }
-  
-    setSelectedContact(contact);
-  
-    // Prefill the form with existing contact details
-    setContactForm({
-      name: contact.name || '',
-      position: contact.position || '',
-      employeeId: contact.employeeId || '',
-      email: contact.email || '',
-      username: contact.username || '',
-      contactNumber: contact.contactNumber || '',
-    });
-  
-    setIsEditModalOpen(true); // Open the edit modal
-  };  
-  
-  // Handle contact input change (for editing)
-  const handleContactInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setContactForm({ ...contactForm, [name]: value });
-  };  
-
-  // Save the edited contact details
-  const handleSaveContact = () => {
-    const errors = {
-      name: !contactForm.name.trim(),
-      position: !contactForm.position.trim(),
-      employeeId: !contactForm.employeeId.trim(),
-      email: !contactForm.email.trim(),
-      username: !contactForm.username.trim(),
-      contactNumber: !contactForm.contactNumber.trim(),
+        try {
+            await axios.post('/api/admin/add-branch', tempFormData);
+            setSuccessMessage('Branch added successfully');
+            setIsAddModalOpen(false);
+            resetForm();
+            await fetchBranches();
+        } catch (error: any) {
+            setError(error.response?.data?.message || 'Failed to add branch');
+        }
     };
-  
-    if (Object.values(errors).some((error) => error)) {
-      setContactValidationErrors(errors); // Set errors if validation fails
-      return;
-    }
-  
-    if (selectedBranch && selectedContact) {
-      const updatedContacts = selectedBranch.contacts.map((contact: any) =>
-        contact.id === selectedContact.id
-          ? { ...contact, ...contactForm } // Update the contact with the new form values
-          : contact
-      );
-  
-      const updatedBranch = { ...selectedBranch, contacts: updatedContacts };
-  
-      setBranches((prevBranches) =>
-        prevBranches.map((branch) =>
-          branch.id === selectedBranch.id ? updatedBranch : branch
-        )
-      );
-  
-      setSelectedBranch(updatedBranch); // Update the selectedBranch state immediately
-  
-      // Close the modal and reset the form
-      setIsEditModalOpen(false);
-      setContactForm({
-        name: "",
-        position: "",
-        employeeId: "",
-        email: "",
-        username: "",
-        contactNumber: "",
-      });
-      setContactValidationErrors({
-        name: false,
-        position: false,
-        employeeId: false,
-        email: false,
-        username: false,
-        contactNumber: false,
-      });
-    }
-  };  
 
-  const [isDeleteContactConfirmOpen, setIsDeleteContactConfirmOpen] = useState(false);
-  const [contactToDelete, setContactToDelete] = useState<any>(null);
-  
-// Function to handle deleting a contact
-const handleDeleteContact = (contact: any) => {
-  // Set the contact to delete in state
-  setContactToDelete(contact);
-  setIsDeleteContactConfirmOpen(true); // Open the delete confirmation modal
-};
+    const handleUpdateBranch = async () => {
+        if (!selectedBranch) return;
 
-// Function to confirm deletion of the contact
-const confirmDeleteContact = () => {
-  if (selectedBranch && contactToDelete) {
-    // Remove the contact from the selected branch's contacts
-    const updatedContacts = selectedBranch.contacts.filter(
-      (contact: any) => contact.id !== contactToDelete.id
-    );
+        const errors: ValidationErrors = {
+            branch_code: !formData.branch_code,
+            branch_name: !formData.branch_name,
+            address: !formData.address,
+            city: !formData.city,
+            date_opened: !formData.date_opened,
+            branch_manager: !formData.branch_manager
+        };
 
-    // Update the branch with the new list of contacts
-    const updatedBranch = { ...selectedBranch, contacts: updatedContacts };
+        if (Object.values(errors).some(error => error)) {
+            setValidationErrors(errors);
+            return;
+        }
 
-    // Immediately update the branches state
-    setBranches((prevBranches) =>
-      prevBranches.map((branch) =>
-        branch.id === selectedBranch.id ? updatedBranch : branch
-      )
-    );
-
-    // Update selectedBranch state to reflect the contact removal in the UI
-    setSelectedBranch(updatedBranch);
-
-    // Close the delete confirmation modal
-    setIsDeleteContactConfirmOpen(false);
-
-    // Clear contact to delete
-    setContactToDelete(null);
-  }
-};
-
-// Function to handle closing the delete confirmation modal
-const handleCloseDeleteContactConfirm = () => {
-  setContactToDelete(null); // Clear the contact to delete
-  setIsDeleteContactConfirmOpen(false); // Close the modal
-};
-  
-  const [contactValidationErrors, setContactValidationErrors] = useState({
-    name: false,
-    position: false,
-    employeeId: false,
-    email: false,
-    username: false,
-    contactNumber: false,
-  });
-  
-  const handleAddNewContact = () => {
-    // Validate required fields
-    const errors = {
-      name: !contactForm.name.trim(),
-      position: !contactForm.position.trim(),
-      employeeId: !contactForm.employeeId.trim(),
-      email: !contactForm.email.trim(),
-      username: !contactForm.username.trim(),
-      contactNumber: !contactForm.contactNumber.trim(),
+        try {
+            await axios.post('/api/admin/update-branch', {
+                branch_id: selectedBranch.branch_id,
+                ...formData
+            });
+            setSuccessMessage('Branch updated successfully');
+            setIsEditModalOpen(false);
+            resetForm();
+            await fetchBranches();
+        } catch (error: any) {
+            setError(error.response?.data?.message || 'Failed to update branch');
+        }
     };
-  
-    if (Object.values(errors).some((error) => error)) {
-      setContactValidationErrors(errors);
-      return;
-    }
-  
-    if (selectedBranch) {
-      // Create the new contact object
-      const newContact = {
-        id: Date.now(), // Unique ID based on timestamp
-        ...contactForm,
-      };
-  
-      // Update the selected branch with the new contact
-      const updatedBranch = {
-        ...selectedBranch,
-        contacts: [...selectedBranch.contacts, newContact],
-      };
-  
-      // Update branches state
-      setBranches((prevBranches) =>
-        prevBranches.map((branch) =>
-          branch.id === selectedBranch.id ? updatedBranch : branch
-        )
-      );
-  
-      // Update selectedBranch state for real-time UI update
-      setSelectedBranch(updatedBranch);
-  
-      // Reset contact form and close modal
-      setContactForm({
-        name: "",
-        position: "",
-        employeeId: "",
-        email: "",
-        username: "",
-        contactNumber: "",
-      });
-  
-      setContactValidationErrors({
-        name: false,
-        position: false,
-        employeeId: false,
-        email: false,
-        username: false,
-        contactNumber: false,
-      });
-  
-      // Close the modal
-      setIsAddContactModalOpen(false);
-    }
-  };  
-  
-// Add a state for managing delete confirmation
-const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
-const handleOpenDeleteConfirm = () => {
-  setIsDeleteConfirmOpen(true);
-};
+    const handleArchiveBranch = async () => {
+        if (!selectedBranch || !archiveReason) return;
 
-const handleCloseDeleteConfirm = () => {
-  setIsDeleteConfirmOpen(false);
-};
+        try {
+            if (selectedBranches.length > 1) {
+                // Bulk archive
+                await axios.post('/api/admin/bulk-archive-branches', {
+                    branch_ids: selectedBranches,
+                    archived_by: user?.user_id,
+                    archive_reason: archiveReason
+                });
+                setSuccessMessage('Branches archived successfully');
+            } else {
+                // Single archive
+                await axios.post(`/api/admin/archive-branch/${selectedBranch.branch_id}`, {
+                    archived_by: user?.user_id,
+                    archive_reason: archiveReason
+                });
+                setSuccessMessage('Branch archived successfully');
+            }
+            setIsArchiveModalOpen(false);
+            setSelectedBranch(null);
+            setArchiveReason('');
+            setSelectedBranches([]);
+            await fetchBranches();
+        } catch (error: any) {
+            setError(error.response?.data?.message || 'Failed to archive branch(es)');
+        }
+    };
 
-const handleDeleteBranch = () => {
-  if (selectedBranch) {
-    setBranches((prevBranches) =>
-      prevBranches.filter((branch) => branch.id !== selectedBranch.id)
+    const handleSort = (key: keyof Branch) => {
+        setSortConfig(prevConfig => ({
+            key,
+            direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
+        }));
+
+        const sorted = [...filteredBranches].sort((a, b) => {
+            const aValue = a[key] ?? '';
+            const bValue = b[key] ?? '';
+            
+            if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
+                return sortConfig.direction === 'asc'
+                    ? (aValue === bValue ? 0 : aValue ? -1 : 1)
+                    : (aValue === bValue ? 0 : aValue ? 1 : -1);
+            }
+            
+            if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+        setFilteredBranches(sorted);
+    };
+
+    const handleEditClick = (branch: Branch) => {
+        setSelectedBranch(branch);
+        setFormData({
+            branch_code: branch.branch_code,
+            branch_name: branch.branch_name,
+            address: branch.address,
+            city: branch.city,
+            date_opened: branch.date_opened,
+            branch_manager: branch.branch_manager.toString(),
+            is_active: branch.is_active
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleViewClick = (branch: Branch) => {
+        setSelectedBranch(branch);
+        setIsViewModalOpen(true);
+    };
+
+    const handleRefresh = async () => {
+        await fetchBranches();
+        setSearchQuery('');
+        setSuccessMessage('Data refreshed successfully');
+    };
+
+    const resetForm = () => {
+        setFormData({
+            branch_code: '',
+            branch_name: '',
+            address: '',
+            city: '',
+            date_opened: '',
+            branch_manager: '',
+            is_active: true
+        });
+        setValidationErrors({
+            branch_code: false,
+            branch_name: false,
+            address: false,
+            city: false,
+            date_opened: false,
+            branch_manager: false
+        });
+    };
+
+    // Pagination
+    const paginatedBranches = filteredBranches.slice(
+        page * rowsPerPage,
+        page * rowsPerPage + rowsPerPage
     );
-    setIsDeleteConfirmOpen(false);
-    setIsBranchModalOpen(false);
-  }
-};
+
+    const handleStatusChange = async () => {
+        if (!selectedBranch) return;
+
+        try {
+            await axios.post('/api/admin/update-branch', {
+                branch_id: selectedBranch.branch_id,
+                ...formData,
+                is_active: newStatus
+            });
+            setSuccessMessage(`Branch status ${newStatus ? 'activated' : 'deactivated'} successfully`);
+            setIsStatusChangeModalOpen(false);
+            setSelectedBranch(null);
+            await fetchBranches();
+        } catch (error: any) {
+            setError(error.response?.data?.message || 'Failed to update branch status');
+        }
+    };
+
+    const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.checked) {
+            setSelectedBranches(paginatedBranches.map(branch => branch.branch_id));
+        } else {
+            setSelectedBranches([]);
+        }
+    };
+
+    const handleSelectBranch = (branchId: number) => {
+        setSelectedBranches(prev => 
+            prev.includes(branchId)
+                ? prev.filter(id => id !== branchId)
+                : [...prev, branchId]
+        );
+    };
+
+    const handleBulkArchive = async () => {
+        if (selectedBranches.length === 0) return;
+
+        // Find selected branches for display
+        const selectedBranchNames = branches
+            .filter(branch => selectedBranches.includes(branch.branch_id))
+            .map(branch => branch.branch_name)
+            .join(", ");
+
+        setSelectedBranch({
+            ...branches.find(branch => branch.branch_id === selectedBranches[0])!,
+            branch_name: selectedBranchNames
+        });
+        setIsArchiveModalOpen(true);
+    };
+
+    const generateBranchCode = async () => {
+        try {
+            const response = await axios.get('/api/admin/generate-branch-code');
+            setTempFormData(prev => ({ ...prev, branch_code: response.data.branch_code }));
+        } catch (error: any) {
+            console.error('Error generating branch code:', error);
+            setError(error.response?.data?.message || 'Failed to generate branch code');
+        }
+    };
+
+    const handleAddModalOpen = () => {
+        generateBranchCode();
+        setTempFormData({
+            branch_code: '',
+            branch_name: '',
+            address: '',
+            city: '',
+            date_opened: '',
+            branch_manager: '',
+            is_active: true
+        });
+        setIsAddModalOpen(true);
+    };
+
+    const handleExportClick = () => {
+        setIsExportDialogOpen(true);
+    };
+
+    const handleExportClose = () => {
+        setIsExportDialogOpen(false);
+    };
+
+    const toggleSelectionMode = () => {
+        setSelectionMode(!selectionMode);
+    };
+
   return (
-    <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
-      {/* Title and Filter Dropdown */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-            Branches
-          </Typography>
-          <Typography variant="body1">
-            Branches Management and Contacts
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <FormControl sx={{ minWidth: 120, mr: 2 }}>
-            <InputLabel>Filter</InputLabel>
-            <Select value={filter} onChange={handleFilterChange} label="Filter">
-              <MenuItem value="All">All</MenuItem>
-              <MenuItem value="Branches">Branches</MenuItem>
-              <MenuItem value="Inactive Branches">Inactive Branches</MenuItem>
-            </Select>
-          </FormControl>
+    <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
+            {/* Alerts */}
+            {error && (
+                <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+                    {error}
+                </Alert>
+            )}
+            {successMessage && (
+                <Alert severity="success" onClose={() => setSuccessMessage(null)} sx={{ mb: 2 }}>
+                    {successMessage}
+                </Alert>
+            )}
+
+            {/* Controls */}
+            <Box sx={{ 
+                backgroundColor: 'white',
+                padding: 2,
+                borderRadius: 1,
+                boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
+                mb: 3,
+                mt: 2
+            }}>
+                {/* Action Buttons Group */}
+                <Box sx={{ 
+                    display: 'flex', 
+                    gap: 1,
+                    mb: 2,
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between'
+                }}>
+                    {/* Left side buttons */}
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Button
   variant="contained"
-  onClick={() => {
-    setNewBranch({
-      name: '',
-      branchCode: '',
-      address: '',
-      manager: '',
-      email: '',
-      city: '',
-      dateOpen: '',
-      contactNumber: '',
-    });
-    setValidationErrors({
-      name: false,
-      branchCode: false,
-      address: false,
-      manager: false,
-      city: false,
-      email: false,
-      dateOpen: false,
-      contactNumber: false,
-    });
-    setIsBranchModalOpen(true);
-  }}
   sx={{
-    backgroundColor: '#01A768', // Green color
-    color: '#fff', // White text color
+                                backgroundColor: '#01A768', 
+                                color: '#fff', 
     fontWeight: 'medium',
     textTransform: 'none',
-    '&:hover': {
-      backgroundColor: '#017F4A', // Slightly darker green on hover
-    },
+                                '&:hover': { backgroundColor: '#017F4A' }
   }}
+                            onClick={handleAddModalOpen}
+                            startIcon={<AddIcon />}
 >
-  <AddIcon /> Add New Branch
+                            Add Branch
 </Button>
-        </Box>
-      </Box>
-
-      <Grid container spacing={3}>
-  {branches.map((branch) => (
-    <Grid item xs={12} sm={6} md={4} key={branch.id}>
-      <Paper
-        elevation={3}
-        sx={{
-          padding: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          height: '220px',
-          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
-          '&:hover': {
-            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)',
-          },
-        }}
-        onClick={() => handleBranchClick(branch)} // Open branch modal on click
-      >
-        <Typography
-          variant="h6"
-          component="h3"
-          sx={{ fontWeight: 'bold', marginBottom: '8px', display: 'flex', alignItems: 'center' }}
-        >
-          {branch.name} &nbsp;
-          <Typography
-            component="span"
-            variant="body2"
-            sx={{
-              backgroundColor: '#01A768',
-              color: '#fff',
-              padding: '2px 6px',
-              borderRadius: '4px',
-              fontSize: '0.8rem',
-            }}
-          >
-            {branch.branchCode}
-          </Typography>
-        </Typography>
-
-        <Typography variant="body2" sx={{ marginBottom: '8px' }}>
-          <strong>Address:</strong> {branch.address}
-        </Typography>
-
-        {/* Ensure manager and contact number are rendered correctly */}
-        {branch.contacts && branch.contacts.length > 0 ? (
-          <>
-            <Typography variant="body2" sx={{ marginBottom: '4px' }}>
-              <strong>Manager:</strong> {branch.contacts[0].name}
-            </Typography>
-            <Typography variant="body2">
-              <strong>Contact Number:</strong> {branch.contacts[0].contactNumber}
-            </Typography>
-          </>
-        ) : (
-          <Typography variant="body2">
-            <em>No contact information available</em>
-          </Typography>
-        )}
-      </Paper>
-    </Grid>
-  ))}
-</Grid>
-
-<Modal
-  open={isBranchModalOpen && !selectedBranch} // Show this modal only for adding a new branch
-  onClose={(event, reason) => {
-    if (reason === "backdropClick") {
-      return;
-    }
-    setIsBranchModalOpen(false);
-  }}
-  aria-labelledby="add-branch-modal"
-  aria-describedby="add-branch-description"
->
-  <Box
-    sx={{
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      width: '90%',
-      maxWidth: '600px',
-      bgcolor: 'background.paper',
-      boxShadow: 24,
-      p: 4,
-      borderRadius: '16px', // Rounded border
-    }}
-  >
-    <Typography variant="h6" component="h2" sx={{ marginBottom: '16px', textAlign: 'center' }}>
-      Add New Branch
-    </Typography>
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr', // Two columns
-        gap: '16px', // Spacing between fields
-      }}
-    >
-<TextField
-  label="Branch Name"
-  variant="outlined"
-  fullWidth
-  name="name"
-  value={newBranch.name}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewBranch((prev) => ({ ...prev, [name]: value }));
-    setValidationErrors((prev) => ({ ...prev, name: false })); // Clear error
-  }}
-  error={validationErrors.name}
-  helperText={validationErrors.name ? "Branch Name is required" : ""}
-/>
-
-<TextField
-  label="Branch Code"
-  variant="outlined"
-  fullWidth
-  name="branchCode"
-  value={newBranch.branchCode}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewBranch((prev) => ({ ...prev, [name]: value }));
-    setValidationErrors((prev) => ({ ...prev, branchCode: false })); // Clear error
-  }}
-  error={validationErrors.branchCode}
-  helperText={validationErrors.branchCode ? "Branch Code is required" : ""}
-/>
-<TextField
-  label="Branch Manager"
-  variant="outlined"
-  fullWidth
-  name="manager"
-  value={newBranch.manager}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewBranch((prev) => ({ ...prev, [name]: value }));
-    setValidationErrors((prev) => ({ ...prev, manager: false })); // Clear error
-  }}
-  error={validationErrors.manager}
-  helperText={validationErrors.manager ? "Branch Manager is required" : ""}
-/>
-
-<TextField
-  label="Address"
-  variant="outlined"
-  fullWidth
-  name="address"
-  value={newBranch.address}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewBranch((prev) => ({ ...prev, [name]: value }));
-    setValidationErrors((prev) => ({ ...prev, address: false })); // Clear error
-  }}
-  error={validationErrors.address}
-  helperText={validationErrors.address ? "Address is required" : ""}
-/>
-
-<TextField
-  label="City"
-  variant="outlined"
-  fullWidth
-  name="city"
-  value={newBranch.city}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewBranch((prev) => ({ ...prev, [name]: value }));
-    setValidationErrors((prev) => ({ ...prev, city: false })); // Clear error
-  }}
-  error={validationErrors.city}
-  helperText={validationErrors.city ? "City is required" : ""}
-/>
-
-<TextField
-  label="Email"
-  variant="outlined"
-  fullWidth
-  name="email"
-  value={newBranch.email}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewBranch((prev) => ({ ...prev, [name]: value }));
-    setValidationErrors((prev) => ({ ...prev, email: false })); // Clear error
-  }}
-  error={validationErrors.email}
-  helperText={validationErrors.email ? "Email is required" : ""}
-/>
-
-<TextField
-  label="Date Open"
-  variant="outlined"
-  fullWidth
-  name="dateOpen"
-  value={newBranch.dateOpen}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewBranch((prev) => ({ ...prev, [name]: value }));
-    setValidationErrors((prev) => ({ ...prev, dateOpen: false })); // Clear error
-  }}
-  error={validationErrors.dateOpen}
-  helperText={validationErrors.dateOpen ? "Date Open is required" : ""}
-/>
-
-<TextField
-  label="Contact Number"
-  variant="outlined"
-  fullWidth
-  name="contactNumber"
-  value={newBranch.contactNumber}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewBranch((prev) => ({ ...prev, [name]: value }));
-    setValidationErrors((prev) => ({ ...prev, contactNumber: false })); // Clear error
-  }}
-  error={validationErrors.contactNumber}
-  helperText={validationErrors.contactNumber ? "Contact Number is required" : ""}
-/>
-</Box>
-<Box
-      sx={{
-        display: 'flex',          // Align buttons horizontally
-        justifyContent: 'flex-end', // Align buttons to the left
-        gap: '16px',              // Space between buttons
-        marginTop: '24px',
-      }}
-    >
       <Button
-        variant="outlined"
-        color="secondary"
-        onClick={() => setIsBranchModalOpen(false)}
+                            variant="contained"
+                            color="inherit"
+                            onClick={handleExportClick}
+                            startIcon={<FileDownloadIcon />}
         sx={{ textTransform: 'none' }}
       >
-        Cancel
+                            Export
       </Button>
       <Button
         variant="contained"
-        color="primary"
-        onClick={handleAddBranch}
+                            color="inherit"
+                            onClick={handleRefresh}
+                            startIcon={<RefreshIcon />}
         sx={{ textTransform: 'none' }}
       >
-        Add Branch
+                            Refresh
       </Button>
-    </Box>
-  </Box>
-</Modal>
-
-<Modal
-  open={isBranchModalOpen && !!selectedBranch} // Show this modal only for viewing branch details
-  onClose={handleCloseBranchModal}
-  aria-labelledby="branch-details-modal"
-  aria-describedby="branch-details-description"
->
-  <Slide direction="left" timeout={750} in={isBranchModalOpen && !!selectedBranch} mountOnEnter unmountOnExit>
-    <Box
-      sx={{
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        height: '100vh',
-        width: '60%',
-        bgcolor: 'background.paper',
-        boxShadow: 24,
-        p: 4,
-        overflowY: 'auto',
-        borderRadius: '8px',
-      }}
-    >
-      {selectedBranch && (
-        <>
-          {/* Upper Section Box */}
-          <Box
-            sx={{
-              border: '1px solid #000000',
-              borderRadius: '8px',
-              padding: '64px',
-              marginBottom: '24px',
-            }}
-          >
-            {/* Header with Branch Name, Code, and Edit Button */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '24px',
-              }}
-            >
-              {/* Left Side: Name and Code */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Typography
-                  variant="h5"
-                  sx={{ fontWeight: 'bold', marginRight: '8px' }}
-                >
-                  {selectedBranch.name}
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 'medium',
-                    color: 'text.secondary',
-                    backgroundColor: '#f0f0f0',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                  }}
-                >
-                  {selectedBranch.branchCode}
-                </Typography>
-              </Box>
-
-              {/* Right Side: Edit Button */}
               <Button
-                variant="outlined"
-                onClick={handleOpenEditBranchModal}
+                            variant="contained"
+                            color="inherit"
+                            onClick={() => navigate('/admin/archived-branches')}
+                            startIcon={<ArchiveIcon />}
                 sx={{ textTransform: 'none' }}
               >
-                Edit Branch
+                            View Archive
               </Button>
             </Box>
 
-            {/* Two Columns for Additional Info */}
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-              <Typography variant="body1">
-  <strong>Branch Manager:</strong>{" "}
-  {selectedBranch.manager || "No Manager Assigned"} {/* Display manager directly */}
-</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body1">
-                  <strong>Address:</strong> {selectedBranch.address}
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body1">
-                  <strong>City:</strong> {selectedBranch.city}
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body1">
-                  <strong>Email:</strong> {selectedBranch.email}
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body1">
-                  <strong>Date Open:</strong> {selectedBranch.dateOpen}
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body1">
-                  <strong>Contact Number:</strong> {selectedBranch.contactNumber}
-                </Typography>
-              </Grid>
-            </Grid>
-          </Box>
-          <Modal
-  open={isEditBranchModalOpen}
-  onClose={(event, reason) => {
-    if (reason === "backdropClick") {
-      return;
-    }
-    setIsEditBranchModalOpen(false);
-  }}
-  aria-labelledby="edit-branch-modal"
-  aria-describedby="edit-branch-description"
->
-  <Box
-    sx={{
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      width: '90%',
-      maxWidth: '600px',
-      bgcolor: 'background.paper',
-      boxShadow: 24,
-      p: 4,
-      borderRadius: '16px', // Rounded border
-    }}
-  >
-    <Typography variant="h6" component="h2" sx={{ marginBottom: '16px', textAlign: 'center' }}>
-      Edit Branch
-    </Typography>
-    <Box
-  sx={{
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr", // Two columns
-    gap: "16px", // Spacing between fields
-  }}
->
-  <TextField
-    label="Branch Name"
-    variant="outlined"
-    fullWidth
-    name="name" // Must match newBranch.name
-    value={newBranch.name}
-    onChange={handleInputChange}
-    error={validationErrors.name}
-    helperText={validationErrors.name ? "Branch Name is required" : ""}
-  />
-
-  <TextField
-    label="Branch Code"
-    variant="outlined"
-    fullWidth
-    name="branchCode" // Must match newBranch.branchCode
-    value={newBranch.branchCode}
-    onChange={handleInputChange}
-    error={validationErrors.branchCode}
-    helperText={validationErrors.branchCode ? "Branch Code is required" : ""}
-  />
-<TextField
-  label="Branch Manager"
-  variant="outlined"
-  fullWidth
-  name="manager" // Ensure this matches the name field in newBranch
-  value={newBranch.manager}
-  onChange={handleInputChange} // Update newBranch manager
-  error={validationErrors.manager}
-  helperText={validationErrors.manager ? "Branch Manager is required" : ""}
-/>
-
-
-  <TextField
-    label="Address"
-    variant="outlined"
-    fullWidth
-    name="address" // Must match newBranch.address
-    value={newBranch.address}
-    onChange={handleInputChange}
-    error={validationErrors.address}
-    helperText={validationErrors.address ? "Address is required" : ""}
-  />
-
-  <TextField
-    label="City"
-    variant="outlined"
-    fullWidth
-    name="city" // Must match newBranch.city
-    value={newBranch.city}
-    onChange={handleInputChange}
-    error={validationErrors.city}
-    helperText={validationErrors.city ? "City is required" : ""}
-  />
-
-  <TextField
-    label="Email"
-    variant="outlined"
-    fullWidth
-    name="email" // Must match newBranch.email
-    value={newBranch.email}
-    onChange={handleInputChange}
-    error={validationErrors.email}
-    helperText={validationErrors.email ? "Email is required" : ""}
-  />
-
-  <TextField
-    label="Date Open"
-    variant="outlined"
-    fullWidth
-    name="dateOpen" // Must match newBranch.dateOpen
-    value={newBranch.dateOpen}
-    onChange={handleInputChange}
-    error={validationErrors.dateOpen}
-    helperText={validationErrors.dateOpen ? "Date Open is required" : ""}
-  />
-
-<TextField
-  label="Contact Number"
-  variant="outlined"
-  fullWidth
-  name="contactNumber" // Ensure this matches the name field in newBranch
-  value={newBranch.contactNumber}
-  onChange={handleInputChange} // Update newBranch contactNumber
-  error={validationErrors.contactNumber}
-  helperText={validationErrors.contactNumber ? "Contact Number is required" : ""}
-/>
-</Box>
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        gap: '16px',
-        marginTop: '24px',
-      }}
-    >
+                    {/* Right side buttons */}
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
       <Button
-  variant="outlined"
-  color="secondary"
-  onClick={() => {
-    setIsEditBranchModalOpen(false);
-    setValidationErrors({
-      name: false,
-      branchCode: false,
-      address: false,
-      manager: false,
-      city: false,
-      email: false,
-      dateOpen: false,
-      contactNumber: false,
-    });
-  }}
-  sx={{ textTransform: 'none', marginRight: '8px' }}
->
-  Cancel
+                            variant="contained"
+                            color={selectionMode ? "primary" : "inherit"}
+                            onClick={toggleSelectionMode}
+                            startIcon={<CheckBox />}
+                            sx={{ textTransform: 'none' }}
+                        >
+                            Selection Mode {selectionMode ? 'ON' : 'OFF'}
 </Button>
       <Button
   variant="contained"
-  color="primary"
-  onClick={handleSaveEditedBranch}
-  sx={{ textTransform: "none" }}
->
-  Save Changes
+                            color="error"
+                            startIcon={<DeleteIcon />}
+                            onClick={handleBulkArchive}
+                            disabled={selectedBranches.length === 0}
+                            sx={{ textTransform: 'none' }}
+                        >
+                            Archive Selected ({selectedBranches.length})
 </Button>
-
     </Box>
   </Box>
-</Modal>
 
-          {/* Lower Section Box */}
-          <Box
-            sx={{
-              border: '1px solid #000000',
-              borderRadius: '8px',
-              padding: '64px',
-            }}
-          >
-            {/* Contacts Table */}
-            <TableContainer component={MuiPaper}>
-              <Table>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                    <TextField
+                        label="Search branch name, code, address, city, or manager"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        sx={{ flexGrow: 1 }}
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <SearchIcon />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
+                    <FormControl sx={{ minWidth: 120 }}>
+                        <InputLabel>Show entries</InputLabel>
+                        <Select
+                            value={rowsPerPage.toString()}
+                            label="Show entries"
+                            onChange={(e) => {
+                                setRowsPerPage(Number(e.target.value));
+                                setPage(0);
+                            }}
+                        >
+                            <MenuItem value={10}>10 entries</MenuItem>
+                            <MenuItem value={25}>25 entries</MenuItem>
+                            <MenuItem value={50}>50 entries</MenuItem>
+                            <MenuItem value={100}>100 entries</MenuItem>
+                        </Select>
+                    </FormControl>
+                </Box>
+            </Box>
+
+            {/* Branches Table */}
+            <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 300px)', overflow: 'auto' }}>
+                <Table stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Contact Number</TableCell>
-                    <TableCell>Position</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Actions</TableCell>
+                        {selectionMode && (
+                            <TableCell padding="checkbox">
+                                <Checkbox
+                                    indeterminate={selectedBranches.length > 0 && selectedBranches.length < paginatedBranches.length}
+                                    checked={selectedBranches.length === paginatedBranches.length && paginatedBranches.length > 0}
+                                    onChange={handleSelectAll}
+                                />
+                            </TableCell>
+                        )}
+                        <TableCell 
+                            onClick={() => handleSort('branch_name')}
+                            sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                            Branch Name
+                            {sortConfig.key === 'branch_name' && (
+                                sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                            )}
+                        </TableCell>
+                        <TableCell 
+                            onClick={() => handleSort('branch_code')}
+                            sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                            Branch Code
+                            {sortConfig.key === 'branch_code' && (
+                                sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                            )}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Location</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Manager</TableCell>
+                        <TableCell 
+                            onClick={() => handleSort('date_opened')}
+                            sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                            Date Opened
+                            {sortConfig.key === 'date_opened' && (
+                                sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                            )}
+                        </TableCell>
+                        <TableCell 
+                            onClick={() => handleSort('is_active')}
+                            sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                            Status
+                            {sortConfig.key === 'is_active' && (
+                                sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                            )}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {selectedBranch.contacts.map((contact: any) => (
-                    <TableRow key={contact.id}>
-                      <TableCell>{contact.name}</TableCell>
-                      <TableCell>{contact.contactNumber}</TableCell>
-                      <TableCell>{contact.position}</TableCell>
-                      <TableCell>{contact.email}</TableCell>
-                      <TableCell>
-                      <Box sx={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-    {/* View Button with Icon */}
-    <Button
-      onClick={() => handleViewContact(contact)}
-      variant="outlined"
-      color="primary"
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} align="center">
+                                        <CircularProgress />
+                                    </TableCell>
+                                </TableRow>
+                            ) : paginatedBranches.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} align="center">
+                                        No branches found
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                paginatedBranches.map((branch) => (
+                                    <TableRow 
+                                        key={branch.branch_id} 
+                                        onClick={() => selectionMode && handleSelectBranch(branch.branch_id)}
       sx={{
-        minWidth: '40px',
-        padding: '4px 8px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textTransform: 'none',
-      }}
+                                            height: '60px',
+                                            backgroundColor: !branch.is_active ? 'rgba(0, 0, 0, 0.04)' : 
+                                                            selectedBranches.includes(branch.branch_id) ? 'rgba(25, 118, 210, 0.08)' : 
+                                                            'inherit',
+                                            cursor: selectionMode ? 'pointer' : 'default',
+                                            '&:hover': {
+                                                backgroundColor: selectionMode ? 'rgba(25, 118, 210, 0.12)' : 'rgba(0, 0, 0, 0.04)'
+                                            }
+                                        }}
+                                    >
+                                        {selectionMode && (
+                                            <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                                                <Checkbox
+                                                    checked={selectedBranches.includes(branch.branch_id)}
+                                                    onChange={(e) => handleSelectBranch(branch.branch_id)}
+                                                />
+                                            </TableCell>
+                                        )}
+                                        <TableCell>{branch.branch_name}</TableCell>
+                                        <TableCell>{branch.branch_code}</TableCell>
+                                        <TableCell>{`${branch.address}, ${branch.city}`}</TableCell>
+                                        <TableCell>{branch.manager_name || 'Not Assigned'}</TableCell>
+                                        <TableCell>{new Date(branch.date_opened).toLocaleDateString()}</TableCell>
+                                        <TableCell>
+                                            <Chip 
+                                                label={branch.is_active ? 'Active' : 'Inactive'}
+                                                color={branch.is_active ? 'success' : 'error'}
+                                                size="small"
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Stack direction="row" spacing={1}>
+                                                <IconButton
+                                                    onClick={() => handleViewClick(branch)}
+                                                    color="info"
+                                                    title="View Details"
     >
       <VisibilityIcon />
-    </Button>
-
-    {/* Edit Button with Consistent Style */}
-    <Button
-      onClick={() => handleEditContact(contact)}
-      variant="outlined"
+                                                </IconButton>
+                                                <IconButton
+                                                    onClick={() => handleEditClick(branch)}
       color="primary"
-      sx={{
-        minWidth: '40px',
-        padding: '4px 8px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textTransform: 'none',
-      }}
-    >
-      Edit
-    </Button>
-
-    {/* Delete Button with Consistent Style */}
-    <Button
-  onClick={() => handleDeleteContact(contact)}
-  variant="outlined"
-  color="error"
-  sx={{
-    minWidth: '40px',
-    padding: '4px 8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textTransform: 'none',
-  }}
->
-  Delete
-</Button>
-<Modal
-  open={isDeleteContactConfirmOpen}
-  onClose={handleCloseDeleteContactConfirm}
-  aria-labelledby="delete-contact-confirmation"
-  aria-describedby="delete-contact-confirmation-description"
->
-  <Box
-    sx={{
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      width: '90%',
-      maxWidth: '400px',
-      bgcolor: 'background.paper',
-      boxShadow: 24,
-      p: 4,
-      borderRadius: '8px',
-      textAlign: 'center',
-    }}
-  >
-    <Typography variant="h6" component="h2" sx={{ marginBottom: '16px' }}>
-      Confirm Deletion
-    </Typography>
-    <Typography variant="body1" sx={{ marginBottom: '16px' }}>
-      Are you sure you want to delete the contact "{contactToDelete?.name}"?
-    </Typography>
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-      <Button
-        variant="outlined"
-        color="secondary"
-        onClick={handleCloseDeleteContactConfirm}
-        sx={{ textTransform: 'none' }}
-      >
-        Cancel
-      </Button>
-      <Button
-        variant="contained"
+                                                    title="Edit Branch"
+                                                >
+                                                    <EditIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    onClick={() => {
+                                                        setSelectedBranch(branch);
+                                                        setIsArchiveModalOpen(true);
+                                                    }}
         color="error"
-        onClick={confirmDeleteContact}
-        sx={{ textTransform: 'none' }}
-      >
-        Delete
-      </Button>
-    </Box>
-  </Box>
-</Modal>
-  </Box>
+                                                    title="Archive Branch"
+                                                >
+                                                    <DeleteIcon />
+                                                </IconButton>
+                                            </Stack>
                       </TableCell>
                     </TableRow>
-                  ))}
+                                ))
+                            )}
                 </TableBody>
               </Table>
             </TableContainer>
-            <Box
-    sx={{
-      display: 'flex',
-      justifyContent: 'center',
-      marginTop: '16px',
-    }}
-  >
-    <Button
-  variant="contained"
-  color="primary"
-  onClick={() => {
-    setContactForm({
-      name: '',
-      position: '',
-      employeeId: '',
-      email: '',
-      username: '',
-      contactNumber: '',
-    }); // Clear the contact form fields
-    setContactValidationErrors({
-      name: false,
-      position: false,
-      employeeId: false,
-      email: false,
-      username: false,
-      contactNumber: false,
-    }); // Reset validation errors
-    setIsAddContactModalOpen(true); // Open the modal
-  }}
-  sx={{
-    backgroundColor: '#01A768',
-    color: 'white',
-    '&:hover': {
-      backgroundColor: '#017F4A',
-    },
-  }}
->
-  Add Contact
-</Button>
-  </Box>
-          </Box>
-        </>
-      )}
-     <Box
-  sx={{
-    display: 'flex',
-    justifyContent: 'flex-end', // Aligns content to the right
-    marginTop: '24px', // Adds spacing above the button
-  }}
->
-  <Button
-    variant="outlined"
-    color="error"
-    onClick={handleOpenDeleteConfirm}
-    sx={{
-      textTransform: 'none',
-      padding: '12px 24px', // Increases the size of the button
-      fontSize: '16px', // Slightly larger font
-      minWidth: '150px', // Ensures the button is wide enough
-    }}
-  >
-    Delete Branch
-  </Button>
-</Box>
 
-<Modal
-  open={isDeleteConfirmOpen}
-  onClose={handleCloseDeleteConfirm}
-  aria-labelledby="delete-branch-confirmation"
-  aria-describedby="delete-branch-confirmation-description"
->
-  <Box
-    sx={{
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      width: '90%',
-      maxWidth: '400px',
-      bgcolor: 'background.paper',
-      boxShadow: 24,
-      p: 4,
-      borderRadius: '8px',
-      textAlign: 'center',
-    }}
-  >
-    <Typography variant="h6" component="h2" sx={{ marginBottom: '16px' }}>
-      Confirm Deletion
-    </Typography>
-    <Typography variant="body1" sx={{ marginBottom: '16px' }}>
-      Are you sure you want to delete the branch "{selectedBranch?.name}"?
-    </Typography>
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-      <Button
-        variant="outlined"
-        color="secondary"
-        onClick={handleCloseDeleteConfirm}
-        sx={{ textTransform: 'none' }}
-      >
-        Cancel
-      </Button>
-      <Button
-        variant="contained"
-        color="error"
-        onClick={handleDeleteBranch}
-        sx={{ textTransform: 'none'}}
-      >
-        Delete
-      </Button>
-    </Box>
-  </Box>
-</Modal>
-    </Box>
-  </Slide>
-</Modal>
+            <TablePagination
+                component="div"
+                count={filteredBranches.length}
+                page={page}
+                onPageChange={(e, newPage) => setPage(newPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(e) => {
+                    setRowsPerPage(parseInt(e.target.value, 10));
+                    setPage(0);
+                }}
+            />
 
-<Modal
-  open={isViewModalOpen}
-  onClose={(event, reason) => {
-    if (reason === "backdropClick" || reason === "escapeKeyDown") {
-      return; // Prevent closing the modal by clicking outside or pressing escape
-    }
-    setIsViewModalOpen(false);
-  }}
-  aria-labelledby="view-contact-modal"
-  aria-describedby="view-contact-description"
->
-  <Box
-    sx={{
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      width: '90%',
-      maxWidth: '600px',
-      bgcolor: 'background.paper',
-      boxShadow: 24,
-      p: 4,
-      borderRadius: '8px',
-    }}
-  >
-    <Typography variant="h6" component="h2" sx={{ marginBottom: '16px', textAlign: 'center' }}>
-      Contact Information
-    </Typography>
-    {viewedContact && (
-      <Grid container spacing={2}>
-        <Grid item xs={6}>
-          <Typography variant="body1">
-            <strong>Full Name:</strong> {viewedContact.name || 'N/A'}
-          </Typography>
-        </Grid>
-        <Grid item xs={6}>
-          <Typography variant="body1">
-            <strong>Position:</strong> {viewedContact.position || 'N/A'}
-          </Typography>
-        </Grid>
-        <Grid item xs={6}>
-          <Typography variant="body1">
-            <strong>Employee ID:</strong> {viewedContact.employeeId || 'N/A'}
-          </Typography>
-        </Grid>
-        <Grid item xs={6}>
-          <Typography variant="body1">
-            <strong>Email:</strong> {viewedContact.email || 'N/A'}
-          </Typography>
-        </Grid>
-        <Grid item xs={6}>
-          <Typography variant="body1">
-            <strong>Username:</strong> {viewedContact.username || 'N/A'}
-          </Typography>
-        </Grid>
-        <Grid item xs={6}>
-          <Typography variant="body1">
-            <strong>Contact Number:</strong> {viewedContact.contactNumber || 'N/A'}
-          </Typography>
-        </Grid>
-      </Grid>
-    )}
-    <Box sx={{ textAlign: 'center', marginTop: '16px' }}>
-      <Button
-        variant="outlined"
-        color="secondary"
-        onClick={() => setIsViewModalOpen(false)}
-        sx={{ textTransform: 'none' }}
-      >
-        Close
-      </Button>
-    </Box>
-  </Box>
-</Modal>
-
-      {/* Modal for Editing Contact */}
-      <Modal
-  open={isEditModalOpen}
-  onClose={(event, reason) => {
-    if (reason === "backdropClick" || reason === "escapeKeyDown") {
-      return;
-    }
-    setIsEditModalOpen(false);
-  }}
-  aria-labelledby="edit-contact-modal"
-  aria-describedby="edit-contact-description"
->
-  <Box
-    sx={{
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      width: '90%',
-      maxWidth: '600px',
-      bgcolor: 'background.paper',
-      boxShadow: 24,
-      p: 4,
-      borderRadius: '8px',
-    }}
-  >
-    <Typography variant="h6" component="h2" sx={{ marginBottom: '16px', textAlign: 'center' }}>
-      Edit Contact Information
-    </Typography>
-    <Grid container spacing={2}>
-      <Grid item xs={6}>
+            {/* Add Branch Modal */}
+            <Dialog
+                open={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Add New Branch</DialogTitle>
+                <DialogContent>
+                    <Grid container spacing={2} sx={{ mt: 1 }}>
+                        <Grid item xs={12} sm={6}>
         <TextField
-          label="Full Name"
-          variant="outlined"
+                                label="Branch Code"
+                                value={tempFormData.branch_code}
+                                disabled
           fullWidth
-          name="name"
-          value={contactForm.name}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            handleContactInputChange(e);
-            setContactValidationErrors((prev) => ({ ...prev, name: false }));
-          }}
-          error={contactValidationErrors.name}
-          helperText={contactValidationErrors.name ? "Full Name is required" : ""}
+                                required
+                                error={validationErrors.branch_code}
         />
       </Grid>
-      <Grid item xs={6}>
+                        <Grid item xs={12} sm={6}>
         <TextField
-          label="Position"
-          variant="outlined"
+                                label="Branch Name"
+                                value={tempFormData.branch_name}
+                                onChange={(e) => setTempFormData({ ...tempFormData, branch_name: e.target.value })}
           fullWidth
-          name="position"
-          value={contactForm.position}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            handleContactInputChange(e);
-            setContactValidationErrors((prev) => ({ ...prev, position: false }));
-          }}
-          error={contactValidationErrors.position}
-          helperText={contactValidationErrors.position ? "Position is required" : ""}
+                                required
+                                error={validationErrors.branch_name}
         />
       </Grid>
-      <Grid item xs={6}>
+                        <Grid item xs={12}>
         <TextField
-          label="Employee ID"
-          variant="outlined"
+                                label="Address"
+                                value={tempFormData.address}
+                                onChange={(e) => setTempFormData({ ...tempFormData, address: e.target.value })}
           fullWidth
-          name="employeeId"
-          value={contactForm.employeeId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            handleContactInputChange(e);
-            setContactValidationErrors((prev) => ({ ...prev, employeeId: false }));
-          }}
-          error={contactValidationErrors.employeeId}
-          helperText={contactValidationErrors.employeeId ? "Employee ID is required" : ""}
+                                required
+                                error={validationErrors.address}
         />
       </Grid>
-      <Grid item xs={6}>
+                        <Grid item xs={12} sm={6}>
         <TextField
-          label="Email"
-          variant="outlined"
+                                label="City"
+                                value={tempFormData.city}
+                                onChange={(e) => setTempFormData({ ...tempFormData, city: e.target.value })}
           fullWidth
-          name="email"
-          value={contactForm.email}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            handleContactInputChange(e);
-            setContactValidationErrors((prev) => ({ ...prev, email: false }));
-          }}
-          error={contactValidationErrors.email}
-          helperText={contactValidationErrors.email ? "Email is required" : ""}
+                                required
+                                error={validationErrors.city}
         />
       </Grid>
-      <Grid item xs={6}>
+                        <Grid item xs={12} sm={6}>
         <TextField
-          label="Username"
-          variant="outlined"
+                                label="Date Opened"
+                                type="date"
+                                value={tempFormData.date_opened}
+                                onChange={(e) => setTempFormData({ ...tempFormData, date_opened: e.target.value })}
           fullWidth
-          name="username"
-          value={contactForm.username}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            handleContactInputChange(e);
-            setContactValidationErrors((prev) => ({ ...prev, username: false }));
-          }}
-          error={contactValidationErrors.username}
-          helperText={contactValidationErrors.username ? "Username is required" : ""}
+                                required
+                                error={validationErrors.date_opened}
+                                InputLabelProps={{ shrink: true }}
         />
       </Grid>
-      <Grid item xs={6}>
-        <TextField
-          label="Contact Number"
-          variant="outlined"
-          fullWidth
-          name="contactNumber"
-          value={contactForm.contactNumber}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            handleContactInputChange(e);
-            setContactValidationErrors((prev) => ({ ...prev, contactNumber: false }));
-          }}
-          error={contactValidationErrors.contactNumber}
-          helperText={contactValidationErrors.contactNumber ? "Contact Number is required" : ""}
+                        <Grid item xs={12}>
+                            <FormControl fullWidth required error={validationErrors.branch_manager}>
+                                <InputLabel>Branch Manager</InputLabel>
+                                <Select
+                                    value={tempFormData.branch_manager}
+                                    label="Branch Manager"
+                                    onChange={(e) => setTempFormData({ ...tempFormData, branch_manager: e.target.value })}
+                                >
+                                    {managers.map((manager) => (
+                                        <MenuItem key={manager.user_id} value={manager.user_id}>
+                                            {manager.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={tempFormData.is_active}
+                                        onChange={(e) => setTempFormData({ 
+                                            ...tempFormData, 
+                                            is_active: e.target.checked 
+                                        })}
+                                    />
+                                }
+                                label="Active"
         />
       </Grid>
     </Grid>
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        marginTop: '16px',
-      }}
-    >
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
       <Button
-        variant="outlined"
-        color="secondary"
         onClick={() => {
-          setIsEditModalOpen(false);
-          setContactValidationErrors({
-            name: false,
-            position: false,
-            employeeId: false,
-            email: false,
-            username: false,
-            contactNumber: false,
-          });
-        }}
-        sx={{ textTransform: 'none', marginRight: '8px' }}
-      >
-        Cancel
-      </Button>
-      <Button
+                            setFormData(tempFormData);
+                            handleAddBranch();
+                        }} 
         variant="contained"
         color="primary"
-        onClick={handleSaveContact}
-        sx={{ textTransform: 'none' }}
       >
-        Save Changes
+                        Add Branch
       </Button>
-    </Box>
-  </Box>
-</Modal>
+                </DialogActions>
+            </Dialog>
 
-      {/* Modal for Adding New Contact */}
-      <Modal
-  open={isAddContactModalOpen}
-  onClose={handleCloseAddContactModal}
-  aria-labelledby="add-contact-modal"
-  aria-describedby="add-contact-description"
->
-  <Box
-    sx={{
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      width: '90%',
-      maxWidth: '600px',
-      bgcolor: 'background.paper',
-      boxShadow: 24,
-      p: 4,
-      borderRadius: '8px',
-    }}
-  >
-    <Typography variant="h6" component="h2" sx={{ marginBottom: '16px', textAlign: 'center' }}>
-      Add New Contact
-    </Typography>
-    <Grid container spacing={2}>
-      <Grid item xs={6}>
+            {/* Edit Branch Modal */}
+            <Dialog
+                open={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Edit Branch</DialogTitle>
+                <DialogContent>
+                    <Grid container spacing={2} sx={{ mt: 1 }}>
+                        <Grid item xs={12} sm={6}>
       <TextField
-  label="Full Name"
-  variant="outlined"
+                                label="Branch Code"
+                                value={tempFormData.branch_code}
+                                onChange={(e) => setTempFormData({ ...tempFormData, branch_code: e.target.value })}
   fullWidth
-  name="name"
-  value={contactForm.name}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    handleContactInputChange(e);
-    setContactValidationErrors((prev) => ({ ...prev, name: false }));
-  }}
-  error={contactValidationErrors.name}
-  helperText={contactValidationErrors.name ? "Full Name is required" : ""}
-/>
-
+                                required
+                                error={validationErrors.branch_code}
+                            />
       </Grid>
-      <Grid item xs={6}>
+                        <Grid item xs={12} sm={6}>
       <TextField
-  label="Position"
-  variant="outlined"
+                                label="Branch Name"
+                                value={tempFormData.branch_name}
+                                onChange={(e) => setTempFormData({ ...tempFormData, branch_name: e.target.value })}
   fullWidth
-  name="position"
-  value={contactForm.position}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    handleContactInputChange(e);
-    setContactValidationErrors((prev) => ({ ...prev, position: false }));
-  }}
-  error={contactValidationErrors.position}
-  helperText={contactValidationErrors.position ? "Position is required" : ""}
+                                required
+                                error={validationErrors.branch_name}
 />
       </Grid>
-      <Grid item xs={6}>
+                        <Grid item xs={12}>
       <TextField
-  label="Employee ID"
-  variant="outlined"
+                                label="Address"
+                                value={tempFormData.address}
+                                onChange={(e) => setTempFormData({ ...tempFormData, address: e.target.value })}
   fullWidth
-  name="employeeId"
-  value={contactForm.employeeId}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    handleContactInputChange(e);
-    setContactValidationErrors((prev) => ({ ...prev, employeeId: false }));
-  }}
-  error={contactValidationErrors.employeeId}
-  helperText={contactValidationErrors.employeeId ? "Employee ID is required" : ""}
+                                required
+                                error={validationErrors.address}
 />
       </Grid>
-      <Grid item xs={6}>
+                        <Grid item xs={12} sm={6}>
       <TextField
-  label="Email"
-  variant="outlined"
+                                label="City"
+                                value={tempFormData.city}
+                                onChange={(e) => setTempFormData({ ...tempFormData, city: e.target.value })}
   fullWidth
-  name="email"
-  value={contactForm.email}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    handleContactInputChange(e);
-    setContactValidationErrors((prev) => ({ ...prev, email: false }));
-  }}
-  error={contactValidationErrors.email}
-  helperText={contactValidationErrors.email ? "Email is required" : ""}
+                                required
+                                error={validationErrors.city}
 />
       </Grid>
-      <Grid item xs={6}>
+                        <Grid item xs={12} sm={6}>
       <TextField
-  label="Username"
-  variant="outlined"
+                                label="Date Opened"
+                                type="date"
+                                value={tempFormData.date_opened}
+                                onChange={(e) => setTempFormData({ ...tempFormData, date_opened: e.target.value })}
   fullWidth
-  name="username"
-  value={contactForm.username}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    handleContactInputChange(e);
-    setContactValidationErrors((prev) => ({ ...prev, username: false }));
-  }}
-  error={contactValidationErrors.username}
-  helperText={contactValidationErrors.username ? "Username is required" : ""}
+                                required
+                                error={validationErrors.date_opened}
+                                InputLabelProps={{ shrink: true }}
 />
       </Grid>
-      <Grid item xs={6}>
-      <TextField
-  label="Contact Number"
-  variant="outlined"
-  fullWidth
-  name="contactNumber"
-  value={contactForm.contactNumber}
-  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-    handleContactInputChange(e);
-    setContactValidationErrors((prev) => ({ ...prev, contactNumber: false }));
-  }}
-  error={contactValidationErrors.contactNumber}
-  helperText={contactValidationErrors.contactNumber ? "Contact Number is required" : ""}
+                        <Grid item xs={12}>
+                            <FormControl fullWidth required error={validationErrors.branch_manager}>
+                                <InputLabel>Branch Manager</InputLabel>
+                                <Select
+                                    value={tempFormData.branch_manager}
+                                    label="Branch Manager"
+                                    onChange={(e) => setTempFormData({ ...tempFormData, branch_manager: e.target.value })}
+                                >
+                                    {managers.map((manager) => (
+                                        <MenuItem key={manager.user_id} value={manager.user_id}>
+                                            {manager.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={tempFormData.is_active}
+                                        onChange={(e) => setTempFormData({ 
+                                            ...tempFormData, 
+                                            is_active: e.target.checked 
+                                        })}
+                                    />
+                                }
+                                label="Active"
 />
       </Grid>
     </Grid>
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        marginTop: '16px',
-      }}
-    >
-    <Button
-  variant="outlined"
-  color="secondary"
-  onClick={handleCloseAddContactModal}
-  sx={{ textTransform: 'none', marginRight: '8px' }}
->
-  Cancel
-</Button>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                    <Button 
+                        onClick={() => {
+                            if (tempFormData.is_active !== formData.is_active) {
+                                setNewStatus(tempFormData.is_active);
+                                setIsStatusChangeModalOpen(true);
+                            } else {
+                                setFormData(tempFormData);
+                                handleUpdateBranch();
+                            }
+                        }} 
+                        variant="contained" 
+                        color="primary"
+                    >
+                        Update Branch
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
+            {/* View Branch Modal */}
+            <Dialog
+                open={isViewModalOpen}
+                onClose={() => setIsViewModalOpen(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Branch Details</DialogTitle>
+                <DialogContent>
+                    {selectedBranch && (
+                        <Grid container spacing={2} sx={{ mt: 1 }}>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary">Branch Code</Typography>
+                                <Typography variant="body1">{selectedBranch.branch_code}</Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary">Branch Name</Typography>
+                                <Typography variant="body1">{selectedBranch.branch_name}</Typography>
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Typography variant="subtitle2" color="text.secondary">Address</Typography>
+                                <Typography variant="body1">{selectedBranch.address}</Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary">City</Typography>
+                                <Typography variant="body1">{selectedBranch.city}</Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Typography variant="subtitle2" color="text.secondary">Date Opened</Typography>
+                                <Typography variant="body1">{new Date(selectedBranch.date_opened).toLocaleDateString()}</Typography>
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Typography variant="subtitle2" color="text.secondary">Branch Manager</Typography>
+                                <Typography variant="body1">{selectedBranch.manager_name || 'Not Assigned'}</Typography>
+                            </Grid>
+                            {selectedBranch.manager_name && (
+                                <>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="subtitle2" color="text.secondary">Manager Email</Typography>
+                                        <Typography variant="body1">{selectedBranch.email || 'N/A'}</Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="subtitle2" color="text.secondary">Manager Contact</Typography>
+                                        <Typography variant="body1">{selectedBranch.contact_number || 'N/A'}</Typography>
+                                    </Grid>
+                                </>
+                            )}
+                            <Grid item xs={12}>
+                                <Typography variant="subtitle2" color="text.secondary">Status</Typography>
+                                <Chip 
+                                    label={selectedBranch.is_active ? 'Active' : 'Inactive'}
+                                    color={selectedBranch.is_active ? 'success' : 'error'}
+                                    size="small"
+                                    sx={{ mt: 0.5 }}
+                                />
+                            </Grid>
+                        </Grid>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setIsViewModalOpen(false)}>Close</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Archive Branch Modal */}
+            <Dialog
+                open={isArchiveModalOpen}
+                onClose={() => setIsArchiveModalOpen(false)}
+            >
+                <DialogTitle>Archive Branch</DialogTitle>
+                <DialogContent>
+                    <DialogContentText sx={{ mb: 2 }}>
+                        Are you sure you want to archive the branch "{selectedBranch?.branch_name}"?
+                        This will deactivate the branch and move it to the archive.
+                    </DialogContentText>
+                    <TextField
+                        label="Archive Reason"
+                        value={archiveReason}
+                        onChange={(e) => setArchiveReason(e.target.value)}
+                        fullWidth
+                        required
+                        multiline
+                        rows={3}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setIsArchiveModalOpen(false)}>Cancel</Button>
+    <Button
+                        onClick={handleArchiveBranch}
+                        variant="contained"
+                        color="warning"
+                        disabled={!archiveReason}
+                    >
+                        Archive
+</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Status Change Confirmation Modal */}
+            <Dialog
+                open={isStatusChangeModalOpen}
+                onClose={() => setIsStatusChangeModalOpen(false)}
+            >
+                <DialogTitle>Confirm Status Change</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Are you sure you want to {newStatus ? 'activate' : 'deactivate'} this branch?
+                        {!newStatus && ' This will affect all operations related to this branch.'}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => {
+                        setIsStatusChangeModalOpen(false);
+                        setTempFormData(formData); // Reset to original status
+                    }}>
+                        Cancel
+                    </Button>
       <Button
+                        onClick={() => {
+                            setFormData(tempFormData);
+                            handleStatusChange();
+                        }}
         variant="contained"
-        color="primary"
-        onClick={handleAddNewContact}
-        sx={{ textTransform: 'none' }}
+                        color={newStatus ? 'success' : 'error'}
       >
-        Add Contact
+                        {newStatus ? 'Activate' : 'Deactivate'}
       </Button>
-    </Box>
-  </Box>
-</Modal>
+                </DialogActions>
+            </Dialog>
+
+            {/* Export Dialog */}
+            <ExportDialog
+                open={isExportDialogOpen}
+                onClose={handleExportClose}
+                data={filteredBranches}
+                columns={exportColumns}
+                filename="branches"
+            />
     </Box>
   );
 };

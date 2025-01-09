@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import headerLogo from '../../assets/headerLogo.png';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import GenericAvatar from '../../assets/GenericAvatar.png';
 import DotsMoreDark from '../../assets/dotsMoreDark.png';
 import FaSearch from '@mui/icons-material/Search';
 import FaSun from '@mui/icons-material/WbSunny';
 import FaMoon from '@mui/icons-material/WbCloudy';
 import FaCloudSun from '@mui/icons-material/Bedtime';
-import { Drawer, Button, List, ListItem, ListItemText, Divider, Collapse, ListItemIcon } from '@mui/material';
+import { Drawer, Button, List, ListItem, ListItemText, Divider, Collapse, ListItemIcon, Breadcrumbs, Typography } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu'; // Hamburger menu icon
 import DashboardIcon from '@mui/icons-material/Dashboard'; // Dashboard icon
 import InventoryIcon from '@mui/icons-material/Inventory'; // Inventory icon
@@ -90,6 +90,24 @@ const navigationItems = [
     },
 ];
 
+// Breadcrumb mapping
+const breadcrumbMap = {
+    '/admin/dashboard': 'Overview',
+    '/admin/inventory': 'Inventory Management',
+    '/admin/inventory/view-medicines-available': 'Products Available',
+    '/admin/inventory/view-medicines-group': 'Product Categories',
+    '/admin/inventory/medicine-shortage': 'Product Shortage',
+    '/admin/inventory/archived': 'Archived Products',
+    '/admin/inventory/archived-categories': 'Archived Categories',
+    '/admin/branches': 'Branch Management',
+    '/admin/archived-branches': 'Archived Branches',
+    '/admin/sales-report': 'Sales Report',
+    '/admin/sales-report/view-all-transactions': 'All Transactions',
+    '/admin/employee-staff': 'Employee & Staff',
+    '/admin/customer-info': 'Customer Information',
+    '/admin/settings': 'System Settings',
+    '/admin/notifications': 'Notifications'
+};
 
 const Header = () => {
     const [greeting, setGreeting] = useState('');
@@ -98,6 +116,7 @@ const Header = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false); // State to control Drawer visibility
     const [openSubMenus, setOpenSubMenus] = useState({});
     const [isMobileView, setIsMobileView] = useState(false);
+    const location = useLocation();
 
     useEffect(() => {
         // Event listener to track window resizing
@@ -158,6 +177,97 @@ const Header = () => {
     const toggleSubMenu = (menu) => {
         setOpenSubMenus((prev) => ({ ...prev, [menu]: !prev[menu] }));
     };
+
+    // Function to get breadcrumb items
+    const getBreadcrumbs = () => {
+        const pathnames = location.pathname.split('/').filter(x => x);
+        let currentPath = '';
+        
+        return pathnames.map((name, index) => {
+            currentPath += `/${name}`;
+            const isLast = index === pathnames.length - 1;
+            const fullPath = currentPath === '/admin' ? '/admin/dashboard' : currentPath;
+            
+            // Skip 'admin' in the breadcrumb
+            if (name === 'admin') return null;
+            
+            // Special case for archived branches to show correct hierarchy
+            if (name === 'archived-branches') {
+                return [
+                    <Link
+                        key="/admin/branches"
+                        to="/admin/branches"
+                        style={{ 
+                            color: '#5D7A6C',
+                            textDecoration: 'none',
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: '500',
+                            textTransform: 'capitalize',
+                            '&:hover': {
+                                color: '#1B3E2D',
+                                textDecoration: 'underline'
+                            }
+                        }}
+                    >
+                        Branch Management
+                    </Link>,
+                    <Typography 
+                        key={fullPath} 
+                        sx={{ 
+                            fontSize: '14px',
+                            color: '#1B3E2D',
+                            fontWeight: '600',
+                            textTransform: 'capitalize'
+                        }}
+                    >
+                        Archived Branches
+                    </Typography>
+                ];
+            }
+            
+            // Get the display name for this level
+            const displayName = breadcrumbMap[fullPath] || name;
+
+            return isLast ? (
+                <Typography 
+                    key={fullPath} 
+                    sx={{ 
+                        fontSize: '14px',
+                        color: '#1B3E2D',
+                        fontWeight: '600',
+                        textTransform: 'capitalize'
+                    }}
+                >
+                    {displayName}
+                </Typography>
+            ) : (
+                <Link
+                    key={fullPath}
+                    to={fullPath}
+                    style={{ 
+                        color: '#5D7A6C',
+                        textDecoration: 'none',
+                        fontSize: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontWeight: '500',
+                        textTransform: 'capitalize',
+                        '&:hover': {
+                            color: '#1B3E2D',
+                            textDecoration: 'underline'
+                        }
+                    }}
+                >
+                    {displayName}
+                </Link>
+            );
+        }).flat().filter(Boolean);
+    };
+
     return (
         <nav className="navbar font-all bg-[#F7FAFD] w-full p-0 border-b-2 border-[#1D242E4D]">
             <div className="container-fluid flex justify-between items-center px-6">
@@ -174,46 +284,47 @@ const Header = () => {
                     </a>
                 </div>
 
-                {/* Search Bar (Visible on larger screens) */}
-                {/* <form className="flex-grow-1 px-4 pe-2" role="search"
-                    style={{
-                        display: window.innerWidth < 900 ? 'none' : 'flex',
-                    }}>
-                    <div className="input-group" style={{ width: '100%', justifyContent: 'flex-start' }}>
-                        <input
-                            className="form-control me-2"
-                            type="search"
-                            placeholder="Search Medicine here"
-                            aria-label="Search"
-                            style={{
-                                padding: '6px 12px',
-                                color: 'rgb(33, 37, 41)',
-                                maxWidth: '440px',  // Keep the input field at 440px
-                                backgroundColor: '#E3EBF3',
-                                fontSize: '13px',
-                                border: 'none',
-                                marginLeft: '0',   // Align input field to the left
-                                paddingLeft: '10px', // Optional: Adds space inside input for text
-                                borderRadius: '5px'
+                {/* Breadcrumbs */}
+                <div className="flex-grow flex items-center ml-4">
+                    <Breadcrumbs 
+                        aria-label="breadcrumb"
+                        sx={{
+                            '& .MuiBreadcrumbs-separator': {
+                                color: '#5D7A6C',
+                                margin: '0 8px',
+                                fontSize: '16px'
+                            },
+                            padding: '8px 16px',
+                            backgroundColor: 'white',
+                            borderRadius: '8px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            '& .MuiBreadcrumbs-li': {
+                                display: 'flex',
+                                alignItems: 'center'
+                            }
+                        }}
+                    >
+                        <Link
+                            to="/admin/dashboard"
+                            style={{ 
+                                color: '#5D7A6C',
+                                textDecoration: 'none',
+                                fontSize: '14px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontWeight: '500',
+                                '&:hover': {
+                                    color: '#1B3E2D'
+                                }
                             }}
-                        />
-                        <button
-                            type="submit"
-                            className="btn"
-                            aria-label="Search"
-                            style={{
-                                backgroundColor: '#F7FAFD',
-                                border: '1px solid #A4A5A7',
-                                marginLeft: '-9px',
-                                cursor: 'pointer',
-                                padding: '2.7px 7px'
-                            }}>
-                            <FaSearch />
-                        </button>
-                    </div>
-                </form> */}
-
-
+                        >
+                            <DashboardIcon sx={{ fontSize: 18 }} />
+                            Overview
+                        </Link>
+                        {getBreadcrumbs()}
+                    </Breadcrumbs>
+                </div>
 
                 {/* Greeting and Date (Visible on larger devices) */}
                 <div className="text-end hidden lg:flex flex-col pr-5"

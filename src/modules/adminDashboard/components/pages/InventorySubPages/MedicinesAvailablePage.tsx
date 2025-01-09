@@ -18,6 +18,8 @@ import ArchiveIcon from '@mui/icons-material/Archive';
 import ExportDialog from '../../common/ExportDialog';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import CategoryIcon from '@mui/icons-material/Category';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
 
 
 const ITEM_HEIGHT = 48;
@@ -1068,9 +1070,9 @@ const MedicinesAvailablePage = () => {
   };
 
   return (
-    <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3, mb: 5 }}>
+    <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
+      {/* Messages */}
       <Box>
-        {/* Medicine Deleted Alert Message */}
         {successMessageFromDeletion && (
           <Alert
             icon={<CheckIcon fontSize="inherit" />}
@@ -1080,29 +1082,12 @@ const MedicinesAvailablePage = () => {
               bottom: 20,
               left: '50%',
               transform: 'translateX(-50%)',
-              zIndex: 1201, // Ensure it's above other content
+              zIndex: 1201,
             }}
           >
             {successMessageFromDeletion}
           </Alert>
         )}
-      </Box>
-      <Breadcrumbs aria-label="breadcrumb" sx={{ marginBottom: '16px', display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
-        <Link color="inherit" href="/" onClick={handleBreadcrumbClick}>
-          Inventory
-        </Link>
-        <Typography color="text.primary">Products Available</Typography>
-      </Breadcrumbs>
-
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', display: 'none' }}>
-            Medicines Available
-          </Typography>
-          <Typography variant="body1" sx={{ display: 'none' }}>
-            List of medicines available for sales.
-          </Typography>
-        </Box>
       </Box>
 
       {/* Table Controls */}
@@ -1370,146 +1355,128 @@ const MedicinesAvailablePage = () => {
       </Box>
 
       {/* Table */}
-      <Box sx={{ 
-        backgroundColor: 'white',
-        borderRadius: 1,
-        boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
-        mb: 4,
-        height: 'calc(100vh - 350px)',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative'
-      }}>
-        {isLoading && (
-          <Box sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(255, 255, 255, 0.7)',
-            zIndex: 1,
-          }}>
-            <CircularProgress />
-          </Box>
-        )}
-        <TableContainer>
-          <Table stickyHeader>
-            <TableHead>
+      <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 300px)', overflow: 'auto' }}>
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow>
+              {selectionMode && (
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={selectedItems.length > 0 && selectedItems.length === processedProducts.length}
+                    indeterminate={selectedItems.length > 0 && selectedItems.length < processedProducts.length}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        setSelectedItems(processedProducts.map(product => product.barcode));
+                      } else {
+                        setSelectedItems([]);
+                      }
+                    }}
+                  />
+                </TableCell>
+              )}
+              <TableCell 
+                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={() => handleSort('name')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  Product Name
+                  {sortConfig.key === 'name' && (
+                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
+              </TableCell>
+              <TableCell 
+                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={() => handleSort('brand_name')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  Brand Name
+                  {sortConfig.key === 'brand_name' && (
+                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
+              </TableCell>
+              <TableCell 
+                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={() => handleSort('barcode')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  Barcode
+                  {sortConfig.key === 'barcode' && (
+                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
+              </TableCell>
+              <TableCell 
+                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={() => handleSort('category')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  Category
+                  {sortConfig.key === 'category' && (
+                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
+              </TableCell>
+              <TableCell 
+                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={() => handleSort('price')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  Price
+                  {sortConfig.key === 'price' && (
+                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
+              </TableCell>
+              <TableCell 
+                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={() => handleSort('stock')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  Stock Quantity
+                  {sortConfig.key === 'stock' && (
+                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
+              </TableCell>
+              <TableCell 
+                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={() => handleSort('createdAt')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  Created at
+                  {sortConfig.key === 'createdAt' && (
+                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {isLoading ? (
               <TableRow>
-                {selectionMode && (
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedItems.length > 0 && selectedItems.length === processedProducts.length}
-                      indeterminate={selectedItems.length > 0 && selectedItems.length < processedProducts.length}
-                      onChange={(event) => {
-                        if (event.target.checked) {
-                          setSelectedItems(processedProducts.map(product => product.barcode));
-                        } else {
-                          setSelectedItems([]);
-                        }
-                      }}
-                    />
-                  </TableCell>
-                )}
-                <TableCell 
-                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                  onClick={() => handleSort('name')}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    Product Name
-                    {sortConfig.key === 'name' && (
-                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                    )}
-                  </Box>
+                <TableCell colSpan={9} align="center">
+                  <CircularProgress />
                 </TableCell>
-                <TableCell 
-                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                  onClick={() => handleSort('brand_name')}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    Brand Name
-                    {sortConfig.key === 'brand_name' && (
-                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell 
-                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                  onClick={() => handleSort('barcode')}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    Barcode
-                    {sortConfig.key === 'barcode' && (
-                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell 
-                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                  onClick={() => handleSort('category')}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    Category
-                    {sortConfig.key === 'category' && (
-                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell 
-                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                  onClick={() => handleSort('price')}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    Price
-                    {sortConfig.key === 'price' && (
-                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell 
-                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                  onClick={() => handleSort('stock')}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    Stock Quantity
-                    {sortConfig.key === 'stock' && (
-                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell 
-                  sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                  onClick={() => handleSort('createdAt')}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    Created at
-                    {sortConfig.key === 'createdAt' && (
-                      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginatedRows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    No items available for the selected category.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedRows.map((row) => (
+            ) : processedProducts.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} align="center">
+                  No products found
+                </TableCell>
+              </TableRow>
+            ) : (
+              processedProducts
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((product) => (
                   <TableRow 
-                    key={row.barcode}
-                    onClick={() => handleSelectItem(row.barcode)}
+                    key={product.barcode}
+                    onClick={() => handleSelectItem(product.barcode)}
                     sx={{
                       cursor: selectionMode ? 'pointer' : 'default',
-                      backgroundColor: selectedItems.includes(row.barcode) ? 'rgba(25, 118, 210, 0.08)' : 'inherit',
+                      backgroundColor: selectedItems.includes(product.barcode) ? 'rgba(25, 118, 210, 0.08)' : 'inherit',
                       '&:hover': {
                         backgroundColor: selectionMode ? 'rgba(25, 118, 210, 0.12)' : 'rgba(0, 0, 0, 0.04)'
                       }
@@ -1518,74 +1485,69 @@ const MedicinesAvailablePage = () => {
                     {selectionMode && (
                       <TableCell padding="checkbox">
                         <Checkbox
-                          checked={selectedItems.includes(row.barcode)}
-                          onChange={() => handleSelectItem(row.barcode)}
+                          checked={selectedItems.includes(product.barcode)}
+                          onChange={() => handleSelectItem(product.barcode)}
                           onClick={(e) => e.stopPropagation()}
                         />
                       </TableCell>
                     )}
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.brand_name}</TableCell>
-                    <TableCell>{row.barcode}</TableCell>
-                    <TableCell>{row.category}</TableCell>
-                    <TableCell>{row.price}</TableCell>
-                    <TableCell>{row.stock}</TableCell>
-                    <TableCell>{row.createdAt ? new Date(row.createdAt).toLocaleString() : 'N/A'}</TableCell>
+                    <TableCell>{product.name}</TableCell>
+                    <TableCell>{product.brand_name}</TableCell>
+                    <TableCell>{product.barcode}</TableCell>
+                    <TableCell>{product.category}</TableCell>
+                    <TableCell>{product.price}</TableCell>
+                    <TableCell>{product.stock}</TableCell>
+                    <TableCell>{product.createdAt ? new Date(product.createdAt).toLocaleString() : 'N/A'}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <IconButton 
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleViewDetails(row.barcode);
+                            handleViewDetails(product.barcode);
                           }} 
                           sx={{ color: '#2BA3B6' }}
                         >
-                          <Visibility />
+                          <VisibilityIcon />
                         </IconButton>
                         <IconButton 
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleEditItem(row.barcode);
+                            handleEditItem(product.barcode);
                           }} 
                           sx={{ color: '#1D7DFA' }}
                         >
-                          <Edit />
+                          <EditIcon />
                         </IconButton>
                         <IconButton 
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteItem(row.barcode, row.name);
+                            handleDeleteItem(product.barcode, product.name);
                           }} 
                           sx={{ color: '#D83049' }}
                         >
-                          <Delete />
+                          <DeleteIcon />
                         </IconButton>
                       </Box>
                     </TableCell>
                   </TableRow>
                 ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-        <Box sx={{ 
-          mt: 'auto',
-          display: 'flex', 
-          justifyContent: 'flex-end', 
-          p: 2,
-          borderTop: '1px solid rgba(224, 224, 224, 1)'
-        }}>
-          <TablePagination
-            component="div"
-            count={filteredRows.length}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            rowsPerPageOptions={[]}
-          />
-        </Box>
-      </Box>
+      <TablePagination
+        component="div"
+        count={processedProducts.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(event) => {
+          setRowsPerPage(parseInt(event.target.value, 10));
+          setPage(0);
+        }}
+        rowsPerPageOptions={[10, 25, 50, 100]}
+      />
 
       {/* Add New Item Modal */}
       <Dialog

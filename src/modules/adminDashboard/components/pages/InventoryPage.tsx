@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Grid, Paper, Typography, Button, Breadcrumbs, Link } from '@mui/material';
-import { Medication, Group, Warning } from '@mui/icons-material'; // Material icons
+import { Medication, Category, Warning } from '@mui/icons-material'; // Material icons
 import AddIcon from '@mui/icons-material/Add'; // Import Material UI Add icon
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -72,7 +72,7 @@ const InventoryPage = () => {
     },
     {
       borderColor: '#01A768',
-      icon: <Group sx={{ fontSize: 40 }} />,
+      icon: <Category sx={{ fontSize: 40 }} />,
       NumberAmount: stats.medicineGroups,
       subtitle: 'Product Categories',
       buttonText: 'View Categories >>',
@@ -120,7 +120,7 @@ const InventoryPage = () => {
             {selectedItem ? selectedItem.pageTitle : 'Inventory'}
           </Typography>
           <Typography variant="body1" sx={{ mt: -1 }}>
-            {selectedItem ? selectedItem.pageSubtitle : 'List of medicines available for sales.'}
+            {selectedItem ? selectedItem.pageSubtitle : 'Overview of product inventory, categories, and stock levels.'}
           </Typography>
         </Box>
       </Box>
