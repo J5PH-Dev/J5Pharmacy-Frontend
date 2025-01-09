@@ -232,9 +232,9 @@ const branchController = {
 
             if (activeUsers.length > 0) {
                 await connection.rollback();
-                return res.status(400).json({
+                return res.status(400).json({ 
                     message: 'Cannot archive branch with active users',
-                    activeUsers: activeUsers.map(user => ({
+                    activeUsers: activeUsers.map(user => ({ 
                         name: user.name,
                         role: user.role
                     }))

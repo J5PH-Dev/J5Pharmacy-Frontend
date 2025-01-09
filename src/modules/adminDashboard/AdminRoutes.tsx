@@ -19,6 +19,9 @@ import ViewAllTransaction from './components/pages/reportSubPages/ViewAllTransac
 import ArchivedProductsPage from './components/pages/InventorySubPages/ArchivedProductsPage';
 import ArchivedCategoriesPage from './components/pages/InventorySubPages/ArchivedCategoriesPage';
 import ArchivedBranchesPage from './components/pages/BranchSubPages/ArchivedBranchesPage';
+import ArchivedCustomersPage from './components/pages/CustomerSubPages/ArchivedCustomersPage';
+import ViewCustomerPage from './components/pages/CustomerSubPages/ViewCustomerPage';
+import EditCustomerDescription from './components/pages/CustomerSubPages/EditCustomerDescription';
 
 const AdminRoutes: React.FC = () => {
   return (
@@ -55,6 +58,9 @@ const AdminRoutes: React.FC = () => {
 
         <Route path="employee-staff" element={<EmployeeStaffPage />} />
         <Route path="customer-info" element={<CustomerInfoPage />} />
+        <Route path="customer-info/:customerId" element={<ViewCustomerPage />} />
+        <Route path="customer-info/:customerId/edit-details" element={<EditCustomerDescription />} />
+        <Route path="/archived-customers" element={<ArchivedCustomersPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="notifications" element={<NotificationPage />} />
       </Route>

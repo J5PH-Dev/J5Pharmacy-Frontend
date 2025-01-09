@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Mock data
 const recentTransactions = [
-  { id: 1, customer: 'John Doe', amount: 150.50, date: '2024-01-20', items: 3 },
+  { id: 1, customer: 'John Do', amount: 150.50, date: '2024-01-20', items: 3 },
   { id: 2, customer: 'Jane Smith', amount: 75.25, date: '2024-01-20', items: 2 },
   { id: 3, customer: 'Bob Wilson', amount: 220.00, date: '2024-01-19', items: 4 },
 ];
@@ -24,37 +24,35 @@ const lowStockItems = [
 const contentData = [
   {
     borderColor: '#03A9F5',
-    icon: <Medication sx={{ fontSize: 40 }} />,
-    title: '15,250',
-    subtitle: 'Total Sales',
-    buttonText: 'View Full Sales',
+    icon: <TrendingUpIcon sx={{ fontSize: 40 }} />,
+    title: '₱15,250',
+    subtitle: "Today's Sales",
+    buttonText: 'View Sales Report',
+    route: '/admin/sales-report'
   },
   {
     borderColor: '#01A768',
-    icon: <Group sx={{ fontSize: 40 }} />,
-    title: '1250',
+    icon: <InventoryIcon sx={{ fontSize: 40 }} />,
+    title: '1,250',
     subtitle: 'Total Products',
-    buttonText: 'View Groups >>',
+    buttonText: 'View Products',
+    route: '/admin/inventory/view-medicines-available'
   },
   {
     borderColor: '#FCD538',
-    icon: <Warning sx={{ fontSize: 40 }} />,
+    icon: <ShoppingCartIcon sx={{ fontSize: 40 }} />,
     title: '85',
     subtitle: 'Total Orders',
-    buttonText: 'Resolve Now >>',
-    breadcrumbTitle: 'Shortages',
-    pageTitle: 'Medicine Shortages',
-    pageSubtitle: 'Current shortages and actions to resolve them.',
+    buttonText: 'View Transactions',
+    route: '/admin/sales-report/view-all-transactions'
   },
   {
     borderColor: '#F0483E',
-    icon: <Warning sx={{ fontSize: 40 }} />,
+    icon: <PeopleIcon sx={{ fontSize: 40 }} />,
     title: '450',
     subtitle: 'Total Customers',
-    buttonText: 'Resolve Now >>',
-    breadcrumbTitle: 'Shortages',
-    pageTitle: 'Medicine Shortages',
-    pageSubtitle: 'Current shortages and actions to resolve them.',
+    buttonText: 'View Customers',
+    route: '/admin/customer-info'
   },
 ];
 
@@ -106,41 +104,17 @@ const DashboardPage: React.FC = () => {
     </Paper>
   );
 
-  // Separate handlers for each container
-  const handleMedicinesAvailable = (item: any) => {
-    setSelectedItem(item);
-    navigate('/admin/inventory/view-medicines-available');
+  // Update handlers to use routes from contentData
+  const handleCardClick = (route: string) => {
+    navigate(route);
   };
-
-  const handleMedicinesGroup = (item: any) => {
-    setSelectedItem(item);
-    navigate('/admin/inventory/view-medicines-group');
-  };
-
-  const handleMedicineShortage = (item: any) => {
-    setSelectedItem(item);
-    navigate('/admin/inventory/medicine-shortage');
-  };
-
-  const handleMedicineShortage1 = (item: any) => {
-    setSelectedItem(item);
-    navigate('/admin/inventory/medicine-shortage');
-  };
-
-
-  const handlers = [
-    handleMedicinesAvailable,
-    handleMedicinesGroup,
-    handleMedicineShortage,
-    handleMedicineShortage1
-  ];
 
   return (
     <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1 }}>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'Black' }}>
         Dashboard Overview
       </Typography>
-      <p className='mt-[-13px] text-gray-700 mb-5'>A quick data overview of the inventory.</p>
+      <p className='mt-[-13px] text-gray-700 mb-5'>A quick data overview of the pharmacy.</p>
 
       {/* Grid for the containers */}
       {!selectedItem && (
@@ -164,7 +138,7 @@ const DashboardPage: React.FC = () => {
                     boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
                   },
                 })}
-                onClick={() => handlers[index](content)}
+                onClick={() => handleCardClick(content.route)}
               >
                 <div
                   style={{
@@ -207,13 +181,22 @@ const DashboardPage: React.FC = () => {
         </Grid>
       )}
 
-      {/* Detailed Information */}
+      {/* Recent Transactions and Low Stock Alert */}
       <Grid container spacing={3} sx={{mt: 2}}>
         <Grid item xs={12} md={8}>
           <Paper sx={{ p: 3, height: '100%' }} elevation={2}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-              Recent Transactions
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Recent Transactions
+              </Typography>
+              <Button 
+                variant="text" 
+                onClick={() => navigate('/admin/sales-report/view-all-transactions')}
+                sx={{ textTransform: 'none' }}
+              >
+                View All
+              </Button>
+            </Box>
             <List>
               {recentTransactions.map((transaction, index) => (
                 <React.Fragment key={transaction.id}>
@@ -238,9 +221,18 @@ const DashboardPage: React.FC = () => {
         </Grid>
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, height: '100%', bgcolor: theme.palette.error.light }} elevation={2}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'white' }}>
-              Low Stock Alert
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white' }}>
+                Low Stock Alert
+              </Typography>
+              <Button 
+                variant="text" 
+                onClick={() => navigate('/admin/inventory/medicine-shortage')}
+                sx={{ textTransform: 'none', color: 'white' }}
+              >
+                View All
+              </Button>
+            </Box>
             <List>
               {lowStockItems.map((item, index) => (
                 <React.Fragment key={item.name}>
