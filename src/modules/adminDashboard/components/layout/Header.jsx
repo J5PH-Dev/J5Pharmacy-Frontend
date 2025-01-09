@@ -104,7 +104,7 @@ const breadcrumbMap = {
     '/admin/archived-branches': 'Archived Branches',
     '/admin/sales-report': 'Sales Report',
     '/admin/sales-report/view-all-transactions': 'All Transactions',
-    '/admin/employee-staff': 'Employee & Staff',
+    '/admin/employee-staff': 'Staff Management',
     '/admin/customer-info': 'Customer Management',
     '/admin/archived-customers': 'Customer Archive',
     '/admin/settings': 'System Settings',
@@ -197,12 +197,65 @@ const Header = () => {
         let currentPath = '';
         const breadcrumbs = [];
 
-        // Always start with Overview
-        breadcrumbs.push({ path: '/admin/dashboard', title: 'Overview' });
+        // Add Inventory Management if in inventory section
+        if (paths.includes('inventory')) {
+            breadcrumbs.push({ path: '/admin/inventory', title: 'Inventory Management' });
+        }
+
+        // Add Inventory Available if in inventory available section
+        if (paths.includes('view-medicines-available')) {
+            breadcrumbs.push({ path: '/admin/inventory/view-medicines-available', title: 'Available Products' });
+        }
+
+        // Add Product Categories if in product categories section
+        if (paths.includes('view-medicines-group')) {
+            breadcrumbs.push({ path: '/admin/inventory/view-medicines-group', title: 'Product Categories' });
+        }
+
+        // Add Archived Products if in archived products section
+        if (paths.includes('archived')) {
+            breadcrumbs.push({ path: '/admin/inventory/archived', title: 'Archived Products' });
+        }
+
+        // Add Archived Categories if in archived categories section
+        if (paths.includes('archived-categories')) {
+            breadcrumbs.push({ path: '/admin/inventory/archived-categories', title: 'Archived Categories' });
+        }
+
+        // Add Product Shortage if in product shortage section
+        if (paths.includes('medicine-shortage')) {
+            breadcrumbs.push({ path: '/admin/inventory/medicine-shortage', title: 'Product Shortage' });
+        }
+
+
+        // Add Branches Management if in branches section
+        if (paths.includes('branches')) {
+            breadcrumbs.push({ path: '/admin/branches', title: 'Branch Management' });
+        }
+
+        // Add Branch Archive if in branch archive section
+        if (paths.includes('archived-branches')) {
+            breadcrumbs.push({ path: '/admin/archived-branches', title: 'Branch Archive' });
+        }
+
+        // Add Reports Management if in reports section
+        if (paths.includes('sales-report')) {
+            breadcrumbs.push({ path: '/admin/sales-report', title: 'Reports Management' });
+        }
+
+        // Add Staff Management if in staff section
+        if (paths.includes('employee-staff')) {
+            breadcrumbs.push({ path: '/admin/employee-staff', title: 'Staff Management' });
+        }
 
         // Add Customer Management if in customer section
         if (paths.includes('customer-info')) {
             breadcrumbs.push({ path: '/admin/customer-info', title: 'Customer Management' });
+        }
+
+        // Add Settings if in settings section
+        if (paths.includes('settings')) {
+            breadcrumbs.push({ path: '/admin/settings', title: 'Settings' });
         }
 
         // Add Customer Details or Edit Customer if viewing/editing a customer
@@ -219,6 +272,13 @@ const Header = () => {
                 });
             }
         }
+
+        // Add Customer Archive if in customer archive section
+        if (paths.includes('archived-customers')) {
+            breadcrumbs.push({ path: '/admin/archived-customers', title: 'Customer Archive' });
+        }
+
+
 
         setBreadcrumbs(breadcrumbs);
     };
