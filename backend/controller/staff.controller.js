@@ -18,8 +18,28 @@ const upload = multer({
 // Get all users with their branch information
 const getAllUsers = async (req, res) => {
     try {
-        const { include_archived } = req.query;
-        const isActiveCondition = include_archived === 'true' ? '' : 'WHERE u.is_active = 1';
+        const { include_archived, role, branch_id } = req.query;
+        let conditions = [];
+        let params = [];
+
+        // Base condition for archived status
+        if (include_archived !== 'true') {
+            conditions.push('u.is_active = 1');
+        }
+
+        // Add role filter if provided
+        if (role) {
+            conditions.push('u.role = ?');
+            params.push(role);
+        }
+
+        // Add branch filter if provided
+        if (branch_id) {
+            conditions.push('u.branch_id = ?');
+            params.push(branch_id);
+        }
+
+        const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
         const [users] = await db.pool.query(
             `SELECT u.user_id, u.employee_id, u.name, u.role, u.email, u.phone, 
@@ -33,8 +53,9 @@ const getAllUsers = async (req, res) => {
              END as image_url
              FROM users u
              LEFT JOIN branches b ON u.branch_id = b.branch_id
-             ${isActiveCondition}
-             ORDER BY u.created_at DESC`
+             ${whereClause}
+             ORDER BY u.created_at DESC`,
+            params
         );
 
         res.json({ success: true, data: users });
@@ -176,8 +197,22 @@ const archiveUser = async (req, res) => {
 // Get all pharmacists
 const getAllPharmacists = async (req, res) => {
     try {
-        const { include_archived } = req.query;
-        const isActiveCondition = include_archived === 'true' ? '' : 'WHERE p.is_active = 1';
+        const { include_archived, branch_id } = req.query;
+        let conditions = [];
+        let params = [];
+
+        // Base condition for archived status
+        if (include_archived !== 'true') {
+            conditions.push('p.is_active = 1');
+        }
+
+        // Add branch filter if provided
+        if (branch_id) {
+            conditions.push('p.branch_id = ?');
+            params.push(branch_id);
+        }
+
+        const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
         const [pharmacists] = await db.pool.query(
             `SELECT p.staff_id, p.name, p.email, p.phone, p.pin_code, 
@@ -190,8 +225,9 @@ const getAllPharmacists = async (req, res) => {
              END as image_url
              FROM pharmacist p
              LEFT JOIN branches b ON p.branch_id = b.branch_id
-             ${isActiveCondition}
-             ORDER BY p.created_at DESC`
+             ${whereClause}
+             ORDER BY p.created_at DESC`,
+            params
         );
 
         res.json({ success: true, data: pharmacists });
