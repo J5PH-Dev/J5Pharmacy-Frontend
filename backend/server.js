@@ -8,15 +8,16 @@ const authRoutes = require('./routes/auth.routes'); // Import auth routes
 const cashReconciliationRoutes = require('./routes/cashReconciliation.routes');
 const transactionRoutes = require('./routes/transaction.routes');
 const productRoutes = require('./routes/productRoutes'); // Import product routes
+const branchRoutes = require('./routes/branchRoutes'); // Import branch routes
 
 const app = express();
 
 // CORS configuration
 const corsOptions = {
-  origin: 'http://localhost:3000', // The React app is running on localhost:3000
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers for the request
-  credentials: true, // Allows cookies and authorization headers
+  origin: ['http://localhost:3000', 'https://pms.j5pharmacy.com'], // Allow both localhost and production URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 };
 
 // Middleware
@@ -39,6 +40,7 @@ app.use('/', InventoryRoutes);
 app.use('/api/cash-reconciliation', cashReconciliationRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/products', productRoutes); // Add product routes
+app.use('/api/admin', branchRoutes); // Add branch routes
 
 // Start server
 const PORT = process.env.PORT || 5000;

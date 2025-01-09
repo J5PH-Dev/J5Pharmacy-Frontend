@@ -8,7 +8,7 @@ const AdminLayout = () => {
             {/* Sidebar and header */}
             <Header />
             <Sidebar />
-            <div className="content-area h-full w-full p-4 overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
+            <div className="content-area h-full w-full p-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
                 <Outlet />
             </div>
         </div>

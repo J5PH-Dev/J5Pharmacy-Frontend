@@ -17,6 +17,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ArchiveIcon from '@mui/icons-material/Archive';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../../../../auth/contexts/AuthContext';
@@ -35,7 +36,7 @@ const MedicineGroupPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [sortConfig, setSortConfig] = useState<{ key: keyof Category; direction: 'asc' | 'desc' }>({
@@ -53,9 +54,9 @@ const MedicineGroupPage = () => {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [affectedProducts, setAffectedProducts] = useState<any[]>([]);
 
-  useEffect(() => {
+    useEffect(() => {
         fetchCategories();
-  }, []);
+    }, []);
 
     const fetchCategories = async () => {
         setIsLoading(true);
@@ -107,7 +108,7 @@ const MedicineGroupPage = () => {
             setSearchQuery('');
             setPage(0);
             setSuccessMessage('Data refreshed successfully');
-    } catch (error) {
+        } catch (error) {
             console.error('Error refreshing data:', error);
             setError('Failed to refresh data');
         } finally {
@@ -253,37 +254,30 @@ const MedicineGroupPage = () => {
         });
     };
 
-  return (
-    <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
-            <Breadcrumbs aria-label="breadcrumb" sx={{ marginBottom: '16px' }}>
-                <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory')}>
-                    Inventory
-                </Link>
-                <Typography color="text.primary">Product Categories</Typography>
-            </Breadcrumbs>
-
+    return (
+        <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
             {error && (
-        <Alert
+                <Alert 
                     severity="error" 
                     sx={{ mb: 2 }}
                     onClose={() => setError(null)}
                 >
                     {error}
-        </Alert>
-      )}
-      {successMessage && (
-        <Alert
-          severity="success"
+                </Alert>
+            )}
+            {successMessage && (
+                <Alert 
+                    severity="success" 
                     sx={{ mb: 2 }}
                     onClose={() => setSuccessMessage(null)}
-        >
-          {successMessage}
-        </Alert>
-      )}
+                >
+                    {successMessage}
+                </Alert>
+            )}
 
             <Box sx={{ 
                 backgroundColor: 'white',
-            padding: 2,
+                padding: 2,
                 borderRadius: 1,
                 boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
                 mb: 3
@@ -295,45 +289,7 @@ const MedicineGroupPage = () => {
                     flexWrap: 'wrap',
                     gap: 2
                 }}>
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-                            variant="contained"
-                            color="inherit"
-                            onClick={handleRefresh}
-                            startIcon={<RefreshIcon />}
-                            sx={{ textTransform: 'none' }}
-                        >
-                            Refresh
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-                            onClick={() => setIsExportDialogOpen(true)}
-                            sx={{ textTransform: 'none' }}
-                        >
-                            Export
-          </Button>
-          <Button
-            variant="contained"
-            color="inherit"
-            onClick={() => navigate('/admin/inventory/view-medicines-available')}
-            startIcon={<VisibilityIcon />}
-            sx={{ textTransform: 'none' }}
-          >
-            View Products
-          </Button>
-          <Button
-            variant="contained"
-            color="inherit"
-            onClick={() => navigate('/admin/inventory/archived-categories')}
-            startIcon={<ArchiveIcon />}
-            sx={{ textTransform: 'none' }}
-          >
-            Archived Categories
-          </Button>
-        </Box>
-
-                    <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                         <Button
                             variant="contained"
                             color="primary"
@@ -345,6 +301,45 @@ const MedicineGroupPage = () => {
                         </Button>
                         <Button
                             variant="contained"
+                            color="inherit"
+                            onClick={() => setIsExportDialogOpen(true)}
+                            startIcon={<FileDownloadIcon />}
+                            sx={{ textTransform: 'none' }}
+                        >
+                            Export
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="inherit"
+                            onClick={handleRefresh}
+                            startIcon={<RefreshIcon />}
+                            sx={{ textTransform: 'none' }}
+                        >
+                            Refresh
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="inherit"
+                            onClick={() => navigate('/admin/inventory/archived-categories')}
+                            startIcon={<ArchiveIcon />}
+                            sx={{ textTransform: 'none' }}
+                        >
+                            View Archive
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="inherit"
+                            onClick={() => navigate('/admin/inventory/view-medicines-available')}
+                            startIcon={<VisibilityIcon />}
+                            sx={{ textTransform: 'none' }}
+                        >
+                            View Products
+                        </Button>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <Button
+                            variant="contained"
                             color={isSelectionMode ? "primary" : "inherit"}
                             onClick={toggleSelectionMode}
                             startIcon={<CheckBox />}
@@ -352,18 +347,18 @@ const MedicineGroupPage = () => {
                         >
                             Selection Mode {isSelectionMode ? 'ON' : 'OFF'}
                         </Button>
-          <Button
-            variant="contained"
+                        <Button
+                            variant="contained"
                             color="error"
                             onClick={() => setIsDeleteDialogOpen(true)}
                             startIcon={<DeleteIcon />}
                             sx={{ textTransform: 'none' }}
                             disabled={!isSelectionMode || selectedItems.length === 0}
                         >
-                            Delete Selected
-          </Button>
-        </Box>
-      </Box>
+                            Delete Selected ({selectedItems.length})
+                        </Button>
+                    </Box>
+                </Box>
 
                 <Box sx={{ 
                     display: 'flex',
@@ -373,18 +368,18 @@ const MedicineGroupPage = () => {
                     justifyContent: 'space-between'
                 }}>
                     <Box sx={{ display: 'flex', gap: 2, flex: 1 }}>
-      <TextField
+                        <TextField
                             label="Search Category Name or Prefix"
-        value={searchQuery}
+                            value={searchQuery}
                             onChange={handleSearch}
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              <SearchIcon />
-            </InputAdornment>
-          ),
-        }}
-        sx={{
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <SearchIcon />
+                                    </InputAdornment>
+                                ),
+                            }}
+                            sx={{
                                 minWidth: { xs: '100%', md: '300px' },
                                 backgroundColor: '#fff',
                             }}
@@ -410,11 +405,11 @@ const MedicineGroupPage = () => {
 
             <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 300px)', overflow: 'auto' }}>
                 <Table stickyHeader>
-          <TableHead>
-            <TableRow>
+                    <TableHead>
+                        <TableRow>
                             {isSelectionMode && (
                                 <TableCell padding="checkbox">
-                <Checkbox
+                                    <Checkbox
                                         checked={selectedItems.length === paginatedCategories.length}
                                         indeterminate={selectedItems.length > 0 && selectedItems.length < paginatedCategories.length}
                                         onChange={(e) => {
@@ -424,10 +419,10 @@ const MedicineGroupPage = () => {
                                                 setSelectedItems([]);
                                             }
                                         }}
-                />
-              </TableCell>
+                                    />
+                                </TableCell>
                             )}
-              <TableCell
+                            <TableCell
                                 sx={{ fontWeight: 'bold', cursor: 'pointer' }}
                                 onClick={() => handleSort('name')}
                             >
@@ -435,8 +430,8 @@ const MedicineGroupPage = () => {
                                 {sortConfig.key === 'name' && (
                                     sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
                                 )}
-              </TableCell>
-              <TableCell
+                            </TableCell>
+                            <TableCell
                                 sx={{ fontWeight: 'bold', cursor: 'pointer' }}
                                 onClick={() => handleSort('prefix')}
                             >
@@ -444,59 +439,59 @@ const MedicineGroupPage = () => {
                                 {sortConfig.key === 'prefix' && (
                                     sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
                                 )}
-              </TableCell>
+                            </TableCell>
                             <TableCell sx={{ fontWeight: 'bold' }}>Number of Products</TableCell>
                             <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
                         {paginatedCategories.map((category) => (
                             <TableRow key={category.category_id}>
                                 {isSelectionMode && (
                                     <TableCell padding="checkbox">
-                  <Checkbox
+                                        <Checkbox
                                             checked={selectedItems.includes(category.category_id)}
                                             onChange={() => handleSelectItem(category.category_id)}
-                  />
-                </TableCell>
+                                        />
+                                    </TableCell>
                                 )}
                                 <TableCell>{category.name}</TableCell>
                                 <TableCell>{category.prefix}</TableCell>
                                 <TableCell>{category.product_count || 0}</TableCell>
-                <TableCell>
-                    <IconButton 
-                        size="small" 
-                        onClick={() => handleViewCategory(category.name)}
-                        sx={{ color: '#2BA3B6', mr: 0 }}
-                    >
-                        <VisibilityIcon />
-                    </IconButton>
-                    {category.category_id !== 12 && (
-                        <>
-                            <IconButton 
-                                size="small" 
-                                onClick={() => handleEditItem(category)}
-                            >
-                                <EditIcon />
-                            </IconButton>
-                            <IconButton
-                                size="small" 
-                                color="error"
-                                onClick={() => {
-                                    setSelectedItems([category.category_id]);
-                                    setIsDeleteDialogOpen(true);
-                                }}
-                            >
-                                <DeleteIcon />
-                            </IconButton>
-                        </>
-                    )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                                <TableCell>
+                                    <IconButton 
+                                        size="small" 
+                                        onClick={() => handleViewCategory(category.name)}
+                                        sx={{ color: '#2BA3B6', mr: 0 }}
+                                    >
+                                        <VisibilityIcon />
+                                    </IconButton>
+                                    {category.category_id !== 12 && (
+                                        <>
+                                            <IconButton 
+                                                size="small" 
+                                                onClick={() => handleEditItem(category)}
+                                            >
+                                                <EditIcon />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small" 
+                                                color="error"
+                                                onClick={() => {
+                                                    setSelectedItems([category.category_id]);
+                                                    setIsDeleteDialogOpen(true);
+                                                }}
+                                            >
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </>
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
 
             <Box sx={{ mt: 2 }}>
                 <TablePagination
@@ -512,64 +507,64 @@ const MedicineGroupPage = () => {
             {/* Add Category Dialog */}
             <Dialog open={isAddDialogOpen} onClose={() => setIsAddDialogOpen(false)}>
                 <DialogTitle>Add New Category</DialogTitle>
-        <DialogContent>
+                <DialogContent>
                     <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <TextField
+                        <TextField
                             label="Category Name"
                             value={newCategory.name}
                             onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
-            fullWidth
-          />
-          <TextField
+                            fullWidth
+                        />
+                        <TextField
                             label="Prefix"
                             value={newCategory.prefix}
                             onChange={(e) => setNewCategory(prev => ({ ...prev, prefix: e.target.value }))}
-            fullWidth
+                            fullWidth
                         />
                     </Box>
-        </DialogContent>
+                </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
                     <Button onClick={handleAddCategory} variant="contained" color="primary">
                         Add
-          </Button>
-        </DialogActions>
-      </Dialog>
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={isDeleteDialogOpen} onClose={() => setIsDeleteDialogOpen(false)}>
                 <DialogTitle>Confirm Archive</DialogTitle>
-        <DialogContent>
-          <Typography>
+                <DialogContent>
+                    <Typography>
                         Are you sure you want to archive {selectedItems.length === 1 ? 'this category' : 'these categories'}?
-          </Typography>
-          {affectedProducts.length > 0 && (
-            <>
-                <Typography sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
-                    The following products will be moved to "NO CATEGORY":
-                </Typography>
-                <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-                    {affectedProducts.map((product) => (
-                        <Typography key={product.id}>
-                            • {product.name} {product.brand_name ? `(${product.brand_name})` : ''}
-                        </Typography>
-                    ))}
-                </Box>
-            </>
-        )}
-        </DialogContent>
-        <DialogActions>
+                    </Typography>
+                    {affectedProducts.length > 0 && (
+                        <>
+                            <Typography sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+                                The following products will be moved to "NO CATEGORY":
+                            </Typography>
+                            <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
+                                {affectedProducts.map((product) => (
+                                    <Typography key={product.id}>
+                                        • {product.name} {product.brand_name ? `(${product.brand_name})` : ''}
+                                    </Typography>
+                                ))}
+                            </Box>
+                        </>
+                    )}
+                </DialogContent>
+                <DialogActions>
                     <Button onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
                     <Button onClick={confirmArchive} variant="contained" color="error">
                         Archive
-          </Button>
-        </DialogActions>
-      </Dialog>
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             {/* Export Dialog */}
             <Dialog open={isExportDialogOpen} onClose={() => setIsExportDialogOpen(false)}>
                 <DialogTitle>Export Categories</DialogTitle>
-        <DialogContent>
+                <DialogContent>
                     <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <TextField
                             label="File Name"
@@ -579,14 +574,14 @@ const MedicineGroupPage = () => {
                             helperText="The file will be exported as an Excel file (.xlsx)"
                         />
                     </Box>
-        </DialogContent>
-        <DialogActions>
+                </DialogContent>
+                <DialogActions>
                     <Button onClick={() => setIsExportDialogOpen(false)}>Cancel</Button>
                     <Button onClick={handleExport} variant="contained" color="primary">
                         Export
                     </Button>
-        </DialogActions>
-      </Dialog>
+                </DialogActions>
+            </Dialog>
 
             {/* Edit Dialog */}
             <Dialog open={isEditDialogOpen} onClose={() => setIsEditDialogOpen(false)}>
@@ -614,8 +609,8 @@ const MedicineGroupPage = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-    </Box>
-  );
+        </Box>
+    );
 };
 
 export default MedicineGroupPage;

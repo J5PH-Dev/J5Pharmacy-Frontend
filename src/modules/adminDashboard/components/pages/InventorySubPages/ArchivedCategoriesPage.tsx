@@ -188,17 +188,7 @@ const ArchivedCategoriesPage = () => {
     }, [processedCategories, page, rowsPerPage]);
 
     return (
-        <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
-            <Breadcrumbs aria-label="breadcrumb" sx={{ marginBottom: '16px' }}>
-                <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory')}>
-                    Inventory
-                </Link>
-                <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory/view-medicines-group')}>
-                    Product Categories
-                </Link>
-                <Typography color="text.primary">Archived Categories</Typography>
-            </Breadcrumbs>
-
+        <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
             {error && (
                 <Alert 
                     severity="error" 

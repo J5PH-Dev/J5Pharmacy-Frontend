@@ -152,25 +152,11 @@ const ViewMedicineDescription = () => {
     };
 
     if (!medicineDetails) {
-        return <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>Loading...</Box>;
+        return <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>Loading...</Box>;
     }
 
     return (
-        <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
-            {/* Breadcrumbs */}
-            <Breadcrumbs
-                aria-label="breadcrumb"
-                sx={{
-                    mb: 2,
-                    display: 'flex',
-                    justifyContent: { xs: 'center', sm: 'flex-start' },
-                }}
-            >
-                <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory')}>Inventory</Link>
-                <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory/view-medicines-available')}>Products Available</Link>
-                <Typography color="text.primary">{getDisplayName()}</Typography>
-            </Breadcrumbs>
-
+        <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
             {/* Success/Error Messages */}
             {successMessage && (
                 <Alert severity="success" sx={{ mb: 2 }}>{successMessage}</Alert>

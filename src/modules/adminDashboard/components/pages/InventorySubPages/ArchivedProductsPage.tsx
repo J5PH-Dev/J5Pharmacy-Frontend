@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Typography, Breadcrumbs, Link, Button, Stack, TextField, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent, InputAdornment, TablePagination, Checkbox } from '@mui/material';
+import { Box, Typography, Breadcrumbs, Link, Button, Stack, TextField, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent, InputAdornment, TablePagination, Checkbox, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import RestoreIcon from '@mui/icons-material/Restore';
 import SearchIcon from '@mui/icons-material/Search';
@@ -11,6 +11,7 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import axios from 'axios';
 import ExportDialog from '../../common/ExportDialog';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import ArrowBack from '@mui/icons-material/ArrowBack';
 
 interface ApiError {
     message: string;
@@ -425,14 +426,7 @@ const ArchivedProductsPage = () => {
     };
 
     return (
-        <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3, mb: 5 }}>
-            <Breadcrumbs aria-label="breadcrumb" sx={{ marginBottom: '16px', display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
-                <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory')}>
-                    Inventory
-                </Link>
-                <Typography color="text.primary">Archived Products</Typography>
-            </Breadcrumbs>
-
+        <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
             {error && (
                 <Alert 
                     severity="error" 
@@ -639,127 +633,131 @@ const ArchivedProductsPage = () => {
                 )}
             </Box>
 
-            <Box sx={{ 
-                backgroundColor: 'white',
-                borderRadius: 1,
-                boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
-                mb: 4,
-                height: 'calc(100vh - 350px)',
-                display: 'flex',
-                flexDirection: 'column'
-            }}>
-            <TableContainer component={Paper}>
-                    <Table stickyHeader>
+            <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 300px)', overflow: 'auto' }}>
+                <Table stickyHeader>
                     <TableHead>
                         <TableRow>
-                                {isSelectionMode && (
-                                    <TableCell padding="checkbox">
-                                        <Checkbox
-                                            checked={selectedItems.length === paginatedProducts.length}
-                                            indeterminate={selectedItems.length > 0 && selectedItems.length < paginatedProducts.length}
-                                            onChange={(e) => {
-                                                if (e.target.checked) {
-                                                    setSelectedItems(paginatedProducts.map(product => product.barcode));
-                                                } else {
-                                                    setSelectedItems([]);
-                                                }
-                                            }}
-                                        />
-                                    </TableCell>
-                                )}
-                                <TableCell 
-                                    sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                                    onClick={() => handleSort('name')}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        Product Name
-                                        {sortConfig.key === 'name' && (
-                                            sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                                        )}
-                                    </Box>
+                            {isSelectionMode && (
+                                <TableCell padding="checkbox">
+                                    <Checkbox
+                                        checked={selectedItems.length === paginatedProducts.length}
+                                        indeterminate={selectedItems.length > 0 && selectedItems.length < paginatedProducts.length}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedItems(paginatedProducts.map(product => product.barcode));
+                                            } else {
+                                                setSelectedItems([]);
+                                            }
+                                        }}
+                                    />
                                 </TableCell>
-                                <TableCell 
-                                    sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                                    onClick={() => handleSort('brand_name')}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        Brand Name
-                                        {sortConfig.key === 'brand_name' && (
-                                            sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                                        )}
-                                    </Box>
-                                </TableCell>
-                                <TableCell 
-                                    sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                                    onClick={() => handleSort('barcode')}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        Barcode
-                                        {sortConfig.key === 'barcode' && (
-                                            sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                                        )}
-                                    </Box>
-                                </TableCell>
-                                <TableCell 
-                                    sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                                    onClick={() => handleSort('category_name')}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        Category
-                                        {sortConfig.key === 'category_name' && (
-                                            sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                                        )}
-                                    </Box>
-                                </TableCell>
-                                <TableCell 
-                                    sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                                    onClick={() => handleSort('price')}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        Price
-                                        {sortConfig.key === 'price' && (
-                                            sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                                        )}
-                                    </Box>
-                                </TableCell>
-                                <TableCell 
-                                    sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                                    onClick={() => handleSort('archived_by_name')}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        Archived By
-                                        {sortConfig.key === 'archived_by_name' && (
-                                            sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                                        )}
-                                    </Box>
-                                </TableCell>
-                                <TableCell 
-                                    sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                                    onClick={() => handleSort('archived_at')}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        Archived At
-                                        {sortConfig.key === 'archived_at' && (
-                                            sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                                        )}
-                                    </Box>
-                                </TableCell>
-                                <TableCell 
-                                    sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-                                    onClick={() => handleSort('archive_reason')}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        Reason
-                                        {sortConfig.key === 'archive_reason' && (
-                                            sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                                        )}
-                                    </Box>
-                                </TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                            )}
+                            <TableCell 
+                                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                                onClick={() => handleSort('name')}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    Product Name
+                                    {sortConfig.key === 'name' && (
+                                        sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                                    )}
+                                </Box>
+                            </TableCell>
+                            <TableCell 
+                                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                                onClick={() => handleSort('brand_name')}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    Brand Name
+                                    {sortConfig.key === 'brand_name' && (
+                                        sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                                    )}
+                                </Box>
+                            </TableCell>
+                            <TableCell 
+                                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                                onClick={() => handleSort('barcode')}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    Barcode
+                                    {sortConfig.key === 'barcode' && (
+                                        sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                                    )}
+                                </Box>
+                            </TableCell>
+                            <TableCell 
+                                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                                onClick={() => handleSort('category_name')}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    Category
+                                    {sortConfig.key === 'category_name' && (
+                                        sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                                    )}
+                                </Box>
+                            </TableCell>
+                            <TableCell 
+                                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                                onClick={() => handleSort('price')}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    Price
+                                    {sortConfig.key === 'price' && (
+                                        sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                                    )}
+                                </Box>
+                            </TableCell>
+                            <TableCell 
+                                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                                onClick={() => handleSort('archived_by_name')}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    Archived By
+                                    {sortConfig.key === 'archived_by_name' && (
+                                        sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                                    )}
+                                </Box>
+                            </TableCell>
+                            <TableCell 
+                                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                                onClick={() => handleSort('archived_at')}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    Archived At
+                                    {sortConfig.key === 'archived_at' && (
+                                        sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                                    )}
+                                </Box>
+                            </TableCell>
+                            <TableCell 
+                                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                                onClick={() => handleSort('archive_reason')}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    Reason
+                                    {sortConfig.key === 'archive_reason' && (
+                                        sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                                    )}
+                                </Box>
+                            </TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                            {paginatedProducts.map((product) => (
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={9} align="center">
+                                    <CircularProgress />
+                                </TableCell>
+                            </TableRow>
+                        ) : paginatedProducts.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={9} align="center">
+                                    No archived products found
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            paginatedProducts.map((product) => (
                                 <TableRow key={product.barcode}>
                                     {isSelectionMode && (
                                         <TableCell padding="checkbox">
@@ -769,49 +767,41 @@ const ArchivedProductsPage = () => {
                                             />
                                         </TableCell>
                                     )}
-                                <TableCell>{product.name}</TableCell>
-                                <TableCell>{product.brand_name}</TableCell>
-                                <TableCell>{product.barcode}</TableCell>
-                                <TableCell>{product.category_name}</TableCell>
-                                <TableCell>₱{parseFloat(product.price).toFixed(2)}</TableCell>
-                                <TableCell>{product.archived_by_name}</TableCell>
+                                    <TableCell>{product.name}</TableCell>
+                                    <TableCell>{product.brand_name}</TableCell>
+                                    <TableCell>{product.barcode}</TableCell>
+                                    <TableCell>{product.category_name}</TableCell>
+                                    <TableCell>₱{parseFloat(product.price).toFixed(2)}</TableCell>
+                                    <TableCell>{product.archived_by_name}</TableCell>
                                     <TableCell>{new Date(product.archived_at).toLocaleDateString()}</TableCell>
                                     <TableCell>{product.archive_reason}</TableCell>
-                                <TableCell>
-                                    <IconButton
+                                    <TableCell>
+                                        <IconButton
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleRestoreProduct(product.product_id);
                                             }}
-                                        color="primary"
-                                        title="Restore product"
-                                    >
-                                        <RestoreIcon />
-                                    </IconButton>
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                                            color="primary"
+                                            title="Restore product"
+                                        >
+                                            <RestoreIcon />
+                                        </IconButton>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
                     </TableBody>
                 </Table>
             </TableContainer>
 
-                <Box sx={{ 
-                    mt: 'auto',
-                    display: 'flex', 
-                    justifyContent: 'flex-end', 
-                    p: 2,
-                    borderTop: '1px solid rgba(224, 224, 224, 1)'
-                }}>
-                    <TablePagination
-                        component="div"
-                        count={processedProducts.length}
-                        page={page}
-                        onPageChange={handleChangePage}
-                        rowsPerPage={rowsPerPage}
-                        rowsPerPageOptions={[]}
-                    />
-                </Box>
-            </Box>
+            <TablePagination
+                component="div"
+                count={processedProducts.length}
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                rowsPerPageOptions={[]}
+            />
 
             <ExportDialog
                 open={isExportDialogOpen}
