@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+// Get current timestamp in UTC+8
 const getCurrentTimestamp = () => {
     const date = new Date();
     // Add UTC+8 offset (8 hours in milliseconds)
@@ -7,6 +8,7 @@ const getCurrentTimestamp = () => {
     return date.toISOString().slice(0, 19).replace('T', ' ');
 };
 
+// Format MySQL timestamp to UTC+8
 const formatToLocalTime = (mysqlTimestamp) => {
     if (!mysqlTimestamp) return null;
     
@@ -15,6 +17,7 @@ const formatToLocalTime = (mysqlTimestamp) => {
     return date.toISOString().slice(0, 19).replace('T', ' ');
 };
 
+// Get MySQL timezone offset from environment variable
 const getMySQLTimezoneOffset = () => {
     return process.env.TIMEZONE_OFFSET || '+08:00';
 };

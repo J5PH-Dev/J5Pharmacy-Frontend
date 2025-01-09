@@ -9,6 +9,7 @@ const cashReconciliationRoutes = require('./routes/cashReconciliation.routes');
 const transactionRoutes = require('./routes/transaction.routes');
 const productRoutes = require('./routes/productRoutes'); // Import product routes
 const branchRoutes = require('./routes/branchRoutes'); // Import branch routes
+const customerRoutes = require('./routes/customer.routes'); // Import customer routes
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use('/api/cash-reconciliation', cashReconciliationRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/products', productRoutes); // Add product routes
 app.use('/api/admin', branchRoutes); // Add branch routes
+app.use('/api/customers', customerRoutes); // Add customer routes
 
 // Start server
 const PORT = process.env.PORT || 5000;

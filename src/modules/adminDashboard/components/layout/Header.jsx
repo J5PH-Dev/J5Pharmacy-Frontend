@@ -17,6 +17,7 @@ import EmployeeIcon from '@mui/icons-material/People'; // Employee & Staff icon
 import CustomerIcon from '@mui/icons-material/Person'; // Customer Info icon
 import SettingsIcon from '@mui/icons-material/Settings'; // Settings icon
 import NotificationsIcon from '@mui/icons-material/Notifications'; // 
+import axios from 'axios';
 
 // Sample navigation items
 const navigationItems = [
@@ -104,7 +105,8 @@ const breadcrumbMap = {
     '/admin/sales-report': 'Sales Report',
     '/admin/sales-report/view-all-transactions': 'All Transactions',
     '/admin/employee-staff': 'Employee & Staff',
-    '/admin/customer-info': 'Customer Information',
+    '/admin/customer-info': 'Customer Management',
+    '/admin/archived-customers': 'Customer Archive',
     '/admin/settings': 'System Settings',
     '/admin/notifications': 'Notifications'
 };
@@ -117,6 +119,7 @@ const Header = () => {
     const [openSubMenus, setOpenSubMenus] = useState({});
     const [isMobileView, setIsMobileView] = useState(false);
     const location = useLocation();
+    const [breadcrumbs, setBreadcrumbs] = useState([]);
 
     useEffect(() => {
         // Event listener to track window resizing
@@ -178,95 +181,51 @@ const Header = () => {
         setOpenSubMenus((prev) => ({ ...prev, [menu]: !prev[menu] }));
     };
 
-    // Function to get breadcrumb items
-    const getBreadcrumbs = () => {
-        const pathnames = location.pathname.split('/').filter(x => x);
-        let currentPath = '';
-        
-        return pathnames.map((name, index) => {
-            currentPath += `/${name}`;
-            const isLast = index === pathnames.length - 1;
-            const fullPath = currentPath === '/admin' ? '/admin/dashboard' : currentPath;
-            
-            // Skip 'admin' in the breadcrumb
-            if (name === 'admin') return null;
-            
-            // Special case for archived branches to show correct hierarchy
-            if (name === 'archived-branches') {
-                return [
-                    <Link
-                        key="/admin/branches"
-                        to="/admin/branches"
-                        style={{ 
-                            color: '#5D7A6C',
-                            textDecoration: 'none',
-                            fontSize: '14px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontWeight: '500',
-                            textTransform: 'capitalize',
-                            '&:hover': {
-                                color: '#1B3E2D',
-                                textDecoration: 'underline'
-                            }
-                        }}
-                    >
-                        Branch Management
-                    </Link>,
-                    <Typography 
-                        key={fullPath} 
-                        sx={{ 
-                            fontSize: '14px',
-                            color: '#1B3E2D',
-                            fontWeight: '600',
-                            textTransform: 'capitalize'
-                        }}
-                    >
-                        Archived Branches
-                    </Typography>
-                ];
+    const getBreadcrumbTitle = async (path) => {
+        // Check if path contains customer-info with ID
+        if (path.includes('/customer-info/')) {
+            if (path.includes('/edit-details')) {
+                return 'Edit Customer';
             }
-            
-            // Get the display name for this level
-            const displayName = breadcrumbMap[fullPath] || name;
-
-            return isLast ? (
-                <Typography 
-                    key={fullPath} 
-                    sx={{ 
-                        fontSize: '14px',
-                        color: '#1B3E2D',
-                        fontWeight: '600',
-                        textTransform: 'capitalize'
-                    }}
-                >
-                    {displayName}
-                </Typography>
-            ) : (
-                <Link
-                    key={fullPath}
-                    to={fullPath}
-                    style={{ 
-                        color: '#5D7A6C',
-                        textDecoration: 'none',
-                        fontSize: '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontWeight: '500',
-                        textTransform: 'capitalize',
-                        '&:hover': {
-                            color: '#1B3E2D',
-                            textDecoration: 'underline'
-                        }
-                    }}
-                >
-                    {displayName}
-                </Link>
-            );
-        }).flat().filter(Boolean);
+            return 'Customer Details';
+        }
+        return breadcrumbMap[path] || '';
     };
+
+    const generateBreadcrumbs = async () => {
+        const paths = location.pathname.split('/').filter(Boolean);
+        let currentPath = '';
+        const breadcrumbs = [];
+
+        // Always start with Overview
+        breadcrumbs.push({ path: '/admin/dashboard', title: 'Overview' });
+
+        // Add Customer Management if in customer section
+        if (paths.includes('customer-info')) {
+            breadcrumbs.push({ path: '/admin/customer-info', title: 'Customer Management' });
+        }
+
+        // Add Customer Details or Edit Customer if viewing/editing a customer
+        if (paths.includes('customer-info') && paths.length > 2) {
+            const isEdit = paths.includes('edit-details');
+            breadcrumbs.push({ 
+                path: `/admin/customer-info/${paths[2]}`, 
+                title: 'Customer Details' 
+            });
+            if (isEdit) {
+                breadcrumbs.push({ 
+                    path: `/admin/customer-info/${paths[2]}/edit-details`, 
+                    title: 'Edit Customer' 
+                });
+            }
+        }
+
+        setBreadcrumbs(breadcrumbs);
+    };
+
+    useEffect(() => {
+        generateBreadcrumbs();
+    }, [location.pathname]);
 
     return (
         <nav className="navbar font-all bg-[#F7FAFD] w-full p-0 border-b-2 border-[#1D242E4D]">
@@ -322,7 +281,27 @@ const Header = () => {
                             <DashboardIcon sx={{ fontSize: 18 }} />
                             Overview
                         </Link>
-                        {getBreadcrumbs()}
+                        {breadcrumbs.map((breadcrumb) => (
+                            <Link
+                                key={breadcrumb.path}
+                                to={breadcrumb.path}
+                                style={{ 
+                                    color: '#5D7A6C',
+                                    textDecoration: 'none',
+                                    fontSize: '14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    fontWeight: '500',
+                                    '&:hover': {
+                                        color: '#1B3E2D',
+                                        textDecoration: 'underline'
+                                    }
+                                }}
+                            >
+                                {breadcrumb.title}
+                            </Link>
+                        ))}
                     </Breadcrumbs>
                 </div>
 
