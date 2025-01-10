@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
 require('dotenv').config();
 const { testConnection } = require('./config/database');
 const InventoryRoutes = require('./routes/InventoryRoutes'); // Import the inventory routes
@@ -13,6 +15,29 @@ const customerRoutes = require('./routes/customer.routes'); // Import customer r
 const staffRoutes = require('./routes/staff.routes');
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: ['http://localhost:3000', 'https://pms.j5pharmacy.com'],
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// WebSocket connection handling
+io.on('connection', (socket) => {
+  console.log('Client connected');
+
+  // Handle real-time transaction updates
+  socket.on('new_transaction', (data) => {
+    // Broadcast to all connected clients
+    io.emit('transaction_update', data);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
+});
 
 // CORS configuration
 const corsOptions = {
@@ -48,7 +73,7 @@ app.use('/api/staff', staffRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 

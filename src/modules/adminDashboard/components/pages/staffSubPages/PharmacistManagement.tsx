@@ -44,7 +44,11 @@ interface Pharmacist {
     is_active: boolean;
 }
 
-const PharmacistManagement: React.FC = () => {
+interface Props {
+    selectedBranch: string;
+}
+
+const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
     const [pharmacists, setPharmacists] = useState<Pharmacist[]>([]);
     const [branches, setBranches] = useState<Branch[]>([]);
     const [openDialog, setOpenDialog] = useState(false);
@@ -65,11 +69,15 @@ const PharmacistManagement: React.FC = () => {
     useEffect(() => {
         fetchPharmacists();
         fetchBranches();
-    }, [includeArchived]);
+    }, [includeArchived, selectedBranch]);
 
     const fetchPharmacists = async () => {
         try {
-            const response = await axios.get(`/api/staff/pharmacists?include_archived=${includeArchived}`);
+            let url = `/api/staff/pharmacists?include_archived=${includeArchived}`;
+            if (selectedBranch) {
+                url += `&branch_id=${selectedBranch}`;
+            }
+            const response = await axios.get(url);
             setPharmacists(response.data.data);
         } catch (error) {
             console.error('Error fetching pharmacists:', error);
@@ -515,7 +523,7 @@ const PharmacistManagement: React.FC = () => {
                                         Registration Date
                                     </Typography>
                                     <Typography variant="body1">
-                                        {(selectedPharmacist.created_at.split(' ')[0])}
+                                        {selectedPharmacist.created_at.split(' ')[0]}
                                     </Typography>
                                 </Grid>
                             </Grid>

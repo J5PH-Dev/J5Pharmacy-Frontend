@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Tabs, Tab, Button } from '@mui/material';
+import { Box, Typography, Tabs, Tab, Button, FormControl, InputLabel, Select, MenuItem, Stack } from '@mui/material';
 import UserManagement from './staffSubPages/UserManagement';
 import PharmacistManagement from './staffSubPages/PharmacistManagement';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
@@ -16,6 +16,51 @@ interface ExportData {
     users: any[];
     pharmacists: any[];
 }
+
+interface Branch {
+    branch_id: number;
+    branch_name: string;
+}
+
+interface FilterProps {
+    selectedRole: string;
+    selectedBranch: string;
+    onRoleChange: (role: string) => void;
+    onBranchChange: (branchId: string) => void;
+    branches: Branch[];
+}
+
+const FilterSection: React.FC<FilterProps> = ({ selectedRole, selectedBranch, onRoleChange, onBranchChange, branches }) => (
+    <Stack direction="row" spacing={2}>
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Role</InputLabel>
+            <Select
+                value={selectedRole}
+                label="Role"
+                onChange={(e) => onRoleChange(e.target.value)}
+            >
+                <MenuItem value="">All Roles</MenuItem>
+                <MenuItem value="ADMIN">Admin</MenuItem>
+                <MenuItem value="MANAGER">Manager</MenuItem>
+            </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Branch</InputLabel>
+            <Select
+                value={selectedBranch}
+                label="Branch"
+                onChange={(e) => onBranchChange(e.target.value)}
+            >
+                <MenuItem value="">All Branches</MenuItem>
+                {branches.map((branch) => (
+                    <MenuItem key={branch.branch_id} value={branch.branch_id}>
+                        {branch.branch_name}
+                    </MenuItem>
+                ))}
+            </Select>
+        </FormControl>
+    </Stack>
+);
 
 function TabPanel(props: TabPanelProps) {
     const { children, value, index, ...other } = props;
@@ -48,9 +93,28 @@ const EmployeeStaffPage: React.FC = () => {
     const [tabValue, setTabValue] = useState(0);
     const [openExport, setOpenExport] = useState(false);
     const [exportData, setExportData] = useState<ExportData>({ users: [], pharmacists: [] });
+    const [branches, setBranches] = useState<Branch[]>([]);
+    const [selectedRole, setSelectedRole] = useState('');
+    const [selectedBranch, setSelectedBranch] = useState('');
+
+    useEffect(() => {
+        fetchBranches();
+    }, []);
+
+    const fetchBranches = async () => {
+        try {
+            const response = await axios.get('/api/staff/branches');
+            setBranches(response.data.data);
+        } catch (error) {
+            console.error('Error fetching branches:', error);
+        }
+    };
 
     const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
+        // Reset filters when changing tabs
+        setSelectedRole('');
+        setSelectedBranch('');
     };
 
     const fetchExportData = async () => {
@@ -89,28 +153,55 @@ const EmployeeStaffPage: React.FC = () => {
         { field: 'pin_code', header: 'PIN Code' }
     ];
 
-  return (
-    <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1 }}>
+    return (
+        <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                     Staff & Employees
                 </Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<FileDownloadIcon />}
-                    onClick={fetchExportData}
-                    sx={{ backgroundColor: '#01A768', '&:hover': { backgroundColor: '#017F4A' } }}
-                >
-                    Export Data
-                </Button>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    {tabValue === 0 ? (
+                        <FilterSection
+                            selectedRole={selectedRole}
+                            selectedBranch={selectedBranch}
+                            onRoleChange={setSelectedRole}
+                            onBranchChange={setSelectedBranch}
+                            branches={branches}
+                        />
+                    ) : (
+                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                            <InputLabel>Branch</InputLabel>
+                            <Select
+                                value={selectedBranch}
+                                label="Branch"
+                                onChange={(e) => setSelectedBranch(e.target.value)}
+                            >
+                                <MenuItem value="">All Branches</MenuItem>
+                                {branches.map((branch) => (
+                                    <MenuItem key={branch.branch_id} value={branch.branch_id}>
+                                        {branch.branch_name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    )}
+                    <Button
+                        variant="contained"
+                        startIcon={<FileDownloadIcon />}
+                        onClick={fetchExportData}
+                        sx={{ backgroundColor: '#01A768', '&:hover': { backgroundColor: '#017F4A' } }}
+                    >
+                        Export Data
+                    </Button>
                 </Box>
+            </Box>
 
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                 <Tabs
                     value={tabValue}
                     onChange={handleTabChange}
                     aria-label="staff management tabs"
-              sx={{
+                    sx={{
                         '& .MuiTab-root': {
                             textTransform: 'none',
                             fontSize: '1rem',
@@ -120,20 +211,20 @@ const EmployeeStaffPage: React.FC = () => {
                             color: '#01A768',
                         },
                         '& .MuiTabs-indicator': {
-                backgroundColor: '#01A768',
-                },
-              }}
-            >
+                            backgroundColor: '#01A768',
+                        },
+                    }}
+                >
                     <Tab label="User Management" {...a11yProps(0)} />
                     <Tab label="Pharmacist Management" {...a11yProps(1)} />
                 </Tabs>
             </Box>
 
             <TabPanel value={tabValue} index={0}>
-                <UserManagement />
+                <UserManagement selectedRole={selectedRole} selectedBranch={selectedBranch} />
             </TabPanel>
             <TabPanel value={tabValue} index={1}>
-                <PharmacistManagement />
+                <PharmacistManagement selectedBranch={selectedBranch} />
             </TabPanel>
 
             {/* Export Dialog */}
@@ -144,8 +235,8 @@ const EmployeeStaffPage: React.FC = () => {
                 columns={tabValue === 0 ? userColumns : pharmacistColumns}
                 filename={tabValue === 0 ? 'users_data' : 'pharmacists_data'}
             />
-    </Box>
-  );
+        </Box>
+    );
 };
 
 export default EmployeeStaffPage;

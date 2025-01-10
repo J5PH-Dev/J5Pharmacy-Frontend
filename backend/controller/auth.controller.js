@@ -15,7 +15,12 @@ const pmsLogin = async (req, res) => {
             `SELECT u.*, b.branch_name,
              ${getConvertTZString('u.created_at')} as created_at,
              ${getConvertTZString('u.updated_at')} as updated_at,
-             ${getConvertTZString('u.hired_at')} as hired_at
+             ${getConvertTZString('u.hired_at')} as hired_at,
+             CASE 
+                WHEN u.image_data IS NOT NULL THEN TO_BASE64(u.image_data)
+                ELSE NULL 
+             END as image_data,
+             u.image_type
              FROM users u
              LEFT JOIN branches b ON u.branch_id = b.branch_id
              WHERE u.employee_id = ? AND u.is_active = 1`,
@@ -73,7 +78,11 @@ const pmsLogin = async (req, res) => {
                 created_at: user.created_at,
                 updated_at: user.updated_at,
                 hired_at: user.hired_at,
-                user_id: user.user_id
+                user_id: user.user_id,
+                email: user.email,
+                phone: user.phone,
+                image_data: user.image_data,
+                image_type: user.image_type
             }
         });
     } catch (error) {

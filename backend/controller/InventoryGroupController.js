@@ -400,19 +400,36 @@ exports.archiveCategory = async (req, res) => {
 
         // Get category details before archiving
         const [category] = await connection.query(
-            'SELECT * FROM category WHERE category_id = ?',
+            'SELECT * FROM category WHERE category_id = ? AND is_active = 1',
             [categoryId]
         );
 
         if (category.length === 0) {
             await connection.rollback();
-            return res.status(404).json({ message: 'Category not found' });
+            return res.status(404).json({ message: 'Category not found or already archived' });
+        }
+
+        // Check if category is already in archive
+        const [existingArchive] = await connection.query(
+            'SELECT * FROM category_archive WHERE category_id = ?',
+            [categoryId]
+        );
+
+        if (existingArchive.length > 0) {
+            await connection.rollback();
+            return res.status(409).json({ message: 'Category is already archived' });
         }
 
         // Get affected products
         const [affectedProducts] = await connection.query(
             'SELECT id, name, brand_name FROM products WHERE category = ? AND is_active = TRUE',
             [categoryId]
+        );
+
+        // First, update all products to NO CATEGORY (12)
+        await connection.query(
+            'UPDATE products SET category = 12, updatedat = ? WHERE category = ?',
+            [timeZoneUtil.getCurrentTimestamp(), categoryId]
         );
 
         // Insert into category_archive
@@ -423,27 +440,30 @@ exports.archiveCategory = async (req, res) => {
             [categoryId, category[0].name, category[0].prefix, archivedBy]
         );
 
-        // Update products to set category to NO CATEGORY (12)
+        // Update category to set it as inactive instead of deleting
         await connection.query(
-            'UPDATE products SET category = 12 WHERE category = ?',
-            [categoryId]
-        );
-
-        // Delete from category table
-        await connection.query(
-            'DELETE FROM category WHERE category_id = ?',
-            [categoryId]
+            'UPDATE category SET is_active = 0, updated_at = ? WHERE category_id = ?',
+            [timeZoneUtil.getCurrentTimestamp(), categoryId]
         );
 
         await connection.commit();
         res.json({ 
             message: 'Category archived successfully',
-            affectedProducts: affectedProducts
+            affectedProducts: affectedProducts,
+            details: {
+                categoryName: category[0].name,
+                prefix: category[0].prefix,
+                productsAffected: affectedProducts.length,
+                archivedAt: timeZoneUtil.getCurrentTimestamp()
+            }
         });
     } catch (error) {
         await connection.rollback();
         console.error('Error archiving category:', error);
-        res.status(500).json({ message: 'Failed to archive category' });
+        res.status(500).json({ 
+            message: 'Failed to archive category',
+            error: error.message 
+        });
     } finally {
         connection.release();
     }

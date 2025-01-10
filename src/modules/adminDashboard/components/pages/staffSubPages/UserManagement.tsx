@@ -45,7 +45,12 @@ interface User {
     is_active: boolean;
 }
 
-const UserManagement: React.FC = () => {
+interface Props {
+    selectedRole: string;
+    selectedBranch: string;
+}
+
+const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
     const [users, setUsers] = useState<User[]>([]);
     const [branches, setBranches] = useState<Branch[]>([]);
     const [openDialog, setOpenDialog] = useState(false);
@@ -71,11 +76,18 @@ const UserManagement: React.FC = () => {
     useEffect(() => {
         fetchUsers();
         fetchBranches();
-    }, [includeArchived]);
+    }, [includeArchived, selectedRole, selectedBranch]);
 
     const fetchUsers = async () => {
         try {
-            const response = await axios.get(`/api/staff/users?include_archived=${includeArchived}`);
+            let url = `/api/staff/users?include_archived=${includeArchived}`;
+            if (selectedRole) {
+                url += `&role=${selectedRole}`;
+            }
+            if (selectedBranch) {
+                url += `&branch_id=${selectedBranch}`;
+            }
+            const response = await axios.get(url);
             setUsers(response.data.data);
         } catch (error) {
             console.error('Error fetching users:', error);
@@ -585,7 +597,7 @@ const UserManagement: React.FC = () => {
                                         Hired Date
                                     </Typography>
                                     <Typography variant="body1">
-                                        {format(new Date(selectedUser.hired_at.split(' ')[0]), 'MMMM d, yyyy')}
+                                        {selectedUser.hired_at.split(' ')[0]}
                                     </Typography>
                                 </Grid>
 
