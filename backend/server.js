@@ -13,6 +13,7 @@ const productRoutes = require('./routes/productRoutes'); // Import product route
 const branchRoutes = require('./routes/branchRoutes'); // Import branch routes
 const customerRoutes = require('./routes/customer.routes'); // Import customer routes
 const staffRoutes = require('./routes/staff.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 const app = express();
 const httpServer = createServer(app);
@@ -26,7 +27,8 @@ const io = new Server(httpServer, {
 
 // WebSocket connection handling
 io.on('connection', (socket) => {
-  console.log('Client connected');
+  const clientIP = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+  console.log(`Client connected from IP: ${clientIP}`);
 
   // Handle real-time transaction updates
   socket.on('new_transaction', (data) => {
@@ -70,6 +72,7 @@ app.use('/api/products', productRoutes); // Add product routes
 app.use('/api/admin', branchRoutes); // Add branch routes
 app.use('/api/customers', customerRoutes); // Add customer routes
 app.use('/api/staff', staffRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;

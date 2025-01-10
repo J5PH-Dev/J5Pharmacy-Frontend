@@ -37,7 +37,7 @@ const ReportsPage = () => {
     };
 
     return (
-        <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1 }}>
+        <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1 }}>
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                 <Tabs value={currentTab} onChange={handleTabChange}>
                     <Tab label="Dashboard" />

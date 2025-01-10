@@ -79,12 +79,18 @@ const ReportDashboard: React.FC = () => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [salesData, setSalesData] = useState<SalesDataPoint[]>([]);
     const [metrics, setMetrics] = useState<MetricsData | null>(null);
-    const [timeFilter, setTimeFilter] = useState('day');
+    const [timeFilter, setTimeFilter] = useState('hour');
     const [selectedBranch, setSelectedBranch] = useState('');
     const [tabValue, setTabValue] = useState(0);
-    const [dateRange, setDateRange] = useState({
-        start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
-        end: new Date().toISOString().split('T')[0]
+    const [dateRange, setDateRange] = useState(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+        return {
+            start: today.toISOString().split('.')[0],
+            end: endOfDay.toISOString().split('.')[0]
+        };
     });
     const [isExpanded, setIsExpanded] = useState({
         salesOverview: false,
@@ -93,26 +99,72 @@ const ReportDashboard: React.FC = () => {
     });
     const [branches, setBranches] = useState<Array<{branch_id: number, branch_name: string}>>([]);
 
-    // Fetch initial data
+    // Socket connection for real-time updates
+    useEffect(() => {
+        // Initial fetch
+        fetchTransactionSummary();
+        fetchLatestTransactions();
+        fetchMetrics();
+        fetchBranches();
+
+        // Set up socket listeners
+        socket.on('transaction_update', (newTransaction: Transaction) => {
+            setTransactions(prev => [newTransaction, ...prev.slice(0, 9)]);
+            // Trigger refetch of summary and metrics
+            fetchTransactionSummary();
+            fetchMetrics();
+        });
+
+        // Set up periodic refresh
+        const refreshInterval = setInterval(() => {
+            fetchTransactionSummary();
+            fetchLatestTransactions();
+            fetchMetrics();
+        }, 30000); // Refresh every 30 seconds
+
+        return () => {
+            socket.off('transaction_update');
+            clearInterval(refreshInterval);
+        };
+    }, []); // Empty dependency array for initial setup
+
+    // Fetch data when filters change
     useEffect(() => {
         fetchTransactionSummary();
         fetchLatestTransactions();
         fetchMetrics();
     }, [timeFilter, selectedBranch, dateRange]);
 
-    // Socket connection for real-time updates
+    // Update date range when time filter changes
     useEffect(() => {
-        socket.on('transaction_update', (newTransaction: Transaction) => {
-            setTransactions(prev => {
-                const updated = [newTransaction, ...prev.slice(0, 9)];
-                return updated;
-            });
-        });
+        const now = new Date();
+        let start = new Date();
+        let end = new Date();
 
-        return () => {
-            socket.off('transaction_update');
-        };
-    }, []);
+        switch(timeFilter) {
+            case 'hour':
+                start = new Date(now.setHours(0, 0, 0, 0));
+                end = new Date(now.setHours(23, 59, 59, 999));
+                break;
+            case 'day':
+                start = new Date(now.setDate(now.getDate() - 30));
+                break;
+            case 'week':
+                start = new Date(now.setDate(now.getDate() - 84)); // 12 weeks
+                break;
+            case 'month':
+                start = new Date(now.setMonth(now.getMonth() - 12));
+                break;
+            case 'year':
+                start = new Date(now.setFullYear(now.getFullYear() - 5));
+                break;
+        }
+
+        setDateRange({
+            start: start.toISOString().split('.')[0],
+            end: end.toISOString().split('.')[0]
+        });
+    }, [timeFilter]);
 
     const fetchTransactionSummary = async () => {
         try {
@@ -291,7 +343,12 @@ const ReportDashboard: React.FC = () => {
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis 
                                         dataKey="date" 
-                                        tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                                        tickFormatter={(value) => {
+                                            const date = new Date(value);
+                                            return timeFilter === 'hour' 
+                                                ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                : date.toLocaleDateString();
+                                        }}
                                         angle={-45}
                                         textAnchor="end"
                                         height={60}
@@ -306,7 +363,17 @@ const ReportDashboard: React.FC = () => {
                                             const numValue = Number(value);
                                             return isNaN(numValue) ? ['₱0.00', name] : [`₱${numValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, name];
                                         }}
-                                        labelFormatter={(label: string) => new Date(label).toLocaleDateString()}
+                                        labelFormatter={(label: string) => {
+                                            const date = new Date(label);
+                                            return timeFilter === 'hour'
+                                                ? date.toLocaleString([], { 
+                                                    hour: '2-digit', 
+                                                    minute: '2-digit',
+                                                    month: 'short',
+                                                    day: 'numeric'
+                                                })
+                                                : date.toLocaleDateString();
+                                        }}
                                     />
                                     <Legend wrapperStyle={{ position: 'relative', marginTop: '10px' }}/>
                                     <Line type="monotone" dataKey="total_sales" stroke="#4CAF50" name="Sales" strokeWidth={2} />
