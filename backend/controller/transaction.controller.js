@@ -103,14 +103,19 @@ const getLatestTransactions = async (req, res) => {
 // Get key metrics
 const getKeyMetrics = async (req, res) => {
     try {
-        const { branchId, startDate, endDate } = req.query;
-        let params = [];
-        let branchCondition = branchId ? 'AND s.branch_id = ?' : '';
-        if (branchId) params.push(branchId);
+        const { startDate, endDate, branchId } = req.query;
 
-        const query = `
+        let whereClause = `WHERE ${getConvertTZString('s.created_at')} BETWEEN ? AND ?`;
+        let params = [startDate, endDate];
+
+        if (branchId) {
+            whereClause += ' AND s.branch_id = ?';
+            params.push(branchId);
+        }
+
+        const [results] = await db.pool.query(`
             SELECT 
-                COUNT(DISTINCT s.sale_id) as total_transactions,
+                COUNT(DISTINCT s.transaction_id) as total_transactions,
                 SUM(s.total_amount) as total_sales,
                 AVG(s.total_amount) as average_transaction_value,
                 SUM(s.discount_amount) as total_discounts,
@@ -118,14 +123,10 @@ const getKeyMetrics = async (req, res) => {
                 SUM(CASE WHEN sr.return_id IS NOT NULL THEN sr.return_amount ELSE 0 END) as total_return_amount,
                 COUNT(DISTINCT s.customer_id) as unique_customers
             FROM sales s
-            LEFT JOIN sales_returns sr ON s.sale_id = sr.sale_id
-            WHERE ${getConvertTZString('s.created_at')} BETWEEN ? AND ?
-            ${branchCondition}
-        `;
+            LEFT JOIN sales_returns sr ON s.transaction_id = sr.transaction_id
+            ${whereClause}
+        `, params);
 
-        params.unshift(startDate || '2024-01-01', endDate || new Date().toISOString().split('T')[0]);
-
-        const [results] = await db.pool.query(query, params);
         res.json(results[0]);
     } catch (error) {
         console.error('Error fetching key metrics:', error);

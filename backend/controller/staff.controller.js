@@ -121,45 +121,109 @@ const updateUser = async (req, res) => {
 
         const { userId } = req.params;
         const {
-            name,
-            role,
             email,
             phone,
-            branch_id,
             remarks,
-            hired_at,
-            password
+            current_password,
+            new_password
         } = req.body;
 
-        let updateQuery = `
-            UPDATE users 
-            SET name = ?, role = ?, email = ?, phone = ?,
-                branch_id = ?, remarks = ?, hired_at = ?,
-                updated_at = ${getMySQLTimestamp()}
-        `;
-        let params = [name, role, email, phone, branch_id, remarks, hired_at];
+        // Start building the update query
+        let updateFields = [];
+        let updateValues = [];
 
-        // If password is provided, update it
-        if (password) {
-            const hashedPassword = await bcrypt.hash(password, 10);
-            updateQuery += ', password = ?';
-            params.push(hashedPassword);
+        // Add basic fields
+        if (email) {
+            updateFields.push('email = ?');
+            updateValues.push(email);
+        }
+        if (phone) {
+            updateFields.push('phone = ?');
+            updateValues.push(phone);
+        }
+        if (remarks) {
+            updateFields.push('remarks = ?');
+            updateValues.push(remarks);
         }
 
-        updateQuery += ' WHERE user_id = ?';
-        params.push(userId);
+        // Handle password change if provided
+        if (current_password && new_password) {
+            // Verify current password
+            const [users] = await connection.query(
+                'SELECT password FROM users WHERE user_id = ?',
+                [userId]
+            );
 
-        await connection.query(updateQuery, params);
+            if (users.length === 0) {
+                throw new Error('User not found');
+            }
+
+            const isValidPassword = await bcrypt.compare(current_password, users[0].password);
+            if (!isValidPassword) {
+                throw new Error('Current password is incorrect');
+            }
+
+            // Hash new password
+            const hashedPassword = await bcrypt.hash(new_password, 10);
+            updateFields.push('password = ?');
+            updateValues.push(hashedPassword);
+        }
+
+        // Handle image upload if provided
+        if (req.file) {
+            updateFields.push('image_data = ?');
+            updateValues.push(req.file.buffer);
+            updateFields.push('image_type = ?');
+            updateValues.push(req.file.mimetype);
+        }
+
+        // Add updated_at timestamp
+        updateFields.push(`updated_at = ${getMySQLTimestamp()}`);
+
+        // If there are fields to update
+        if (updateFields.length > 0) {
+            const query = `
+                UPDATE users 
+                SET ${updateFields.join(', ')}
+                WHERE user_id = ?
+            `;
+            updateValues.push(userId);
+
+            await connection.query(query, updateValues);
+        }
+
+        // Get updated user data
+        const [updatedUser] = await connection.query(
+            `SELECT 
+                user_id, employee_id, name, role, email, phone,
+                branch_id, remarks, is_active,
+                CASE WHEN image_data IS NOT NULL 
+                    THEN TO_BASE64(image_data)
+                    ELSE NULL 
+                END as image_data,
+                image_type,
+                ${getConvertTZString('created_at')} as created_at,
+                ${getConvertTZString('updated_at')} as updated_at,
+                ${getConvertTZString('hired_at')} as hired_at
+            FROM users 
+            WHERE user_id = ?`,
+            [userId]
+        );
+
         await connection.commit();
 
         res.json({
             success: true,
-            message: 'User updated successfully'
+            message: 'User updated successfully',
+            user: updatedUser[0]
         });
     } catch (error) {
         await connection.rollback();
         console.error('Error updating user:', error);
-        res.status(500).json({ success: false, message: 'Error updating user' });
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Error updating user'
+        });
     } finally {
         connection.release();
     }

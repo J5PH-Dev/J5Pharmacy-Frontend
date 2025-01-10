@@ -1,30 +1,40 @@
 const express = require('express');
 const router = express.Router();
 const staffController = require('../controller/staff.controller');
-const { verifyToken, isPMSUser, isAdmin } = require('../middleware/auth.middleware');
+const { verifyToken, isPMSUser } = require('../middleware/auth.middleware');
+const multer = require('multer');
 
-// Apply middleware to all routes
-router.use(verifyToken, isPMSUser);
+// Configure multer for memory storage
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: function (req, file, cb) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
+            return cb(new Error('Only image files are allowed!'));
+        }
+        cb(null, true);
+    }
+});
 
-// User management routes
+// Apply authentication middleware to all routes
+router.use(verifyToken);
+router.use(isPMSUser);
+
+// User routes
 router.get('/users', staffController.getAllUsers);
-router.post('/users', isAdmin, staffController.createUser);
-router.put('/users/:userId', isAdmin, staffController.updateUser);
-router.delete('/users/:userId', isAdmin, staffController.archiveUser);
-router.post('/users/upload-image/:userId', staffController.uploadUserImage);
-router.put('/users/:userId/archive', isAdmin, staffController.archiveUser);
-router.put('/users/:userId/restore', isAdmin, staffController.restoreUser);
+router.post('/users', staffController.createUser);
+router.put('/users/:userId', upload.single('image'), staffController.updateUser);
+router.put('/users/:userId/archive', staffController.archiveUser);
+router.put('/users/:userId/restore', staffController.restoreUser);
 
-// Pharmacist management routes
+// Pharmacist routes
 router.get('/pharmacists', staffController.getAllPharmacists);
-router.post('/pharmacists', isAdmin, staffController.createPharmacist);
-router.put('/pharmacists/:staffId', isAdmin, staffController.updatePharmacist);
-router.delete('/pharmacists/:staffId', isAdmin, staffController.archivePharmacist);
-router.post('/pharmacists/upload-image/:staffId', staffController.uploadPharmacistImage);
-router.put('/pharmacists/:staffId/archive', isAdmin, staffController.archivePharmacist);
-router.put('/pharmacists/:staffId/restore', isAdmin, staffController.restorePharmacist);
+router.post('/pharmacists', staffController.createPharmacist);
+router.put('/pharmacists/:staffId', staffController.updatePharmacist);
+router.put('/pharmacists/:staffId/archive', staffController.archivePharmacist);
+router.put('/pharmacists/:staffId/restore', staffController.restorePharmacist);
 
-// Branch related routes
+// Branch routes
 router.get('/branches', staffController.getAllBranches);
 
 module.exports = router; 

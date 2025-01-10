@@ -178,17 +178,21 @@ const navigationItems: NavigationItem[] = [
 
 const Sidebar: React.FC = () => {
   const theme = useTheme();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [openItems, setOpenItems] = useState<string[]>([]);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
-  const location = useLocation();  // Hook to get current location
-
+  const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  // State to keep track of the active navigation item
   const [activeItem, setActiveItem] = useState<string>(navigationItems[0].path || '');
   const [isModalOpen, setModalOpen] = useState(false);
 
-
+  // Get user data from localStorage for additional info
+  const userData = JSON.parse(localStorage.getItem('user') || '{}');
+  
+  // Format image URL if image_data exists
+  const userImageUrl = userData.image_data 
+    ? `data:${userData.image_type || 'image/jpeg'};base64,${userData.image_data}`
+    : undefined;
 
   // Update active item based on the current location (path)
   React.useEffect(() => {
@@ -234,7 +238,7 @@ const Sidebar: React.FC = () => {
           '& .MuiDrawer-paper': {
             display: 'flex',
             flexDirection: 'column',
-            borderRadius: '0px', // Add border-radius here as well
+            borderRadius: '0px',
           },
         }}
         open={!isMobile}
@@ -245,10 +249,21 @@ const Sidebar: React.FC = () => {
       >
         {/* User Section */}
         <UserSection>
-          <Avatar sx={{ width: 48, height: 48 }} src="/path-to-user-image.jpg" />
+          <Avatar 
+            sx={{ 
+              width: 48, 
+              height: 48,
+              bgcolor: '#FED600',
+              color: '#1B3E2D',
+            }} 
+            src={userImageUrl}
+            alt={userData.name}
+          >
+            {userData.name ? userData.name[0].toUpperCase() : 'U'}
+          </Avatar>
           <UserInfo>
-            <Typography className="MuiTypography-name">Janeth</Typography>
-            <Typography className="MuiTypography-role">Owner</Typography>
+            <Typography className="MuiTypography-name">{userData.name || 'User'}</Typography>
+            <Typography className="MuiTypography-role">{userData.role || 'Role'}</Typography>
           </UserInfo>
           <IconButton onClick={handleUserMenuClick}>
             <MoreVertIcon style={{ color: 'white' }} />
@@ -338,29 +353,32 @@ const Sidebar: React.FC = () => {
                 backgroundColor: '#FED600',
                 color: '#1B3E2D',
               }}
-              src="/path-to-user-image.jpg" // Replace with actual image path
-            />
+              src={userImageUrl}
+              alt={userData.name}
+            >
+              {userData.name ? userData.name[0].toUpperCase() : 'U'}
+            </Avatar>
             <Typography variant="h6" sx={{ marginBottom: 2 }}>
-              Jane Smith
+              {userData.name}
             </Typography>
             <Box sx={{ textAlign: 'left', color: '#555', marginBottom: 4 }}>
               <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <strong>Role:</strong> Owner
+                <strong>Role:</strong> {userData.role}
               </Typography>
               <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <strong>Branch Overseeing:</strong> All Branches
+                <strong>Branch:</strong> {userData.branch_name || 'All Branches'}
               </Typography>
               <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <strong>Ownership Start Date:</strong> 03/12/2018
+                <strong>Employee ID:</strong> {userData.employeeId}
               </Typography>
               <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <strong>Business Email:</strong> admin@pharmacycorp.com
+                <strong>Hired Date:</strong> {new Date(userData.hired_at).toLocaleDateString()}
               </Typography>
               <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <strong>Contact Number:</strong> +63 917 987 6543
+                <strong>Email:</strong> {userData.email || 'Not provided'}
               </Typography>
               <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <strong>Office Location:</strong> Corporate Headquarters, Manila
+                <strong>Phone:</strong> {userData.phone || 'Not provided'}
               </Typography>
             </Box>
             <Button
@@ -374,10 +392,9 @@ const Sidebar: React.FC = () => {
           </Box>
         </Modal>
 
-
         {/* Footer */}
         <Footer sx={{ color: 'white', backgroundColor: '#1B3E2D' }}>
-          <Typography style={{ color: 'white', fontWeight: '200' }}>J5 Pharmacy 2024 v.0.1.1-b1</Typography>
+          <Typography style={{ color: 'white', fontWeight: '200' }}>J5 Pharmacy 2025 v.0.2.5</Typography>
         </Footer>
       </Drawer>
     </SidebarContainer>
