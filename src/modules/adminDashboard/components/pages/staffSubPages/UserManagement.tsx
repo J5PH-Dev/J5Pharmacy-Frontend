@@ -19,10 +19,12 @@ import {
     Alert,
     Snackbar,
     Switch,
-    FormControlLabel
+    FormControlLabel,
+    CircularProgress,
+    Tooltip
 } from '@mui/material';
-import { Edit, Delete, Add as AddIcon, Visibility, VisibilityOff } from '@mui/icons-material';
-import axios from 'axios';
+import { Edit, Delete, Add as AddIcon, Visibility, VisibilityOff, DeleteOutline, HelpOutline } from '@mui/icons-material';
+import axios, { AxiosError } from 'axios';
 import { format } from 'date-fns';
 
 interface Branch {
@@ -56,7 +58,6 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
     const [openDialog, setOpenDialog] = useState(false);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
     const [formData, setFormData] = useState({
         employee_id: '',
@@ -72,6 +73,11 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
     const [includeArchived, setIncludeArchived] = useState(false);
     const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [openRemoveImageDialog, setOpenRemoveImageDialog] = useState(false);
+    const [isRemovingImage, setIsRemovingImage] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     useEffect(() => {
         fetchUsers();
@@ -79,6 +85,7 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
     }, [includeArchived, selectedRole, selectedBranch]);
 
     const fetchUsers = async () => {
+        setIsLoading(true);
         try {
             let url = `/api/staff/users?include_archived=${includeArchived}`;
             if (selectedRole) {
@@ -92,6 +99,8 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
         } catch (error) {
             console.error('Error fetching users:', error);
             showSnackbar('Error fetching users', 'error');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -115,38 +124,92 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
-            setSelectedFile(event.target.files[0]);
+            const file = event.target.files[0];
+            try {
+                const imageFormData = new FormData();
+                imageFormData.append('image', file);
+                
+                if (selectedUser) {
+                    // Existing user - upload image directly
+                    const response = await axios.post(
+                        `/api/staff/users/upload-image/${selectedUser.user_id}`,
+                        imageFormData,
+                        {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                            },
+                        }
+                    );
+                    showSnackbar('Profile picture updated successfully', 'success');
+                    
+                    // Update the UI with the new image
+                    if (response.data.image_url) {
+                        await handleImageUploadSuccess(selectedUser.user_id, response.data.image_url);
+                    }
+                } else {
+                    // New user - store the image temporarily
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        if (e.target?.result) {
+                            // Show preview in the Avatar
+                            setSelectedUser(prev => prev ? {
+                                ...prev,
+                                image_url: e.target!.result as string
+                            } : null);
+                            // Store the file for later upload after user creation
+                            setSelectedFile(file);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            } catch (error) {
+                console.error('Error handling profile picture:', error);
+                showSnackbar('Error handling profile picture', 'error');
+            }
         }
     };
 
     const handleSubmit = async () => {
+        setIsSubmitting(true);
         try {
             let response;
-            if (selectedUser) {
-                // Update existing user
+            if (selectedUser && selectedUser.user_id) {
+                // Updating existing user
                 response = await axios.put(`/api/staff/users/${selectedUser.user_id}`, formData);
-                if (selectedFile) {
-                    const formData = new FormData();
-                    formData.append('image', selectedFile);
-                    await axios.post(`/api/staff/users/upload-image/${selectedUser.user_id}`, formData);
-                }
             } else {
-                // Create new user
+                // Creating new user
                 response = await axios.post('/api/staff/users', formData);
-                if (selectedFile && response.data.userId) {
-                    const formData = new FormData();
-                    formData.append('image', selectedFile);
-                    await axios.post(`/api/staff/users/upload-image/${response.data.userId}`, formData);
+                
+                // If we have a selected file, upload it for the new user
+                if (selectedFile && response.data.user_id) {
+                    const imageFormData = new FormData();
+                    imageFormData.append('image', selectedFile);
+                    await axios.post(
+                        `/api/staff/users/upload-image/${response.data.user_id}`,
+                        imageFormData,
+                        {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                            },
+                        }
+                    );
                 }
             }
+
             showSnackbar(selectedUser ? 'User updated successfully' : 'User created successfully', 'success');
             handleClose();
             fetchUsers();
         } catch (error) {
             console.error('Error saving user:', error);
-            showSnackbar('Error saving user', 'error');
+            const axiosError = error as AxiosError<{ message: string }>;
+            showSnackbar(
+                axiosError.response?.data?.message || 'Error saving user',
+                'error'
+            );
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -206,6 +269,7 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
     };
 
     const handleArchive = async () => {
+        setIsSubmitting(true);
         try {
             await axios.put(`/api/staff/users/${selectedUser?.user_id}/archive`);
             showSnackbar('User archived successfully', 'success');
@@ -215,6 +279,8 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
         } catch (error) {
             console.error('Error archiving user:', error);
             showSnackbar('Error archiving user', 'error');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -233,6 +299,43 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
         if (!user.is_active) return; // Don't open details for archived users
         setSelectedUser(user);
         setOpenDetailsDialog(true);
+    };
+
+    const handleRemoveImage = async (userId: number) => {
+        setIsRemovingImage(true);
+        try {
+            await axios.put(`/api/staff/users/${userId}/remove-image`);
+            showSnackbar('Profile picture removed successfully', 'success');
+            
+            // Update the selected user's image in state
+            if (selectedUser) {
+                setSelectedUser({
+                    ...selectedUser,
+                    image_url: undefined
+                });
+            }
+            
+            // Refresh the users list
+            fetchUsers();
+        } catch (error) {
+            console.error('Error removing profile picture:', error);
+            showSnackbar('Error removing profile picture', 'error');
+        } finally {
+            setIsRemovingImage(false);
+            setOpenRemoveImageDialog(false);
+        }
+    };
+
+    const handleImageUploadSuccess = async (userId: number, imageUrl: string) => {
+        // Update the selected user's image in state
+        if (selectedUser && selectedUser.user_id === userId) {
+            setSelectedUser({
+                ...selectedUser,
+                image_url: imageUrl
+            });
+        }
+        // Refresh the users list
+        await fetchUsers();
     };
 
     return (
@@ -263,107 +366,113 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                 </Button>
             </Box>
 
-            <Grid container spacing={3}>
-                {users.map((user) => (
-                    <Grid item xs={12} sm={6} md={4} key={user.user_id}>
-                        <Paper 
-                            onClick={() => handleCardClick(user)}
-                            sx={{ 
-                                p: 3, 
-                                height: '100%',
-                                opacity: user.is_active ? 1 : 0.7,
-                                position: 'relative',
-                                cursor: user.is_active ? 'pointer' : 'default',
-                                '&:hover': user.is_active ? {
-                                    boxShadow: 3,
-                                    transform: 'translateY(-2px)',
-                                    transition: 'all 0.2s ease-in-out'
-                                } : {}
-                            }}
-                        >
-                            {!user.is_active && (
-                                <Box sx={{ display: 'flex', gap: 1, position: 'absolute', top: 10, right: 10 }}>
-                                    <Box
-                                        sx={{
-                                            backgroundColor: 'error.main',
-                                            color: 'white',
-                                            px: 1,
-                                            py: 0.5,
-                                            borderRadius: 1,
-                                            fontSize: '0.75rem'
-                                        }}
-                                    >
-                                        Archived
-                                    </Box>
-                                    <Button
-                                        size="small"
-                                        variant="contained"
-                                        color="primary"
-                                        onClick={() => handleRestore(user)}
-                                        sx={{ fontSize: '0.75rem', py: 0.5 }}
-                                    >
-                                        Restore
-                                    </Button>
-                                </Box>
-                            )}
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <Avatar
-                                    src={user.image_url}
-                                    sx={{ width: 56, height: 56, mb: 2 }}
-                                />
-                                {user.is_active && (
-                                    <Box>
-                                        <IconButton 
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleEdit(user);
-                                            }} 
-                                            sx={{ color: '#2B7FF5' }}
-                                        >
-                                            <Edit />
-                                        </IconButton>
-                                        <IconButton
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedUser(user);
-                                                setOpenDeleteDialog(true);
+            {isLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+                    <CircularProgress />
+                </Box>
+            ) : (
+                <Grid container spacing={3}>
+                    {users.map((user) => (
+                        <Grid item xs={12} sm={6} md={4} key={user.user_id}>
+                            <Paper 
+                                onClick={() => handleCardClick(user)}
+                                sx={{ 
+                                    p: 3, 
+                                    height: '100%',
+                                    opacity: user.is_active ? 1 : 0.7,
+                                    position: 'relative',
+                                    cursor: user.is_active ? 'pointer' : 'default',
+                                    '&:hover': user.is_active ? {
+                                        boxShadow: 3,
+                                        transform: 'translateY(-2px)',
+                                        transition: 'all 0.2s ease-in-out'
+                                    } : {}
+                                }}
+                            >
+                                {!user.is_active && (
+                                    <Box sx={{ display: 'flex', gap: 1, position: 'absolute', top: 10, right: 10 }}>
+                                        <Box
+                                            sx={{
+                                                backgroundColor: 'error.main',
+                                                color: 'white',
+                                                px: 1,
+                                                py: 0.5,
+                                                borderRadius: 1,
+                                                fontSize: '0.75rem'
                                             }}
-                                            sx={{ color: '#D42A4C' }}
                                         >
-                                            <Delete />
-                                        </IconButton>
+                                            Archived
+                                        </Box>
+                                        <Button
+                                            size="small"
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={() => handleRestore(user)}
+                                            sx={{ fontSize: '0.75rem', py: 0.5 }}
+                                        >
+                                            Restore
+                                        </Button>
                                     </Box>
                                 )}
-                            </Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <Avatar
+                                        src={user.image_url}
+                                        sx={{ width: 56, height: 56, mb: 2 }}
+                                    />
+                                    {user.is_active && (
+                                        <Box>
+                                            <IconButton 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleEdit(user);
+                                                }} 
+                                                sx={{ color: '#2B7FF5' }}
+                                            >
+                                                <Edit />
+                                            </IconButton>
+                                            <IconButton
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedUser(user);
+                                                    setOpenDeleteDialog(true);
+                                                }}
+                                                sx={{ color: '#D42A4C' }}
+                                            >
+                                                <Delete />
+                                            </IconButton>
+                                        </Box>
+                                    )}
+                                </Box>
 
-                            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                                {user.name}
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                                {user.employee_id} - {user.role}
-                            </Typography>
-
-                            <Box sx={{ mb: 2 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Branch:</Typography>
-                                <Typography variant="body2">{user.branch_name}</Typography>
-                            </Box>
-
-                            <Box sx={{ mb: 2 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Contact:</Typography>
-                                <Typography variant="body2">{user.email}</Typography>
-                                <Typography variant="body2">{user.phone}</Typography>
-                            </Box>
-
-                            <Box>
-                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Hired Date:</Typography>
-                                <Typography variant="body2">
-                                    {format(new Date(user.hired_at), 'MM/dd/yyyy')}
+                                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                    {user.name}
                                 </Typography>
-                            </Box>
-                        </Paper>
-                    </Grid>
-                ))}
-            </Grid>
+                                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                                    {user.employee_id} - {user.role}
+                                </Typography>
+
+                                <Box sx={{ mb: 2 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Branch:</Typography>
+                                    <Typography variant="body2">{user.branch_name}</Typography>
+                                </Box>
+
+                                <Box sx={{ mb: 2 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Contact:</Typography>
+                                    <Typography variant="body2">{user.email}</Typography>
+                                    <Typography variant="body2">{user.phone}</Typography>
+                                </Box>
+
+                                <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Hired Date:</Typography>
+                                    <Typography variant="body2">
+                                        {format(new Date(user.hired_at), 'MM/dd/yyyy')}
+                                    </Typography>
+                                </Box>
+                            </Paper>
+                        </Grid>
+                    ))}
+                </Grid>
+            )}
 
             {/* Add/Edit User Dialog */}
             <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
@@ -491,36 +600,56 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                                 />
                             </Grid>
                             <Grid item xs={12}>
-                                <Button
-                                    variant="outlined"
-                                    component="label"
-                                    fullWidth
-                                >
-                                    Upload Profile Picture
-                                    <input
-                                        type="file"
-                                        hidden
-                                        accept="image/*"
-                                        onChange={handleFileChange}
-                                    />
-                                </Button>
-                                {selectedFile && (
-                                    <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                                        Selected file: {selectedFile.name}
+                                <Box sx={{ mt: 2, mb: 2 }}>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                        Profile Picture
                                     </Typography>
-                                )}
+                                    <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                                        Requirements:
+                                    </Typography>
+                                    <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'rgba(0, 0, 0, 0.6)' }}>
+                                        <li>Accepted formats: JPG, JPEG, PNG</li>
+                                        <li>Maximum file size: 5MB</li>
+                                        <li>Recommended dimensions: 400x400 pixels</li>
+                                        <li>Square aspect ratio (1:1) recommended</li>
+                                    </ul>
+                                    <Box sx={{ display: 'flex', gap: 2, mt: 2, alignItems: 'center' }}>
+                                        <Avatar
+                                            src={selectedUser?.image_url}
+                                            sx={{ width: 80, height: 80 }}
+                                        />
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            startIcon={<AddIcon />}
+                                        >
+                                            Upload Picture
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                            />
+                                        </Button>
+                                    </Box>
+                                </Box>
                             </Grid>
                         </Grid>
                     </Box>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleClose}>Cancel</Button>
+                    <Button onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
                     <Button
                         onClick={handleSubmit}
                         variant="contained"
+                        disabled={isSubmitting}
                         sx={{ backgroundColor: '#01A768', '&:hover': { backgroundColor: '#017F4A' } }}
                     >
-                        {selectedUser ? 'Save Changes' : 'Create User'}
+                        {isSubmitting ? (
+                            <CircularProgress size={24} color="inherit" />
+                        ) : (
+                            selectedUser ? 'Save Changes' : 'Create User'
+                        )}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -530,13 +659,22 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                 <DialogTitle>Confirm Archive</DialogTitle>
                 <DialogContent>
                     <Typography>
-                        Are you sure you want to archive this user? This action cannot be undone.
+                        Are you sure you want to archive this user? This action can be reversed later.
                     </Typography>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-                    <Button onClick={handleDelete} color="error" variant="contained">
-                        Archive
+                    <Button onClick={() => setOpenDeleteDialog(false)} disabled={isSubmitting}>Cancel</Button>
+                    <Button 
+                        onClick={handleArchive} 
+                        color="error" 
+                        variant="contained"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? (
+                            <CircularProgress size={24} color="inherit" />
+                        ) : (
+                            'Archive'
+                        )}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -566,7 +704,70 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                                         boxShadow: 3
                                     }}
                                 />
-                                <Box sx={{ textAlign: 'center' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                    <Typography variant="body2" color="textSecondary">
+                                        Profile Picture
+                                    </Typography>
+                                    <Tooltip title={
+                                        <Box sx={{ p: 1 }}>
+                                            <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                                Profile Picture Requirements:
+                                            </Typography>
+                                            <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                                                <li>Accepted formats: JPG, JPEG, PNG</li>
+                                                <li>Maximum file size: 5MB</li>
+                                                <li>Recommended dimensions: 400x400 pixels</li>
+                                                <li>Square aspect ratio (1:1) recommended</li>
+                                            </ul>
+                                        </Box>
+                                    } arrow>
+                                        <IconButton size="small">
+                                            <HelpOutline fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                </Box>
+                                <Box sx={{ display: 'flex', gap: 2 }}>
+                                    {selectedUser?.image_url ? (
+                                        <>
+                                            <Button
+                                                variant="outlined"
+                                                color="error"
+                                                startIcon={<DeleteOutline />}
+                                                onClick={() => setOpenRemoveImageDialog(true)}
+                                            >
+                                                Remove Picture
+                                            </Button>
+                                            <Button
+                                                variant="outlined"
+                                                component="label"
+                                                startIcon={<AddIcon />}
+                                            >
+                                                Change Picture
+                                                <input
+                                                    type="file"
+                                                    hidden
+                                                    accept="image/*"
+                                                    onChange={handleFileChange}
+                                                />
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            startIcon={<AddIcon />}
+                                        >
+                                            Upload Picture
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                            />
+                                        </Button>
+                                    )}
+                                </Box>
+                                <Box sx={{ mt: 3, width: '100%', textAlign: 'center' }}>
                                     <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                                         {selectedUser.name}
                                     </Typography>
@@ -626,6 +827,39 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                             Edit
                         </Button>
                     )}
+                </DialogActions>
+            </Dialog>
+
+            {/* Remove Image Confirmation Dialog */}
+            <Dialog
+                open={openRemoveImageDialog}
+                onClose={() => setOpenRemoveImageDialog(false)}
+            >
+                <DialogTitle>Confirm Remove Picture</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        Are you sure you want to remove the profile picture? This action cannot be undone.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button 
+                        onClick={() => setOpenRemoveImageDialog(false)}
+                        disabled={isRemovingImage}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={() => selectedUser && handleRemoveImage(selectedUser.user_id)}
+                        color="error"
+                        variant="contained"
+                        disabled={isRemovingImage}
+                    >
+                        {isRemovingImage ? (
+                            <CircularProgress size={24} color="inherit" />
+                        ) : (
+                            'Remove'
+                        )}
+                    </Button>
                 </DialogActions>
             </Dialog>
 

@@ -1,22 +1,66 @@
 const db = require('../config/database');
 const { getConvertTZString } = require('../utils/timeZoneUtil');
+const { getIo } = require('../socket');
 
 // Get dashboard overview data
 const getDashboardOverview = async (req, res) => {
     try {
         const [results] = await db.pool.query(`
             SELECT 
-                COALESCE(SUM(CASE WHEN DATE(${getConvertTZString('created_at')}) = CURDATE() THEN total_amount ELSE 0 END), 0) as todaySales,
+                COALESCE(SUM(CASE 
+                    WHEN DATE(${getConvertTZString('created_at')}) = CURDATE() 
+                    AND payment_status = 'paid' 
+                    THEN total_amount 
+                    ELSE 0 
+                END), 0) as todaySales,
                 (SELECT COUNT(*) FROM products WHERE is_active = TRUE) as totalProducts,
                 (SELECT COUNT(*) FROM sales) as totalOrders,
-                (SELECT COUNT(DISTINCT customer_id) FROM sales WHERE customer_id IS NOT NULL) as totalCustomers
+                (SELECT COUNT(*) FROM customers WHERE is_archived = FALSE) as totalCustomers
             FROM sales
         `);
+
+        console.log('Dashboard Overview Data:', results[0]);
+
+        // Try to emit the update, but don't fail if socket isn't ready
+        try {
+            const io = getIo();
+            io.emit('dashboard_update', results[0]);
+        } catch (socketError) {
+            console.log('Socket not ready for dashboard update');
+        }
 
         res.json(results[0]);
     } catch (error) {
         console.error('Error fetching dashboard overview:', error);
         res.status(500).json({ message: 'Error fetching dashboard data', error: error.message });
+    }
+};
+
+// Helper function to emit dashboard updates
+const emitDashboardUpdate = async () => {
+    try {
+        const [results] = await db.pool.query(`
+            SELECT 
+                COALESCE(SUM(CASE 
+                    WHEN DATE(${getConvertTZString('created_at')}) = CURDATE() 
+                    AND payment_status = 'paid' 
+                    THEN total_amount 
+                    ELSE 0 
+                END), 0) as todaySales,
+                (SELECT COUNT(*) FROM products WHERE is_active = TRUE) as totalProducts,
+                (SELECT COUNT(*) FROM sales) as totalOrders,
+                (SELECT COUNT(*) FROM customers WHERE is_archived = FALSE) as totalCustomers
+            FROM sales
+        `);
+
+        try {
+            const io = getIo();
+            io.emit('dashboard_update', results[0]);
+        } catch (socketError) {
+            console.log('Socket not ready for dashboard update');
+        }
+    } catch (error) {
+        console.error('Error emitting dashboard update:', error);
     }
 };
 
@@ -98,5 +142,6 @@ const getLowStockItems = async (req, res) => {
 module.exports = {
     getDashboardOverview,
     getRecentTransactions,
-    getLowStockItems
+    getLowStockItems,
+    emitDashboardUpdate // Export the helper function
 }; 

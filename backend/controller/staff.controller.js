@@ -67,6 +67,7 @@ const getAllUsers = async (req, res) => {
 
 // Create new user
 const createUser = async (req, res) => {
+    console.log('Creating new user with data:', req.body);
     const connection = await db.pool.getConnection();
     try {
         await connection.beginTransaction();
@@ -96,6 +97,7 @@ const createUser = async (req, res) => {
         );
 
         await connection.commit();
+        console.log('User created successfully:', { userId: result.insertId });
         res.json({
             success: true,
             message: 'User created successfully',
@@ -115,6 +117,8 @@ const createUser = async (req, res) => {
 
 // Update user
 const updateUser = async (req, res) => {
+    console.log('Updating user with ID:', req.params.userId);
+    console.log('Update data:', req.body);
     const connection = await db.pool.getConnection();
     try {
         await connection.beginTransaction();
@@ -148,6 +152,7 @@ const updateUser = async (req, res) => {
 
         // Handle password change if provided
         if (current_password && new_password) {
+            console.log('Password change requested');
             // Verify current password
             const [users] = await connection.query(
                 'SELECT password FROM users WHERE user_id = ?',
@@ -211,6 +216,7 @@ const updateUser = async (req, res) => {
         );
 
         await connection.commit();
+        console.log('User updated successfully:', updatedUser[0]);
 
         res.json({
             success: true,
@@ -303,6 +309,7 @@ const getAllPharmacists = async (req, res) => {
 
 // Create new pharmacist
 const createPharmacist = async (req, res) => {
+    console.log('Creating new pharmacist with data:', req.body);
     const connection = await db.pool.getConnection();
     try {
         await connection.beginTransaction();
@@ -324,6 +331,7 @@ const createPharmacist = async (req, res) => {
         );
 
         await connection.commit();
+        console.log('Pharmacist created successfully:', { staffId: result.insertId });
         res.json({
             success: true,
             message: 'Pharmacist created successfully',
@@ -429,19 +437,34 @@ const getAllBranches = async (req, res) => {
 
 // Upload user image
 const uploadUserImage = async (req, res) => {
-    upload(req, res, async function (err) {
-        if (err instanceof multer.MulterError) {
-            return res.status(400).json({ success: false, message: 'File upload error' });
-        } else if (err) {
-            return res.status(400).json({ success: false, message: err.message });
+    console.log('Uploading image for user ID:', req.params.userId);
+    
+    try {
+        if (!req.file) {
+            console.error('No file uploaded');
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
 
-        const { userId } = req.params;
-        const imageBuffer = req.file ? req.file.buffer : null;
-        const imageType = req.file ? req.file.mimetype : null;
+        console.log('File details:', {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size
+        });
 
-        if (!imageBuffer) {
-            return res.status(400).json({ success: false, message: 'No image file provided' });
+        const { userId } = req.params;
+        const imageBuffer = req.file.buffer;
+        const imageType = req.file.mimetype;
+
+        // Validate file type
+        if (!imageType.startsWith('image/')) {
+            console.error('Invalid file type:', imageType);
+            return res.status(400).json({ success: false, message: 'Invalid file type. Only images are allowed.' });
+        }
+
+        // Validate file size (5MB limit)
+        if (imageBuffer.length > 5 * 1024 * 1024) {
+            console.error('File too large:', imageBuffer.length);
+            return res.status(400).json({ success: false, message: 'File too large. Maximum size is 5MB.' });
         }
 
         const connection = await db.pool.getConnection();
@@ -458,6 +481,7 @@ const uploadUserImage = async (req, res) => {
             );
 
             await connection.commit();
+            console.log('Image uploaded successfully for user:', userId);
             res.json({
                 success: true,
                 message: 'Image uploaded successfully',
@@ -465,29 +489,47 @@ const uploadUserImage = async (req, res) => {
             });
         } catch (error) {
             await connection.rollback();
-            console.error('Error uploading image:', error);
-            res.status(500).json({ success: false, message: 'Error uploading image' });
+            console.error('Database error while uploading image:', error);
+            res.status(500).json({ success: false, message: 'Error saving image to database' });
         } finally {
             connection.release();
         }
-    });
+    } catch (error) {
+        console.error('Error in upload process:', error);
+        res.status(500).json({ success: false, message: 'Error processing upload' });
+    }
 };
 
 // Upload pharmacist image
 const uploadPharmacistImage = async (req, res) => {
-    upload(req, res, async function (err) {
-        if (err instanceof multer.MulterError) {
-            return res.status(400).json({ success: false, message: 'File upload error' });
-        } else if (err) {
-            return res.status(400).json({ success: false, message: err.message });
+    console.log('Uploading image for pharmacist ID:', req.params.staffId);
+    
+    try {
+        if (!req.file) {
+            console.error('No file uploaded');
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
 
-        const { staffId } = req.params;
-        const imageBuffer = req.file ? req.file.buffer : null;
-        const imageType = req.file ? req.file.mimetype : null;
+        console.log('File details:', {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size
+        });
 
-        if (!imageBuffer) {
-            return res.status(400).json({ success: false, message: 'No image file provided' });
+        const { staffId } = req.params;
+        const imageBuffer = req.file.buffer;
+        const imageType = req.file.mimetype;
+
+        // Validate file type
+        if (!imageType.startsWith('image/')) {
+            console.error('Invalid file type:', imageType);
+            return res.status(400).json({ success: false, message: 'Invalid file type. Only images are allowed.' });
+        }
+
+        // Validate file size (5MB limit)
+        if (imageBuffer.length > 5 * 1024 * 1024) {
+            console.error('File too large:', imageBuffer.length);
+            return res.status(400).json({ success: false, message: 'File too large. Maximum size is 5MB.' });
         }
 
         const connection = await db.pool.getConnection();
@@ -504,6 +546,7 @@ const uploadPharmacistImage = async (req, res) => {
             );
 
             await connection.commit();
+            console.log('Image uploaded successfully for pharmacist:', staffId);
             res.json({
                 success: true,
                 message: 'Image uploaded successfully',
@@ -511,12 +554,15 @@ const uploadPharmacistImage = async (req, res) => {
             });
         } catch (error) {
             await connection.rollback();
-            console.error('Error uploading image:', error);
-            res.status(500).json({ success: false, message: 'Error uploading image' });
+            console.error('Database error while uploading image:', error);
+            res.status(500).json({ success: false, message: 'Error saving image to database' });
         } finally {
             connection.release();
         }
-    });
+    } catch (error) {
+        console.error('Error in upload process:', error);
+        res.status(500).json({ success: false, message: 'Error processing upload' });
+    }
 };
 
 // Restore user
@@ -577,6 +623,70 @@ const restorePharmacist = async (req, res) => {
     }
 };
 
+// Remove user image
+const removeUserImage = async (req, res) => {
+    console.log('Removing image for user ID:', req.params.userId);
+    const connection = await db.pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const { userId } = req.params;
+        await connection.query(
+            `UPDATE users 
+             SET image_data = NULL,
+                 image_type = NULL,
+                 updated_at = ${getMySQLTimestamp()}
+             WHERE user_id = ?`,
+            [userId]
+        );
+
+        await connection.commit();
+        console.log('Image removed successfully for user:', userId);
+        res.json({
+            success: true,
+            message: 'Profile picture removed successfully'
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Error removing user image:', error);
+        res.status(500).json({ success: false, message: 'Error removing profile picture' });
+    } finally {
+        connection.release();
+    }
+};
+
+// Remove pharmacist image
+const removePharmacistImage = async (req, res) => {
+    console.log('Removing image for pharmacist ID:', req.params.staffId);
+    const connection = await db.pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const { staffId } = req.params;
+        await connection.query(
+            `UPDATE pharmacist 
+             SET image_data = NULL,
+                 image_type = NULL,
+                 updated_at = ${getMySQLTimestamp()}
+             WHERE staff_id = ?`,
+            [staffId]
+        );
+
+        await connection.commit();
+        console.log('Image removed successfully for pharmacist:', staffId);
+        res.json({
+            success: true,
+            message: 'Profile picture removed successfully'
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Error removing pharmacist image:', error);
+        res.status(500).json({ success: false, message: 'Error removing profile picture' });
+    } finally {
+        connection.release();
+    }
+};
+
 module.exports = {
     getAllUsers,
     createUser,
@@ -590,5 +700,7 @@ module.exports = {
     restorePharmacist,
     getAllBranches,
     uploadUserImage,
-    uploadPharmacistImage
+    uploadPharmacistImage,
+    removeUserImage,
+    removePharmacistImage
 }; 

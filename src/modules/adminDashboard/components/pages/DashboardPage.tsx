@@ -51,30 +51,30 @@ const DashboardPage: React.FC = () => {
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
 
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch dashboard overview data
+      const overviewResponse = await axios.get('/api/dashboard/overview');
+      setDashboardData(overviewResponse.data);
+
+      // Fetch recent transactions
+      const transactionsResponse = await axios.get('/api/dashboard/recent-transactions');
+      setRecentTransactions(transactionsResponse.data.transactions);
+
+      // Fetch low stock items
+      const lowStockResponse = await axios.get('/api/dashboard/low-stock');
+      setLowStockItems(lowStockResponse.data.items);
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Fetch dashboard overview data
-        const overviewResponse = await axios.get('/api/dashboard/overview');
-        setDashboardData(overviewResponse.data);
-
-        // Fetch recent transactions
-        const transactionsResponse = await axios.get('/api/dashboard/recent-transactions');
-        setRecentTransactions(transactionsResponse.data.transactions);
-
-        // Fetch low stock items
-        const lowStockResponse = await axios.get('/api/dashboard/low-stock');
-        setLowStockItems(lowStockResponse.data.items);
-
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchDashboardData();
 
     // Socket listeners for real-time updates
@@ -83,8 +83,29 @@ const DashboardPage: React.FC = () => {
       fetchDashboardData(); // Refresh dashboard data when new transaction comes in
     });
 
+    socket.on('dashboard_update', (newData: DashboardData) => {
+      setDashboardData(newData);
+    });
+
+    socket.on('inventory_update', () => {
+      fetchDashboardData(); // Refresh all data when inventory changes
+    });
+
+    socket.on('customer_update', () => {
+      fetchDashboardData(); // Refresh all data when customer data changes
+    });
+
+    // Set up auto-refresh interval (every 30 seconds)
+    const refreshInterval = setInterval(() => {
+      fetchDashboardData();
+    }, 30000); // 30 seconds
+
     return () => {
       socket.off('transaction_update');
+      socket.off('dashboard_update');
+      socket.off('inventory_update');
+      socket.off('customer_update');
+      clearInterval(refreshInterval);
     };
   }, []);
 
@@ -128,7 +149,7 @@ const DashboardPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3, ml: { xs: 1, md: 35 }, mt: 4 }}>
+    <Box sx={{ p: 0, ml: { xs: 1, md: 35 }, mt: 4 }}>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'Black', textAlign: 'center' }}>
         Dashboard Overview
       </Typography>

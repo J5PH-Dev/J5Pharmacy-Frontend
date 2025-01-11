@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Grid, Paper, Typography, Button, Breadcrumbs, Link } from '@mui/material';
-import { Medication, Category, Warning } from '@mui/icons-material'; // Material icons
-import AddIcon from '@mui/icons-material/Add'; // Import Material UI Add icon
+import { Medication, Category, Warning } from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -12,11 +12,9 @@ const InventoryPage = () => {
     medicineShortage: 0,
   });
 
-
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  const navigate = useNavigate(); // Initialize the navigate hook
+  const navigate = useNavigate();
 
-  // Separate handlers for each container
   const handleMedicinesAvailable = (item: any) => {
     setSelectedItem(item);
     navigate('/admin/inventory/view-medicines-available');
@@ -32,21 +30,17 @@ const InventoryPage = () => {
     navigate('/admin/inventory/medicine-shortage');
   };
 
-
   const handleBreadcrumbClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent the default link behavior
-    setSelectedItem(null); // Reset selected item, returning to the initial inventory view
+    e.preventDefault();
+    setSelectedItem(null);
   };
 
-  // Map handlers to content
   const handlers = [
     handleMedicinesAvailable,
     handleMedicinesGroup,
     handleMedicineShortage,
   ];
 
-
-  // Fetch inventory stats from backend
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -60,7 +54,6 @@ const InventoryPage = () => {
     fetchStats();
   }, []);
 
-  // Define border colors and content for each container in an array of objects
   const contentData = [
     {
       borderColor: '#03A9F5',
@@ -89,17 +82,16 @@ const InventoryPage = () => {
   ];
 
   return (
-    <Box sx={{ p: 3, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
-      {/* Conditionally render Breadcrumbs only if selectedItem is not null */}
+    <Box sx={{ p: 0, ml: { xs: 1, md: 35 }, mt: 4 }}>
       {selectedItem && (
         <Breadcrumbs
           aria-label="breadcrumb"
           sx={{
             marginBottom: '16px',
             display: 'flex',
-            justifyContent: { xs: 'center', sm: 'flex-start' }, // Center on small screens, left-align on larger screens
-            textAlign: { xs: 'center', sm: 'left' }, // Align text center on small screens, left-align on larger screens
-            width: '100%', // Ensure it takes full width for centering on small screens
+            justifyContent: { xs: 'center', sm: 'flex-start' },
+            textAlign: { xs: 'center', sm: 'left' },
+            width: '100%',
           }}
         >
           <Link color="inherit" href="/" onClick={handleBreadcrumbClick}>
@@ -113,27 +105,23 @@ const InventoryPage = () => {
         </Breadcrumbs>
       )}
 
-      {/* Title and Button Container with Centered Content */}
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-            {selectedItem ? selectedItem.pageTitle : 'Inventory'}
-          </Typography>
-          <Typography variant="body1" sx={{ mt: -1 }}>
-            {selectedItem ? selectedItem.pageSubtitle : 'Overview of product inventory, categories, and stock levels.'}
-          </Typography>
-        </Box>
-      </Box>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: 'Black', textAlign: 'center' }}>
+        {selectedItem ? selectedItem.pageTitle : 'Inventory Overview'}
+      </Typography>
+      <p className='mt-[-13px] text-gray-700 mb-5 text-center'>
+        {selectedItem ? selectedItem.pageSubtitle : 'Overview of product inventory, categories, and stock levels.'}
+      </p>
 
-      {/* Grid for the containers */}
       {!selectedItem && (
-        <Grid container spacing={3} sx={{ justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+        <Grid container spacing={0} sx={{ justifyContent: 'center', mb: 5 }}>
           {contentData.map((content, index) => (
-            <Grid key={index} item>
+            <Grid key={index} item xs={12} sm={6} md={2.75}>
               <Paper
                 sx={(theme) => ({
                   height: 220,
-                  width: 272,
+                  width: '100%',
+                  maxWidth: 320,
+                  margin: '0 auto',
                   backgroundColor: '#fff',
                   border: `1px solid ${content.borderColor}`,
                   display: 'flex',
@@ -189,7 +177,6 @@ const InventoryPage = () => {
           ))}
         </Grid>
       )}
-
     </Box>
   );
 };

@@ -14,6 +14,7 @@ const branchRoutes = require('./routes/branchRoutes'); // Import branch routes
 const customerRoutes = require('./routes/customer.routes'); // Import customer routes
 const staffRoutes = require('./routes/staff.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const { initializeSocket } = require('./socket');
 
 const app = express();
 const httpServer = createServer(app);
@@ -79,6 +80,9 @@ const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+// Initialize Socket.io
+initializeSocket(httpServer);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
