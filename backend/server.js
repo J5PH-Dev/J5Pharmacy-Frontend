@@ -20,6 +20,8 @@ const resourcesRoutes = require('./routes/resources.routes');
 // const posInventoryRoutes = require('./routes/pos/pos.inventory.routes');
 // const posCustomerRoutes = require('./routes/pos/pos.customer.routes');
 const { initializeSocket } = require('./socket');
+// Import dev routes
+const devRoutes = require('./routes/dev.routes');
 
 const app = express();
 const httpServer = createServer(app);
@@ -84,6 +86,12 @@ app.use('/api/resources', resourcesRoutes);
 // app.use('/api/pos/sessions', posSessionRoutes);
 // app.use('/api/pos/inventory', posInventoryRoutes);
 // app.use('/api/pos/customers', posCustomerRoutes);
+
+// Register dev routes
+if (process.env.NODE_ENV === 'development') {
+    app.use('/api/dev', devRoutes);
+    console.log('[DEV] Development routes enabled');
+}
 
 // Start server
 const PORT = process.env.PORT || 5000;
