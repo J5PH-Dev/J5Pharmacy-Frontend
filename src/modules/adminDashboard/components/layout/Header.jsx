@@ -18,6 +18,7 @@ import CustomerIcon from '@mui/icons-material/Person'; // Customer Info icon
 import SettingsIcon from '@mui/icons-material/Settings'; // Settings icon
 import NotificationsIcon from '@mui/icons-material/Notifications'; // 
 import axios from 'axios';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping'; // Resource Management icon
 
 // Sample navigation items
 const navigationItems = [
@@ -34,6 +35,16 @@ const navigationItems = [
             { title: 'List of Items', path: '/admin/inventory' },
             { title: 'Item', path: '/inventory/item' },
             { title: 'Encode Items', path: '/inventory/encode' },
+        ],
+    },
+    {
+        title: 'Resource Management',
+        path: '/admin/resources',
+        icon: <LocalShippingIcon />,
+        children: [
+            { title: 'Supplier Management', path: '/admin/resources/SupplierManagement' },
+            { title: 'Bulk Inventory Import', path: '/admin/resources/BulkInventoryImport' },
+            { title: 'Price Management', path: '/admin/resources/PriceManagement' },
         ],
     },
     {
@@ -100,6 +111,10 @@ const breadcrumbMap = {
     '/admin/inventory/medicine-shortage': 'Product Shortage',
     '/admin/inventory/archived': 'Archived Products',
     '/admin/inventory/archived-categories': 'Archived Categories',
+    '/admin/resources': 'Resource Management',
+    '/admin/resources/suppliers': 'Supplier Management',
+    '/admin/resources/bulk-import': 'Bulk Inventory Import',
+    '/admin/resources/price-management': 'Price Management',
     '/admin/branches': 'Branch Management',
     '/admin/archived-branches': 'Archived Branches',
     '/admin/sales-report': 'Sales Report',
@@ -200,6 +215,22 @@ const Header = () => {
         // Add Inventory Management if in inventory section
         if (paths.includes('inventory')) {
             breadcrumbs.push({ path: '/admin/inventory', title: 'Inventory Management' });
+        }
+
+        // Add Resource Management if in resource management section
+        if (paths.includes('resources')) {
+            breadcrumbs.push({ path: '/admin/resources', title: 'Resource Management' });
+            
+            // Add specific resource management sections
+            if (paths.includes('suppliers')) {
+                breadcrumbs.push({ path: '/admin/resources/SupplierManagements', title: 'Supplier Management' });
+            }
+            if (paths.includes('bulk-import')) {
+                breadcrumbs.push({ path: '/admin/resources/BulkInventoryImport', title: 'Bulk Inventory Import' });
+            }
+            if (paths.includes('price-management')) {
+                breadcrumbs.push({ path: '/admin/resources/PriceManagement', title: 'Price Management' });
+            }
         }
 
         // Add Inventory Available if in inventory available section

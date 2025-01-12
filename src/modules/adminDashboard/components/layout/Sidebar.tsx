@@ -31,6 +31,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import { useAuth } from '../../../auth/contexts/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -122,12 +123,13 @@ const navigationItems: NavigationItem[] = [
     ],
   },
   {
-    title: 'Branches',
-    icon: <BusinessIcon />,
-    path: '/admin/branches',
+    title: 'Resource Management',
+    icon: <LocalShippingIcon />,
+    path: '/admin/resources',
     children: [
-      // { title: 'Manage Branch', path: '/branches/manage' },
-      // { title: 'Add a Branch', path: '/branches/add' },
+      // { title: 'Supplier Management', path: '/admin/resources/supplier-management' },
+      // { title: 'Bulk Inventory Import', path: '/admin/resources/bulk-inventory-import' },
+      // { title: 'Price Management', path: '/admin/resources/price-management' },
     ],
   },
   {
@@ -140,6 +142,15 @@ const navigationItems: NavigationItem[] = [
       // { title: 'Inventory', path: '/reports/inventory' },
       // { title: 'Returns', path: '/reports/returns' },
       // { title: 'Void', path: '/reports/void' },
+    ],
+  },
+  {
+    title: 'Branches',
+    icon: <BusinessIcon />,
+    path: '/admin/branches',
+    children: [
+      // { title: 'Manage Branch', path: '/branches/manage' },
+      // { title: 'Add a Branch', path: '/branches/add' },
     ],
   },
   {
@@ -323,7 +334,7 @@ const Sidebar: React.FC = () => {
               {index === 3 && <Divider sx={{ borderColor: '#5D7A6C', mt: '10px', mb: '10px' }} />}
 
               {/* White Divider after 6th item */}
-              {index === 5 && <Divider sx={{ borderColor: '#5D7A6C', mt: '10px', mb: '10px' }} />}
+              {index === 6 && <Divider sx={{ borderColor: '#5D7A6C', mt: '10px', mb: '10px' }} />}
 
             </React.Fragment>
           ))}

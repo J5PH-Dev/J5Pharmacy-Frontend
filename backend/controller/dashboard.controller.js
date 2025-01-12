@@ -7,12 +7,12 @@ const getDashboardOverview = async (req, res) => {
     try {
         const [results] = await db.pool.query(`
             SELECT 
-                COALESCE(SUM(CASE 
-                    WHEN DATE(${getConvertTZString('created_at')}) = CURDATE() 
+                CAST(COALESCE(SUM(CASE 
+                    WHEN DATE(created_at) = DATE(NOW())
                     AND payment_status = 'paid' 
                     THEN total_amount 
                     ELSE 0 
-                END), 0) as todaySales,
+                END), 0) AS DECIMAL(10,2)) as todaySales,
                 (SELECT COUNT(*) FROM products WHERE is_active = TRUE) as totalProducts,
                 (SELECT COUNT(*) FROM sales) as totalOrders,
                 (SELECT COUNT(*) FROM customers WHERE is_archived = FALSE) as totalCustomers
@@ -41,12 +41,12 @@ const emitDashboardUpdate = async () => {
     try {
         const [results] = await db.pool.query(`
             SELECT 
-                COALESCE(SUM(CASE 
-                    WHEN DATE(${getConvertTZString('created_at')}) = CURDATE() 
+                CAST(COALESCE(SUM(CASE 
+                    WHEN DATE(created_at) = DATE(NOW())
                     AND payment_status = 'paid' 
                     THEN total_amount 
                     ELSE 0 
-                END), 0) as todaySales,
+                END), 0) AS DECIMAL(10,2)) as todaySales,
                 (SELECT COUNT(*) FROM products WHERE is_active = TRUE) as totalProducts,
                 (SELECT COUNT(*) FROM sales) as totalOrders,
                 (SELECT COUNT(*) FROM customers WHERE is_archived = FALSE) as totalCustomers
@@ -71,7 +71,7 @@ const getRecentTransactions = async (req, res) => {
             SELECT 
                 s.id as transaction_id,
                 s.invoice_number,
-                ${getConvertTZString('s.created_at')} as created_at,
+                s.created_at as created_at,
                 CAST(s.total_amount AS DECIMAL(10,2)) as total_amount,
                 s.payment_method,
                 s.payment_status,
