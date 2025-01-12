@@ -9,11 +9,16 @@ const InventoryRoutes = require('./routes/InventoryRoutes'); // Import the inven
 const authRoutes = require('./routes/auth.routes'); // Import auth routes
 const cashReconciliationRoutes = require('./routes/cashReconciliation.routes');
 const transactionRoutes = require('./routes/transaction.routes');
-const productRoutes = require('./routes/productRoutes'); // Import product routes
 const branchRoutes = require('./routes/branchRoutes'); // Import branch routes
 const customerRoutes = require('./routes/customer.routes'); // Import customer routes
 const staffRoutes = require('./routes/staff.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const resourcesRoutes = require('./routes/resources.routes');
+// const posProductRoutes = require('./routes/pos/pos.product.routes');
+// const posTransactionRoutes = require('./routes/pos/pos.transaction.routes');
+// const posSessionRoutes = require('./routes/pos/pos.session.routes');
+// const posInventoryRoutes = require('./routes/pos/pos.inventory.routes');
+// const posCustomerRoutes = require('./routes/pos/pos.customer.routes');
 const { initializeSocket } = require('./socket');
 
 const app = express();
@@ -69,11 +74,16 @@ app.use('/api/auth', authRoutes); // Add auth routes
 app.use('/', InventoryRoutes);
 app.use('/api/cash-reconciliation', cashReconciliationRoutes);
 app.use('/api/transactions', transactionRoutes);
-app.use('/api/products', productRoutes); // Add product routes
 app.use('/api/admin', branchRoutes); // Add branch routes
 app.use('/api/customers', customerRoutes); // Add customer routes
 app.use('/api/staff', staffRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/resources', resourcesRoutes);
+// app.use('/api/pos/products', posProductRoutes);
+// app.use('/api/pos/transactions', posTransactionRoutes);
+// app.use('/api/pos/sessions', posSessionRoutes);
+// app.use('/api/pos/inventory', posInventoryRoutes);
+// app.use('/api/pos/customers', posCustomerRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;

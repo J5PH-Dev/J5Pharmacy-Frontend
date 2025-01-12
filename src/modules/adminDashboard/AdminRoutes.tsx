@@ -9,6 +9,7 @@ import InventoryPage from './components/pages/InventoryPage'; // Assuming this i
 import NotificationPage from './components/pages/NotificationPage'; // Assuming this is your dashboard component
 import ReportsPage from './components/pages/ReportsPage'; // Assuming this is your dashboard component
 import SettingsPage from './components/pages/SettingsPage'; // Assuming this is your dashboard component
+import ResourcesPage from './components/pages/ResourcesPage'; // Assuming this is your dashboard component
 import MedicinesAvailablePage from './components/pages/InventorySubPages/MedicinesAvailablePage';
 import ViewMedicineDescription  from './components/pages/InventorySubPages/VIewMedicineDescription';
 import MedicineGroupPage from './components/pages/InventorySubPages/MedicineGroupPage';
@@ -22,6 +23,10 @@ import ArchivedBranchesPage from './components/pages/BranchSubPages/ArchivedBran
 import ArchivedCustomersPage from './components/pages/CustomerSubPages/ArchivedCustomersPage';
 import ViewCustomerPage from './components/pages/CustomerSubPages/ViewCustomerPage';
 import EditCustomerDescription from './components/pages/CustomerSubPages/EditCustomerDescription';
+import SupplierManagement from './components/pages/ResourcesSubPages/SupplierManagement';
+import BulkInventoryImport from './components/pages/ResourcesSubPages/BulkInventoryImport';
+import PriceManagement from './components/pages/ResourcesSubPages/PriceManagement';
+
 
 const AdminRoutes: React.FC = () => {
   return (
@@ -48,6 +53,11 @@ const AdminRoutes: React.FC = () => {
         <Route path="inventory/view-medicines-group/:groupName" element={<ViewGroupDetails />} />
 
         <Route path="inventory/medicine-shortage" element={<MedicineShortage />} />
+
+        <Route path="resources" element={<ResourcesPage />} />
+        <Route path="resources/supplier-management" element={<SupplierManagement />} />
+        <Route path="resources/bulk-inventory-import" element={<BulkInventoryImport />} />
+        <Route path="resources/price-management" element={<PriceManagement />} />
 
 
         <Route path="branches" element={<BranchesPage />} />
