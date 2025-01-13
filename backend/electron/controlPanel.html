@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PMS Backend Support</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 40px);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .description {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .log-container {
+            background-color: #000;
+            color: #00ff00;
+            padding: 10px;
+            flex: 1;
+            overflow-y: auto;
+            font-family: monospace;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .button-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 20px 0;
+            background-color: #f5f5f5;
+        }
+        .button {
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .button.stop {
+            background-color: #f44336;
+        }
+        .button.stop:hover {
+            background-color: #da190b;
+        }
+        .button.restart {
+            background-color: #2196F3;
+        }
+        .button.restart:hover {
+            background-color: #0b7dda;
+        }
+        .button.update {
+            background-color: #ff9800;
+        }
+        .button.update:hover {
+            background-color: #e68a00;
+        }
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .update-notification {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: none;
+        }
+        .update-notification .download-link {
+            color: #0066cc;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            width: 70%;
+            max-width: 700px;
+            border-radius: 5px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .modal-title {
+            margin: 0;
+            color: #333;
+        }
+
+        .modal-version {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .modal-date {
+            color: #888;
+            font-size: 0.8em;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+            white-space: pre-line;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .modal-body h2 {
+            color: #2196F3;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.4em;
+        }
+
+        .modal-body h3 {
+            color: #666;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            font-size: 1.2em;
+        }
+
+        .modal-body ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .modal-body li {
+            margin-bottom: 5px;
+        }
+
+        .changelog-section {
+            margin-bottom: 15px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+
+        .modal-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .modal-button.primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .modal-button.secondary {
+            background-color: #ccc;
+            color: black;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .update-badge {
+            display: inline-block;
+            background-color: #ff9800;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+
+        .critical-update {
+            background-color: #f44336;
+            color: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .critical-reason {
+            font-size: 0.9em;
+            margin-top: 10px;
+            font-style: italic;
+        }
+        .postpone-count {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Welcome to PMS Backend Support</h1>
+    </div>
+    <div class="description">
+        This control panel manages the J5 Pharmacy Management System backend server and provides system monitoring capabilities.
+    </div>
+    
+    <!-- Update Modal -->
+    <div id="updateModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-header">
+                <h2 class="modal-title">Update Available</h2>
+                <div class="modal-version">New Version: <span id="modalVersion"></span></div>
+                <div class="modal-date">Released: <span id="modalDate"></span></div>
+            </div>
+            <div class="modal-body" id="modalChangelog"></div>
+            <div class="modal-footer">
+                <button class="modal-button secondary" id="modalClose">Later</button>
+                <button class="modal-button primary" id="modalUpdate">Update Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Critical Update Modal -->
+    <div id="criticalUpdateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Critical Update Required</h2>
+                <div class="modal-version">New Version: <span id="criticalModalVersion"></span></div>
+                <div class="modal-date">Released: <span id="criticalModalDate"></span></div>
+            </div>
+            <div class="critical-update">
+                This update is required to ensure system stability and security.
+                <div id="criticalReason" class="critical-reason"></div>
+            </div>
+            <div class="modal-body" id="criticalModalChangelog"></div>
+            <div class="modal-footer">
+                <button class="modal-button primary" id="criticalModalUpdate">Update Now</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="update-notification" id="updateNotification">
+        An update is available! <span class="download-link" id="downloadLink">Click here to view changes</span>
+    </div>
+    <div class="log-container" id="logContainer"></div>
+    <div id="status" class="status"></div>
+    <div class="button-container">
+        <button id="startBtn" class="button">Start Server</button>
+        <button id="stopBtn" class="button stop" disabled>Stop Server</button>
+        <button id="restartBtn" class="button restart" disabled>Restart Server</button>
+        <button id="updateBtn" class="button update">Update Client</button>
+        <button id="openBrowserBtn" class="button" disabled>Open Browser</button>
+    </div>
+
+    <script>
+        const { ipcRenderer, shell } = require('electron');
+        
+        // Buttons and containers
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const updateBtn = document.getElementById('updateBtn');
+        const openBrowserBtn = document.getElementById('openBrowserBtn');
+        const logContainer = document.getElementById('logContainer');
+        const status = document.getElementById('status');
+        const updateNotification = document.getElementById('updateNotification');
+        const downloadLink = document.getElementById('downloadLink');
+
+        // Modal elements
+        const modal = document.getElementById('updateModal');
+        const modalClose = document.getElementById('modalClose');
+        const modalUpdate = document.getElementById('modalUpdate');
+        const closeBtn = document.getElementsByClassName('close')[0];
+        const modalVersion = document.getElementById('modalVersion');
+        const modalDate = document.getElementById('modalDate');
+        const modalChangelog = document.getElementById('modalChangelog');
+        const criticalUpdateModal = document.getElementById('criticalUpdateModal');
+        const criticalModalVersion = document.getElementById('criticalModalVersion');
+        const criticalModalDate = document.getElementById('criticalModalDate');
+        const criticalModalChangelog = document.getElementById('criticalModalChangelog');
+        const criticalReason = document.getElementById('criticalReason');
+        const criticalModalUpdate = document.getElementById('criticalModalUpdate');
+        
+        let serverRunning = false;
+        let currentUpdateInfo = null;
+
+        // Modal functions
+        function showUpdateModal(updateInfo) {
+            currentUpdateInfo = updateInfo;
+            modalVersion.textContent = `v${updateInfo.latestVersion}`;
+            modalDate.textContent = updateInfo.releaseDate;
+            modalChangelog.textContent = updateInfo.releaseNotes;
+            modal.style.display = 'block';
+        }
+
+        function hideUpdateModal() {
+            if (currentUpdateInfo && currentUpdateInfo.forceUpdate) {
+                // Don't allow hiding critical update modal
+                return;
+            }
+            modal.style.display = 'none';
+            criticalUpdateModal.style.display = 'none';
+        }
+
+        // Modal event listeners
+        modalClose.onclick = () => {
+            if (!currentUpdateInfo?.forceUpdate) {
+                hideUpdateModal();
+                ipcRenderer.send('update:postpone');
+            }
+        };
+
+        closeBtn.onclick = hideUpdateModal;
+        modalUpdate.onclick = () => {
+            if (currentUpdateInfo && currentUpdateInfo.downloadUrl) {
+                shell.openExternal(currentUpdateInfo.downloadUrl);
+            }
+            hideUpdateModal();
+        };
+
+        window.onclick = (event) => {
+            if (event.target == modal) {
+                hideUpdateModal();
+            }
+        };
+
+        // Event Listeners
+        startBtn.addEventListener('click', () => {
+            ipcRenderer.send('server:start');
+            appendLog('Starting server...');
+            startBtn.disabled = true;
+        });
+
+        stopBtn.addEventListener('click', () => {
+            ipcRenderer.send('server:stop');
+            appendLog('Stopping server...');
+        });
+
+        restartBtn.addEventListener('click', () => {
+            ipcRenderer.send('server:restart');
+            appendLog('Restarting server...');
+        });
+
+        updateBtn.addEventListener('click', () => {
+            ipcRenderer.send('check:update');
+            appendLog('Checking for updates...');
+            updateNotification.style.display = 'none';
+        });
+
+        downloadLink.addEventListener('click', () => {
+            if (currentUpdateInfo) {
+                showUpdateModal(currentUpdateInfo);
+            }
+        });
+
+        openBrowserBtn.addEventListener('click', () => {
+            ipcRenderer.send('open:browser');
+            appendLog('Opening browser...');
+        });
+
+        // IPC Listeners
+        ipcRenderer.on('server:log', (event, message) => {
+            appendLog(message);
+        });
+
+        ipcRenderer.on('server:started', () => {
+            serverRunning = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            restartBtn.disabled = false;
+            openBrowserBtn.disabled = false;
+            status.textContent = 'Server is running';
+            status.style.color = '#4CAF50';
+        });
+
+        ipcRenderer.on('server:stopped', () => {
+            serverRunning = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            restartBtn.disabled = true;
+            openBrowserBtn.disabled = true;
+            status.textContent = 'Server is stopped';
+            status.style.color = '#f44336';
+        });
+
+        ipcRenderer.on('update:status', (event, message) => {
+            status.textContent = message;
+            status.style.color = '#2196F3';
+        });
+
+        ipcRenderer.on('update:available', (event, updateInfo) => {
+            currentUpdateInfo = updateInfo;
+            updateNotification.style.display = 'block';
+            updateBtn.innerHTML = `Update Client <span class="update-badge">1</span>`;
+            showUpdateModal(updateInfo);
+        });
+
+        ipcRenderer.on('update:critical', (event, updateInfo) => {
+            currentUpdateInfo = updateInfo;
+            updateNotification.style.display = 'block';
+            updateBtn.innerHTML = `Update Client <span class="update-badge">!</span>`;
+            showCriticalUpdateModal(updateInfo);
+        });
+
+        function appendLog(message) {
+            const line = document.createElement('div');
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(line);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Initialize status
+        status.textContent = 'Server is stopped';
+        status.style.color = '#f44336';
+
+        function showCriticalUpdateModal(updateInfo) {
+            currentUpdateInfo = updateInfo;
+            criticalModalVersion.textContent = `v${updateInfo.latestVersion}`;
+            criticalModalDate.textContent = updateInfo.releaseDate;
+            criticalModalChangelog.textContent = updateInfo.releaseNotes;
+            criticalReason.textContent = updateInfo.reason;
+            criticalUpdateModal.style.display = 'block';
+            
+            // Disable close button for critical updates
+            if (updateInfo.forceUpdate) {
+                closeBtn.style.display = 'none';
+            }
+        }
+
+        criticalModalUpdate.onclick = () => {
+            if (currentUpdateInfo && currentUpdateInfo.downloadUrl) {
+                shell.openExternal(currentUpdateInfo.downloadUrl);
+                ipcRenderer.send('update:completed');
+            }
+        };
+    </script>
+</body>
+</html> 

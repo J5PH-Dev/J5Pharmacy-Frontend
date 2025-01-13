@@ -28,3 +28,4 @@ backend/schema/127_0_0_1.sql
 backend/schema/u280565526_j5pharmacy.sql
 /backend/schema
 /backup_builds
+/backend/dist
