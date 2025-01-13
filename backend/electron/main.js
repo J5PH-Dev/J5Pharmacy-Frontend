@@ -75,11 +75,15 @@ function getAppPath() {
 // Update checking
 function checkForUpdates() {
   return new Promise((resolve, reject) => {
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+    
     const options = {
       hostname: 'api.github.com',
-      path: '/repos/yourusername/J5Pharmacy-MS2.0/releases/latest',
+      path: '/repos/J5PH-Dev/J5Pharmacy-Backend/releases/latest',
       headers: {
-        'User-Agent': 'J5-PMS-Updater'
+        'User-Agent': 'J5-PMS-Updater',
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json'
       }
     };
 
@@ -88,6 +92,18 @@ function checkForUpdates() {
       res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
         try {
+          if (res.statusCode === 404) {
+            throw new Error('Repository not found or no releases available');
+          }
+          if (res.statusCode === 401) {
+            logError('GitHub token has expired or is invalid. Please update the token in .env file');
+            throw new Error('GitHub token has expired. Please contact system administrator to update the token.');
+          }
+          if (res.statusCode === 403) {
+            const resetTime = new Date(res.headers['x-ratelimit-reset'] * 1000);
+            throw new Error(`API rate limit exceeded. Resets at ${resetTime.toLocaleString()}`);
+          }
+          
           const release = JSON.parse(data);
           const currentVersion = app.getVersion();
           const latestVersion = release.tag_name.replace('v', '');
@@ -311,7 +327,6 @@ async function checkForUpdatesAndNotify() {
       pendingUpdate = updateInfo;
       
       if (updateInfo.isCritical || updatePostponeCount >= MAX_POSTPONE_COUNT) {
-        // For critical updates or when max postpone count is reached
         controlPanel.webContents.send('update:critical', {
           ...updateInfo,
           forceUpdate: true,
@@ -325,6 +340,19 @@ async function checkForUpdatesAndNotify() {
     }
   } catch (err) {
     logError(`Auto update check failed: ${err.message}`);
+    if (controlPanel) {
+      // Show more user-friendly error messages
+      if (err.message.includes('token has expired')) {
+        controlPanel.webContents.send('update:status', 
+          'Unable to check for updates. Please contact system administrator.');
+      } else if (err.message.includes('rate limit exceeded')) {
+        controlPanel.webContents.send('update:status', 
+          'Too many update checks. Please try again later.');
+      } else {
+        controlPanel.webContents.send('update:status', 
+          'Could not check for updates. Please try again later.');
+      }
+    }
   }
 }
 
