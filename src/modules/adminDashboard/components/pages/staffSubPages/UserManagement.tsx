@@ -228,6 +228,11 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
     };
 
     const handleEdit = (user: User) => {
+        // Prevent editing of master admin account
+        if (user.employee_id === '000') {
+            showSnackbar('System administrator account cannot be modified', 'error');
+            return;
+        }
         setSelectedUser(user);
         setFormData({
             employee_id: user.employee_id,
@@ -269,6 +274,11 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
     };
 
     const handleArchive = async () => {
+        // Prevent archiving of master admin account
+        if (selectedUser?.employee_id === '000') {
+            showSnackbar('System administrator account cannot be archived', 'error');
+            return;
+        }
         setIsSubmitting(true);
         try {
             await axios.put(`/api/staff/users/${selectedUser?.user_id}/archive`);
@@ -419,7 +429,7 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                                         src={user.image_url}
                                         sx={{ width: 56, height: 56, mb: 2 }}
                                     />
-                                    {user.is_active && (
+                                    {user.is_active && user.employee_id !== '000' && (
                                         <Box>
                                             <IconButton 
                                                 onClick={(e) => {

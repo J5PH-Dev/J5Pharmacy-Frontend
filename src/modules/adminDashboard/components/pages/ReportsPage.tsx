@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Container, Typography, Tabs, Tab, Paper } from '@mui/material';
+import { Box, Typography, Tabs, Tab } from '@mui/material';
 import ReportDashboard from './reportSubPages/ReportDashboard';
 import ViewAllTransaction from './reportSubPages/ViewAllTransaction';
 
@@ -21,7 +21,7 @@ function TabPanel(props: TabPanelProps) {
             {...other}
         >
             {value === index && (
-                <Box sx={{ p: 3 }}>
+                <Box>
                     {children}
                 </Box>
             )}
@@ -38,8 +38,24 @@ const ReportsPage = () => {
 
     return (
         <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1 }}>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs value={currentTab} onChange={handleTabChange}>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                <Tabs 
+                    value={currentTab} 
+                    onChange={handleTabChange}
+                    sx={{
+                        '& .MuiTab-root': {
+                            textTransform: 'none',
+                            fontSize: '1rem',
+                            fontWeight: 'medium',
+                        },
+                        '& .Mui-selected': {
+                            color: '#01A768',
+                        },
+                        '& .MuiTabs-indicator': {
+                            backgroundColor: '#01A768',
+                        },
+                    }}
+                >
                     <Tab label="Dashboard" />
                     <Tab label="All Transactions" />
                 </Tabs>
