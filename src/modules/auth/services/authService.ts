@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 export interface LoginResponse {
     token: string;
@@ -22,7 +22,7 @@ export interface LoginResponse {
 }
 
 export const pmsLogin = async (employee_id: string, password: string): Promise<LoginResponse> => {
-    const response = await axios.post(`${API_URL}/auth/pms/login`, {
+    const response = await axios.post(`${API_URL}/api/auth/pms/login`, {
         employee_id,
         password
     });
@@ -45,7 +45,7 @@ export const pmsLogin = async (employee_id: string, password: string): Promise<L
 };
 
 export const posLogin = async (pin_code: string): Promise<LoginResponse> => {
-    const response = await axios.post(`${API_URL}/auth/pos/login`, {
+    const response = await axios.post(`${API_URL}/api/auth/pos/login`, {
         pin_code
     });
     return response.data;
@@ -74,7 +74,7 @@ export const removeAuthToken = () => {
 
 export const forgotPassword = async (employee_id: string, email: string) => {
     try {
-        const response = await axios.post(`${API_URL}/auth/forgot-password`, {
+        const response = await axios.post(`${API_URL}/api/auth/forgot-password`, {
             employee_id,
             email
         });
@@ -86,7 +86,7 @@ export const forgotPassword = async (employee_id: string, email: string) => {
 
 export const verifyResetToken = async (employee_id: string, token: string) => {
     try {
-        const response = await axios.post(`${API_URL}/auth/verify-reset-token`, {
+        const response = await axios.post(`${API_URL}/api/auth/verify-reset-token`, {
             employee_id,
             token
         });
@@ -98,7 +98,7 @@ export const verifyResetToken = async (employee_id: string, token: string) => {
 
 export const resetPassword = async (employee_id: string, token: string, new_password: string) => {
     try {
-        const response = await axios.post(`${API_URL}/auth/reset-password`, {
+        const response = await axios.post(`${API_URL}/api/auth/reset-password`, {
             employee_id,
             token,
             new_password
