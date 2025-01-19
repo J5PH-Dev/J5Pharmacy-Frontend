@@ -260,10 +260,10 @@ const ViewAllTransaction = () => {
                             Refresh
                         </Button>
                     </Box>
-                </Box>
+            </Box>
 
                 <Box sx={{ display: 'flex', gap: 2 }}>
-                    <TextField
+                        <TextField
                         label="Search invoice, customer, status, or branch"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -298,8 +298,8 @@ const ViewAllTransaction = () => {
             {/* Transactions Table */}
             <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 390px)', overflow: 'none' }}>
                 <Table stickyHeader>
-                    <TableHead>
-                        <TableRow>
+                                <TableHead>
+                                    <TableRow>
                             <TableCell 
                                 onClick={() => handleSort('invoice_number')}
                                 sx={{ cursor: 'pointer', fontWeight: 'bold' }}
@@ -394,12 +394,12 @@ const ViewAllTransaction = () => {
                                                 <DeleteIcon />
                                             </IconButton>
                                         </Stack>
-                                    </TableCell>
-                                </TableRow>
+                                            </TableCell>
+                                        </TableRow>
                             ))
                         )}
-                    </TableBody>
-                </Table>
+                                </TableBody>
+                            </Table>
             </TableContainer>
 
             <TablePagination
@@ -417,15 +417,15 @@ const ViewAllTransaction = () => {
             {/* Delete Confirmation Modal */}
             <Modal open={openModal} onClose={() => setOpenModal(false)}>
                 <Box sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
                     bgcolor: 'background.paper',
-                    boxShadow: 24,
+                        boxShadow: 24,
                     p: 4,
                     width: 400,
-                    borderRadius: 2,
+                        borderRadius: 2,
                 }}>
                     <Typography variant="h6" gutterBottom>
                         Confirm Delete
@@ -437,7 +437,7 @@ const ViewAllTransaction = () => {
                         <Button variant="outlined" onClick={() => setOpenModal(false)}>
                             Cancel
                         </Button>
-                        <Button 
+                        <Button
                             variant="contained" 
                             color="error"
                             onClick={() => transactionToDelete && handleDelete(transactionToDelete.id)}
@@ -536,22 +536,22 @@ const ViewAllTransaction = () => {
                 filename="Transaction_Report"
             />
 
-            {successMessage && (
-                <Alert
-                    icon={<CheckIcon fontSize="inherit" />}
-                    severity="success"
-                    sx={{
-                        position: 'fixed',
-                        bottom: 20,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
+                {successMessage && (
+                    <Alert
+                        icon={<CheckIcon fontSize="inherit" />}
+                        severity="success"
+                        sx={{
+                            position: 'fixed',
+                            bottom: 20,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
                         zIndex: 1201,
-                    }}
-                >
-                    {successMessage}
-                </Alert>
-            )}
-        </Box>
+                        }}
+                    >
+                        {successMessage}
+                    </Alert>
+                )}
+            </Box>
     );
 };
 

@@ -14,8 +14,11 @@ import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import CloseIcon from '@mui/icons-material/Close';
 import WarningIcon from '@mui/icons-material/Warning';
 
-// Initialize socket connection
-const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000');
+// Use the environment variable for the socket connection
+const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
+  withCredentials: true,
+  transports: ['websocket', 'polling']
+});
 
 interface DashboardData {
   todaySales: number;

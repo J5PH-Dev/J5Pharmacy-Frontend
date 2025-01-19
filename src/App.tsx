@@ -20,7 +20,7 @@ import { UserRole } from './modules/auth/types/auth.types';
 import axios from 'axios';
 
 // Set Axios defaults
-axios.defaults.baseURL = "http://localhost:5000";
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 axios.defaults.withCredentials = true;
 
 // ProtectedRoute component
