@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Box, Grid, Paper, Typography, Button, Divider, Dialog, DialogTitle, DialogContent, TextField } from '@mui/material';
-import { AccountCircle, Info, Code } from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
+import { Box, Grid, Paper, Typography, Button, Divider, Dialog, DialogTitle, DialogContent, TextField, Snackbar, Alert, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { AccountCircle, Info, Code, CloudUpload } from '@mui/icons-material';
+import axios from 'axios';
+import { useAuth } from '../../../auth/contexts/AuthContext';
 
 interface Setting {
   icon: JSX.Element;
@@ -11,25 +13,177 @@ interface Setting {
 
 const SettingsPage = () => {
   const [selectedSetting, setSelectedSetting] = useState<Setting | null>(null);
+  const { user } = useAuth();
+  const userData = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // Email validation state and regex pattern
-  const [email, setEmail] = useState('');
+  // Form states
+  const [employeeId, setEmployeeId] = useState(userData.employeeId || '');
+  const [name, setName] = useState(userData.name || '');
+  const [role, setRole] = useState(userData.role || '');
+  const [branch, setBranch] = useState(userData.branchId || '');
+  const [email, setEmail] = useState(userData.email || '');
+  const [phone, setPhone] = useState(userData.phone || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [remarks, setRemarks] = useState(userData.remarks || '');
+  const [hiredDate, setHiredDate] = useState(userData.hired_at || '');
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [branches, setBranches] = useState<any[]>([]);
+
+  // Validation states
   const [emailError, setEmailError] = useState(false);
   const [emailHelperText, setEmailHelperText] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
+  const [passwordHelperText, setPasswordHelperText] = useState('');
+  const [phoneError, setPhoneError] = useState(false);
+  const [phoneHelperText, setPhoneHelperText] = useState('');
 
-  // Function to handle email change and validation
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+
+  useEffect(() => {
+    fetchBranches();
+    setEmail(userData.email || '');
+    setPhone(userData.phone || '');
+    setEmployeeId(userData.employeeId || '');
+    setName(userData.name || '');
+    setRole(userData.role || '');
+    setBranch(userData.branchId || '');
+    setRemarks(userData.remarks || '');
+    setHiredDate(userData.hired_at || '');
+  }, [userData]);
+
+  const fetchBranches = async () => {
+    try {
+      const response = await axios.get('/api/staff/branches');
+      setBranches(response.data.data);
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+    }
+  };
+
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newEmail = e.target.value;
     setEmail(newEmail);
 
-    // Simple email validation
-    const emailPattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/; // Gmail domain validation
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailPattern.test(newEmail)) {
       setEmailError(true);
-      setEmailHelperText('Email should have @gmail.com');
+      setEmailHelperText('Please enter a valid email address');
     } else {
       setEmailError(false);
       setEmailHelperText('');
+    }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPhone = e.target.value;
+    setPhone(newPhone);
+
+    const phonePattern = /^(\+63|0)[0-9]{10}$/;
+    if (!phonePattern.test(newPhone)) {
+      setPhoneError(true);
+      setPhoneHelperText('Please enter a valid phone number (e.g., +639123456789 or 09123456789)');
+    } else {
+      setPhoneError(false);
+      setPhoneHelperText('');
+    }
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewPassword(e.target.value);
+    validatePasswords(e.target.value, confirmPassword);
+  };
+
+  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setConfirmPassword(e.target.value);
+    validatePasswords(newPassword, e.target.value);
+  };
+
+  const validatePasswords = (pass: string, confirm: string) => {
+    if (pass && confirm && pass !== confirm) {
+      setPasswordError(true);
+      setPasswordHelperText('Passwords do not match');
+    } else {
+      setPasswordError(false);
+      setPasswordHelperText('');
+    }
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setSnackbar({
+          open: true,
+          message: 'Image size should not exceed 5MB',
+          severity: 'error'
+        });
+        return;
+      }
+      if (!file.type.match(/image\/(jpeg|jpg|png)/i)) {
+        setSnackbar({
+          open: true,
+          message: 'Only JPEG and PNG images are allowed',
+          severity: 'error'
+        });
+        return;
+      }
+      setSelectedImage(file);
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    try {
+      if (emailError || phoneError || passwordError) {
+        setSnackbar({ open: true, message: 'Please fix the validation errors', severity: 'error' });
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('phone', phone);
+      formData.append('remarks', remarks);
+      if (selectedImage) {
+        formData.append('image', selectedImage);
+      }
+      if (newPassword && currentPassword) {
+        formData.append('current_password', currentPassword);
+        formData.append('new_password', newPassword);
+      }
+
+      const response = await axios.put(`/api/staff/users/${userData.user_id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data.success) {
+        // Update local storage with new data
+        const updatedUserData = { 
+          ...userData, 
+          email, 
+          phone,
+          remarks,
+          image_data: response.data.user.image_data,
+          image_type: response.data.user.image_type
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUserData));
+
+        setSnackbar({ open: true, message: 'Profile updated successfully', severity: 'success' });
+        // Clear password fields
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setSelectedImage(null);
+      }
+    } catch (error: any) {
+      setSnackbar({ 
+        open: true, 
+        message: error.response?.data?.message || 'Error updating profile', 
+        severity: 'error' 
+      });
     }
   };
 
@@ -41,19 +195,205 @@ const SettingsPage = () => {
       description: 'Update your email, password, and profile information.',
       form: (
         <Box component="form" noValidate autoComplete="off">
-          <TextField
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Employee ID"
+                value={employeeId}
+                disabled
+                margin="normal"
+                InputProps={{
+                  readOnly: true,
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Name"
+                value={name}
+                disabled
+                margin="normal"
+                InputProps={{
+                  readOnly: true,
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={role}
+                  label="Role"
+                  disabled
+                  inputProps={{
+                    readOnly: true,
+                  }}
+                >
+                  <MenuItem value="ADMIN">Admin</MenuItem>
+                  <MenuItem value="MANAGER">Manager</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Branch</InputLabel>
+                <Select
+                  value={branch}
+                  label="Branch"
+                  disabled
+                  inputProps={{
+                    readOnly: true,
+                  }}
+                >
+                  {branches.map((branch) => (
+                    <MenuItem key={branch.branch_id} value={branch.branch_id}>
+                      {branch.branch_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Email"
+                value={email}
+                onChange={handleEmailChange}
+                error={emailError}
+                helperText={emailHelperText}
+                margin="normal"
+                onClick={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Phone"
+                value={phone}
+                onChange={handlePhoneChange}
+                error={phoneError}
+                helperText={phoneHelperText}
+                margin="normal"
+                onClick={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Remarks"
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                multiline
+                rows={4}
+                margin="normal"
+                onClick={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Hired Date"
+                type="date"
+                value={hiredDate ? new Date(hiredDate).toISOString().split('T')[0] : ''}
+                disabled
+                margin="normal"
+                InputProps={{
+                  readOnly: true,
+                }}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Button
+                component="label"
+                variant="outlined"
+                startIcon={<CloudUpload />}
+                sx={{ mt: 2, mb: 2 }}
+                fullWidth
+                onClick={(e) => e.stopPropagation()}
+              >
+                Upload Profile Picture
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Button>
+              {selectedImage && (
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Selected file: {selectedImage.name}
+                </Typography>
+              )}
+            </Grid>
+          </Grid>
+
+          <Divider sx={{ my: 3 }} />
+          
+          <Typography variant="h6" gutterBottom>
+            Change Password
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Current Password"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                margin="normal"
+                onClick={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="New Password"
+                type="password"
+                value={newPassword}
+                onChange={handlePasswordChange}
+                error={passwordError}
+                helperText={passwordHelperText}
+                margin="normal"
+                onClick={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Confirm New Password"
+                type="password"
+                value={confirmPassword}
+                onChange={handleConfirmPasswordChange}
+                error={passwordError}
+                margin="normal"
+                onClick={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
+              />
+            </Grid>
+          </Grid>
+
+          <Button 
+            variant="contained" 
+            sx={{ mt: 3 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleUpdateProfile();
+            }}
+            disabled={emailError || phoneError || passwordError}
             fullWidth
-            label="Email"
-            margin="normal"
-            value={email}
-            onChange={handleEmailChange}
-            error={emailError}
-            helperText={emailHelperText}
-          />
-          <TextField fullWidth label="Password" type="password" margin="normal" />
-          <TextField fullWidth label="Username" margin="normal" />
-          <Button variant="contained" sx={{ marginTop: 2 }}>
-            Update
+          >
+            Update Profile
           </Button>
         </Box>
       ),
@@ -143,8 +483,12 @@ const SettingsPage = () => {
                   transform: 'scale(1.01)',
                   boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
                 },
+                cursor: 'pointer'
               })}
-              onClick={() => setSelectedSetting(setting)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedSetting(setting);
+              }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
                 {React.cloneElement(setting.icon, { sx: { fontSize: 40, color: '#000' } })}
@@ -157,6 +501,10 @@ const SettingsPage = () => {
               </div>
 
               <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedSetting(setting);
+                }}
                 sx={{
                   backgroundColor: '#03A9F5',
                   color: '#fff',
@@ -178,11 +526,40 @@ const SettingsPage = () => {
 
       {/* Dialog for Forms */}
       {selectedSetting && (
-        <Dialog open={Boolean(selectedSetting)} onClose={() => setSelectedSetting(null)} fullWidth maxWidth="sm">
+        <Dialog 
+          open={Boolean(selectedSetting)} 
+          onClose={() => setSelectedSetting(null)} 
+          fullWidth 
+          maxWidth="md"
+          sx={{
+            '& .MuiDialog-paper': {
+              overflow: 'visible'
+            }
+          }}
+        >
           <DialogTitle>{selectedSetting.title}</DialogTitle>
-          <DialogContent>{selectedSetting.form}</DialogContent>
+          <DialogContent>
+            <Box onClick={(e) => e.stopPropagation()}>
+              {selectedSetting.form}
+            </Box>
+          </DialogContent>
         </Dialog>
       )}
+
+      {/* Snackbar for notifications */}
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={6000} 
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

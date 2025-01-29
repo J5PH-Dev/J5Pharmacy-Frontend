@@ -264,7 +264,7 @@ const ArchivedCustomersPage = () => {
                         <Button
                             variant="contained"
                             color="inherit"
-                            onClick={() => navigate('/admin/customer-info')}
+                            onClick={() => navigate('/manager/customer-info')}
                             sx={{ textTransform: 'none' }}
                         >
                             Back to Customers
@@ -444,8 +444,8 @@ const ArchivedCustomersPage = () => {
                                                 <IconButton
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        console.log(`/admin/customer-info/${customer.customer_id}`);
-                                                        navigate(`/admin/customer-info/${customer.customer_id}`);
+                                                        console.log(`/manager/customer-info/${customer.customer_id}`);
+                                                        navigate(`/manager/customer-info/${customer.customer_id}`);
                                                     }}
                                                     color="info"
                                                     title="View Details"

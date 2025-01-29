@@ -167,7 +167,7 @@ const ViewGroupDetails = () => {
 
 
   const handleViewDetails = (medicineName: string) => {
-    navigate(`/admin/inventory/view-medicines-description/${medicineName}`);
+    navigate(`/manager/inventory/view-medicines-description/${medicineName}`);
   };
 
 
@@ -245,7 +245,7 @@ const ViewGroupDetails = () => {
 
         // If deletion was successful, navigate and show success message
         if (response.status === 200) {
-          navigate('/admin/inventory/view-medicines-group', {
+          navigate('/manager/inventory/view-medicines-group', {
             state: { successMessage: 'Group deleted successfully!' },
           });
         } else {
@@ -327,7 +327,7 @@ const ViewGroupDetails = () => {
         });
   
         if (response.status === 200) {
-          navigate('/admin/inventory/view-medicines-group', {
+          navigate('/manager/inventory/view-medicines-group', {
             state: { successMessage: 'Items deleted successfully!' },
           });
         } else {
@@ -363,8 +363,8 @@ const ViewGroupDetails = () => {
           justifyContent: { xs: 'center', sm: 'flex-start' },
         }}
       >
-        <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory')}>Inventory</Link>
-        <Link color="inherit" onClick={handleBreadcrumbClick('/admin/inventory/view-medicines-group')}>Medicine Group</Link>
+        <Link color="inherit" onClick={handleBreadcrumbClick('/manager/inventory')}>Inventory</Link>
+        <Link color="inherit" onClick={handleBreadcrumbClick('/manager/inventory/view-medicines-group')}>Product Categories</Link>
         <Typography color="text.primary">{groupName}</Typography>
       </Breadcrumbs>
 
@@ -372,7 +372,7 @@ const ViewGroupDetails = () => {
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{groupName}</Typography>
-          <Typography variant="body1">Detailed view of a medicine group.</Typography>
+          <Typography variant="body1">Detailed view of a product category.</Typography>
         </Box>
         {/* <Button variant="contained" onClick={handleAddNewItemClick} sx={{ backgroundColor: '#01A768', color: '#fff', '&:hover': { backgroundColor: '#017F4A' } }}>
           <AddIcon /> Add New Item

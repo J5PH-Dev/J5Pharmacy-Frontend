@@ -12,47 +12,37 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import CheckBox from '@mui/icons-material/CheckBox';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import ArchiveIcon from '@mui/icons-material/Archive';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import RestoreIcon from '@mui/icons-material/Restore';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
-import { useAuth } from '../../../../auth/contexts/AuthContext';
 
-interface Category {
+interface ArchivedCategory {
     category_id: number;
     name: string;
     prefix: string;
-    product_count?: number;
+    archived_by: number;
+    archived_by_name: string;
+    archived_at: string;
 }
 
-const MedicineGroupPage = () => {
-    const { user } = useAuth();
+const ArchivedCategoriesPage = () => {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const [categories, setCategories] = useState<Category[]>([]);
+    const [categories, setCategories] = useState<ArchivedCategory[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [sortConfig, setSortConfig] = useState<{ key: keyof Category; direction: 'asc' | 'desc' }>({
-        key: 'name',
-        direction: 'asc'
+    const [sortConfig, setSortConfig] = useState<{ key: keyof ArchivedCategory; direction: 'asc' | 'desc' }>({
+        key: 'archived_at',
+        direction: 'desc'
     });
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedItems, setSelectedItems] = useState<number[]>([]);
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const [newCategory, setNewCategory] = useState({ name: '', prefix: '' });
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-    const [exportFileName, setExportFileName] = useState('product_categories');
-    const [editCategory, setEditCategory] = useState({ category_id: 0, name: '', prefix: '' });
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [affectedProducts, setAffectedProducts] = useState<any[]>([]);
+    const [exportFileName, setExportFileName] = useState('archived_categories');
 
     useEffect(() => {
         fetchCategories();
@@ -61,13 +51,12 @@ const MedicineGroupPage = () => {
     const fetchCategories = async () => {
         setIsLoading(true);
         try {
-            const response = await axios.get('/admin/inventory/categories');
-            const categoriesData = response.data;
-            setCategories(categoriesData);
+            const response = await axios.get('/admin/inventory/archived-categories');
+            setCategories(response.data);
             setError(null);
         } catch (error) {
-            console.error('Error fetching categories:', error);
-            setError('Failed to fetch categories. Please try again.');
+            console.error('Error fetching archived categories:', error);
+            setError('Failed to fetch archived categories. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -93,7 +82,7 @@ const MedicineGroupPage = () => {
         setPage(0);
     };
 
-    const handleSort = (key: keyof Category) => {
+    const handleSort = (key: keyof ArchivedCategory) => {
         setSortConfig(prevConfig => ({
             key,
             direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
@@ -132,79 +121,28 @@ const MedicineGroupPage = () => {
         );
     };
 
-    const handleAddCategory = async () => {
+    const handleRestore = async (categoryId: number) => {
         try {
-            await axios.post('/admin/inventory/add-category', newCategory);
-            setSuccessMessage('Category added successfully');
-            setIsAddDialogOpen(false);
-            setNewCategory({ name: '', prefix: '' });
+            await axios.post(`/admin/inventory/restore-category/${categoryId}`);
+            setSuccessMessage('Category restored successfully');
             await fetchCategories();
         } catch (error) {
-            console.error('Error adding category:', error);
-            setError('Failed to add category');
+            console.error('Error restoring category:', error);
+            setError('Failed to restore category');
         }
     };
 
-    const handleEditItem = (category: Category) => {
-        setEditCategory({
-            category_id: category.category_id,
-            name: category.name,
-            prefix: category.prefix
-        });
-        setIsEditDialogOpen(true);
-    };
-
-    const handleSaveEdit = async () => {
+    const handleRestoreSelected = async () => {
         try {
-            await axios.post('/admin/inventory/update-category', {
-                categoryId: editCategory.category_id,
-                name: editCategory.name,
-                prefix: editCategory.prefix
-            });
-            setSuccessMessage('Category updated successfully');
-            setIsEditDialogOpen(false);
-            await fetchCategories();
-        } catch (error) {
-            console.error('Error updating category:', error);
-            setError('Failed to update category');
-        }
-    };
-
-    const handleDeleteCategories = async () => {
-        if (!user) {
-            setError('User authentication required');
-            return;
-        }
-
-        try {
-            // Get affected products first
-            const response = await axios.get(`/admin/inventory/category-products/${selectedItems[0]}`);
-            
-            if (response.data.affectedProducts) {
-                setAffectedProducts(response.data.affectedProducts);
-            }
-            
-            // Don't archive yet, just show the confirmation dialog
-            setIsDeleteDialogOpen(true);
-        } catch (error: any) {
-            console.error('Error getting affected products:', error);
-            setError(error.response?.data?.message || 'Failed to get affected products');
-        }
-    };
-
-    const confirmArchive = async () => {
-        try {
-            await axios.post('/admin/inventory/archive-category/' + selectedItems[0], {
-                archivedBy: user?.user_id
-            });
-            
-            setSuccessMessage('Category archived successfully');
-            setIsDeleteDialogOpen(false);
+            await Promise.all(selectedItems.map(categoryId => 
+                axios.post(`/admin/inventory/restore-category/${categoryId}`)
+            ));
+            setSuccessMessage('Selected categories restored successfully');
             setSelectedItems([]);
             await fetchCategories();
-        } catch (error: any) {
-            console.error('Error archiving category:', error);
-            setError(error.response?.data?.message || 'Failed to archive category');
+        } catch (error) {
+            console.error('Error restoring categories:', error);
+            setError('Failed to restore selected categories');
         }
     };
 
@@ -212,12 +150,13 @@ const MedicineGroupPage = () => {
         const exportData = processedCategories.map(category => ({
             'Category Name': category.name,
             'Prefix': category.prefix,
-            'Number of Products': category.product_count || 0
+            'Archived By': category.archived_by_name,
+            'Archived At': new Date(category.archived_at).toLocaleString()
         }));
 
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Categories');
+        XLSX.utils.book_append_sheet(wb, ws, 'Archived Categories');
         XLSX.writeFile(wb, `${exportFileName}.xlsx`);
         setIsExportDialogOpen(false);
     };
@@ -247,12 +186,6 @@ const MedicineGroupPage = () => {
         const startIndex = page * rowsPerPage;
         return processedCategories.slice(startIndex, startIndex + rowsPerPage);
     }, [processedCategories, page, rowsPerPage]);
-
-    const handleViewCategory = (categoryName: string) => {
-        navigate('/manager/inventory/view-medicines-available', {
-            state: { preSelectedCategory: categoryName }
-        });
-    };
 
     return (
         <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
@@ -289,25 +222,7 @@ const MedicineGroupPage = () => {
                     flexWrap: 'wrap',
                     gap: 2
                 }}>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            onClick={() => setIsAddDialogOpen(true)}
-                            startIcon={<AddIcon />}
-                            sx={{ textTransform: 'none' }}
-                        >
-                            Add Category
-                        </Button>
-                        <Button
-                            variant="contained"
-                            color="inherit"
-                            onClick={() => setIsExportDialogOpen(true)}
-                            startIcon={<FileDownloadIcon />}
-                            sx={{ textTransform: 'none' }}
-                        >
-                            Export
-                        </Button>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
                         <Button
                             variant="contained"
                             color="inherit"
@@ -319,25 +234,24 @@ const MedicineGroupPage = () => {
                         </Button>
                         <Button
                             variant="contained"
-                            color="inherit"
-                            onClick={() => navigate('/manager/inventory/archived-categories')}
-                            startIcon={<ArchiveIcon />}
+                            color="primary"
+                            onClick={() => setIsExportDialogOpen(true)}
                             sx={{ textTransform: 'none' }}
                         >
-                            View Archive
+                            Export
                         </Button>
                         <Button
                             variant="contained"
                             color="inherit"
-                            onClick={() => navigate('/manager/inventory/view-medicines-available')}
-                            startIcon={<VisibilityIcon />}
+                            onClick={() => navigate('/manager/inventory/view-medicines-group')}
+                            startIcon={<ArrowBackIcon />}
                             sx={{ textTransform: 'none' }}
                         >
-                            View Products
+                            Back to Categories
                         </Button>
                     </Box>
 
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
                         <Button
                             variant="contained"
                             color={isSelectionMode ? "primary" : "inherit"}
@@ -349,13 +263,13 @@ const MedicineGroupPage = () => {
                         </Button>
                         <Button
                             variant="contained"
-                            color="error"
-                            onClick={() => setIsDeleteDialogOpen(true)}
-                            startIcon={<DeleteIcon />}
+                            color="warning"
+                            onClick={handleRestoreSelected}
+                            startIcon={<RestoreIcon />}
                             sx={{ textTransform: 'none' }}
                             disabled={!isSelectionMode || selectedItems.length === 0}
                         >
-                            Delete Selected ({selectedItems.length})
+                            Restore Selected
                         </Button>
                     </Box>
                 </Box>
@@ -440,7 +354,24 @@ const MedicineGroupPage = () => {
                                     sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
                                 )}
                             </TableCell>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Number of Products</TableCell>
+                            <TableCell
+                                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                                onClick={() => handleSort('archived_by_name')}
+                            >
+                                Archived By
+                                {sortConfig.key === 'archived_by_name' && (
+                                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                                )}
+                            </TableCell>
+                            <TableCell
+                                sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+                                onClick={() => handleSort('archived_at')}
+                            >
+                                Archived At
+                                {sortConfig.key === 'archived_at' && (
+                                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                                )}
+                            </TableCell>
                             <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                         </TableRow>
                     </TableHead>
@@ -457,35 +388,17 @@ const MedicineGroupPage = () => {
                                 )}
                                 <TableCell>{category.name}</TableCell>
                                 <TableCell>{category.prefix}</TableCell>
-                                <TableCell>{category.product_count || 0}</TableCell>
+                                <TableCell>{category.archived_by_name}</TableCell>
+                                <TableCell>{new Date(category.archived_at).toLocaleString()}</TableCell>
                                 <TableCell>
-                                    <IconButton 
-                                        size="small" 
-                                        onClick={() => handleViewCategory(category.name)}
-                                        sx={{ color: '#2BA3B6', mr: 0 }}
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => handleRestore(category.category_id)}
+                                        title="Restore"
+                                        color="warning"
                                     >
-                                        <VisibilityIcon />
+                                        <RestoreIcon />
                                     </IconButton>
-                                    {category.category_id !== 12 && (
-                                        <>
-                                            <IconButton 
-                                                size="small" 
-                                                onClick={() => handleEditItem(category)}
-                                            >
-                                                <EditIcon />
-                                            </IconButton>
-                                            <IconButton
-                                                size="small" 
-                                                color="error"
-                                                onClick={() => {
-                                                    setSelectedItems([category.category_id]);
-                                                    setIsDeleteDialogOpen(true);
-                                                }}
-                                            >
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </>
-                                    )}
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -504,66 +417,9 @@ const MedicineGroupPage = () => {
                 />
             </Box>
 
-            {/* Add Category Dialog */}
-            <Dialog open={isAddDialogOpen} onClose={() => setIsAddDialogOpen(false)}>
-                <DialogTitle>Add New Category</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <TextField
-                            label="Category Name"
-                            value={newCategory.name}
-                            onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
-                            fullWidth
-                        />
-                        <TextField
-                            label="Prefix"
-                            value={newCategory.prefix}
-                            onChange={(e) => setNewCategory(prev => ({ ...prev, prefix: e.target.value }))}
-                            fullWidth
-                        />
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleAddCategory} variant="contained" color="primary">
-                        Add
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* Delete Confirmation Dialog */}
-            <Dialog open={isDeleteDialogOpen} onClose={() => setIsDeleteDialogOpen(false)}>
-                <DialogTitle>Confirm Archive</DialogTitle>
-                <DialogContent>
-                    <Typography>
-                        Are you sure you want to archive {selectedItems.length === 1 ? 'this category' : 'these categories'}?
-                    </Typography>
-                    {affectedProducts.length > 0 && (
-                        <>
-                            <Typography sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
-                                The following products will be moved to "NO CATEGORY":
-                            </Typography>
-                            <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-                                {affectedProducts.map((product) => (
-                                    <Typography key={product.id}>
-                                        • {product.name} {product.brand_name ? `(${product.brand_name})` : ''}
-                                    </Typography>
-                                ))}
-                            </Box>
-                        </>
-                    )}
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={confirmArchive} variant="contained" color="error">
-                        Archive
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
             {/* Export Dialog */}
             <Dialog open={isExportDialogOpen} onClose={() => setIsExportDialogOpen(false)}>
-                <DialogTitle>Export Categories</DialogTitle>
+                <DialogTitle>Export Archived Categories</DialogTitle>
                 <DialogContent>
                     <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <TextField
@@ -582,35 +438,8 @@ const MedicineGroupPage = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-
-            {/* Edit Dialog */}
-            <Dialog open={isEditDialogOpen} onClose={() => setIsEditDialogOpen(false)}>
-                <DialogTitle>Edit Category</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <TextField
-                            label="Category Name"
-                            value={editCategory.name}
-                            onChange={(e) => setEditCategory(prev => ({ ...prev, name: e.target.value }))}
-                            fullWidth
-                        />
-                        <TextField
-                            label="Prefix"
-                            value={editCategory.prefix}
-                            onChange={(e) => setEditCategory(prev => ({ ...prev, prefix: e.target.value }))}
-                            fullWidth
-                        />
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleSaveEdit} variant="contained" color="primary">
-                        Save Changes
-                    </Button>
-                </DialogActions>
-            </Dialog>
         </Box>
     );
 };
 
-export default MedicineGroupPage;
+export default ArchivedCategoriesPage; 
