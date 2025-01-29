@@ -15,6 +15,7 @@ import AdminRoutes from './modules/adminDashboard/AdminRoutes';
 import ManagerRoutes from './modules/managerDashboard/ManagerRoutes';
 import LoadingPage from './modules/auth/components/LoadingPage';
 import { UserRole } from './modules/auth/types/auth.types';
+import { BulkImportProvider } from './modules/adminDashboard/contexts/BulkImportContext';
 
 // Import Axios and configure it
 import axios from 'axios';
@@ -135,7 +136,9 @@ const App: React.FC = () => {
       <CssBaseline />
       <Router>
         <AuthProvider>
-          <AppRoutes />
+          <BulkImportProvider>
+            <AppRoutes />
+          </BulkImportProvider>
         </AuthProvider>
       </Router>
     </ThemeProvider>
