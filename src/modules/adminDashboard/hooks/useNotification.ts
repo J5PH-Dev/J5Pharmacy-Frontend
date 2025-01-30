@@ -10,14 +10,16 @@ export const useNotification = () => {
     });
 
     const handleNotification = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning', autoHide: boolean = true) => {
+        const shouldAutoHide = type === 'success' ? autoHide : false;
+
         setNotification({
             open: true,
             message,
             type,
-            autoHide
+            autoHide: shouldAutoHide
         });
 
-        if (autoHide) {
+        if (shouldAutoHide) {
             setTimeout(() => {
                 setNotification(prev => ({ ...prev, open: false }));
             }, 5000);

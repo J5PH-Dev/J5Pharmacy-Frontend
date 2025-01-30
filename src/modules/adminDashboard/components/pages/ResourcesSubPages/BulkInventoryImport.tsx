@@ -40,6 +40,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import WarningIcon from '@mui/icons-material/Warning';
 import StoreIcon from '@mui/icons-material/Store';
@@ -859,7 +860,7 @@ const BulkInventoryImport: React.FC = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [categories, setCategories] = useState<Category[]>([]);
-
+    const [categoriesMap, setCategoriesMap] = useState<{ [key: string]: number }>({});
 
     const [showSimilarProducts, setShowSimilarProducts] = useState(false);
 
@@ -921,7 +922,6 @@ const BulkInventoryImport: React.FC = () => {
 
     useEffect(() => {
         fetchCategories();
-
         fetchBranches();
     }, []);
 
@@ -931,8 +931,6 @@ const BulkInventoryImport: React.FC = () => {
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
-
-
         };
     }, []);
 
@@ -947,6 +945,13 @@ const BulkInventoryImport: React.FC = () => {
         try {
             const response = await axios.get('/api/resources/categories');
             setCategories(response.data);
+            
+            // Create a mapping of category names to category_ids
+            const map: { [key: string]: number } = {};
+            response.data.forEach((category: { category_id: number; name: string }) => {
+                map[category.name] = category.category_id;
+            });
+            setCategoriesMap(map);
         } catch (error) {
             console.error('Error fetching categories:', error);
             setError('Failed to fetch categories');
@@ -977,9 +982,9 @@ const BulkInventoryImport: React.FC = () => {
         const template = [
             {
                 'barcode': '123456789',
-                'name': 'Sample Product',
-                'brand_name': 'Sample Brand',
-                'Category': 'Sample Category',
+                'name': 'Product',
+                'brand_name': 'Brand',
+                'category': 'BRANDED',
                 'quantity': '100',
                 'expiry': '12/31/2024',
                 'dosage_amount': '500',
@@ -1005,10 +1010,10 @@ const BulkInventoryImport: React.FC = () => {
         const template = [
             {
                 'barcode': '123456789',
-                'name': 'Sample Product',
-                'brand_name': 'Sample Brand',
+                'name': 'Product',
+                'brand_name': 'Brand',
                 'quantity': '100',
-                'expiry': '2024-12-31'
+                'expiry': '12/31/2025'
             }
         ];
 
@@ -1110,8 +1115,8 @@ const BulkInventoryImport: React.FC = () => {
 
             // Validate required columns based on import type
             const requiredColumns = importType === 'existing' 
-                ? ['barcode', 'name', 'brand_name', 'quantity', 'expiry']
-                : ['barcode', 'name', 'brand_name', 'quantity', 'expiry', 'dosage_unit', 'dosage_amount', 'prescription', 'description', 'sideEffects'];
+                ? ['barcode', 'name', 'quantity', 'expiry']
+                : ['barcode', 'name'];
 
             const firstRow = jsonData[0] as any;
             const missingColumns = requiredColumns.filter(col => {
@@ -1298,7 +1303,12 @@ const BulkInventoryImport: React.FC = () => {
                 quantity: product.quantity,
                 expiry: convertDateFormat(product.expiry),
                 status: product.status,
-                branch_id: selectedBranch
+                branch_id: selectedBranch,
+                category: product.category ? categoriesMap[product.category] : null,
+                description: product.how_to_use,
+                sideEffects: product.side_effects,
+                dosage_amount: product.dosage_amount,
+                dosage_unit: product.dosage_unit
             }));
 
             // Import products in batches of 10
@@ -2007,6 +2017,43 @@ const BulkInventoryImport: React.FC = () => {
         }
     };
 
+    const handleReset = () => {
+        // Reset all state variables to their initial values
+        setImportedData([]);
+        setError('');
+        setSuccess('');
+        setLoading(false);
+        setIsUploading(false);
+        setUploadProgress(0);
+        setPendingFile(null);
+        setSelectedBranch(null);
+        setImportType(null);
+        setPage(0);
+        setRowsPerPage(10);
+        setShowSimilarProducts(false);
+        setSimilarProducts([]);
+        setResolvingProduct(null);
+        setUndoHistory([]);
+        setSelectedProduct(null);
+        setOpenEditDialog(false);
+        setOpenViewDialog(false);
+        setImportProgress({ show: false, current: 0, total: 0 });
+        setEditFormData({ quantity: '', expiry: '' });
+        setShowAddProduct(false);
+        setIsGuidelinesOpen(false);
+
+        // Show success notification
+        handleNotification('All data has been reset successfully', 'success');
+        console.log('[BulkImport] All states have been reset to initial values');
+    };
+
+    const handleRemoveProduct = (index: number) => {
+        const updatedData = [...importedData];
+        updatedData.splice(index, 1); // Remove the product at the specified index
+        setImportedData(updatedData); // Update the state
+        handleNotification('Product removed successfully', 'success'); // Optional notification
+    };
+
     return (
         <Box sx={{ p: 2, ml: { xs: 1, md: 35 }, mt: 0 }}>
             <Paper 
@@ -2118,6 +2165,13 @@ const BulkInventoryImport: React.FC = () => {
                     }}
                 >
                     <Grid item xs={3}>
+                        <Box sx={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            gap: 1,
+                            width: '100%',
+                            maxWidth: 250
+                        }}>
                         <Button
                             variant="outlined"
                             startIcon={<HelpOutlineIcon />}
@@ -2137,6 +2191,26 @@ const BulkInventoryImport: React.FC = () => {
                         >
                             Import Guidelines
                         </Button>
+                        <Button
+                            variant="outlined"
+                            startIcon={<RefreshIcon />}
+                            onClick={handleReset}
+                            sx={{
+                                borderColor: '#1B3E2D',
+                                color: '#1B3E2D',
+                                animation: !hasSeenGuidelines ? 'pulse 2s infinite' : 'none',
+                                '@keyframes pulse': pulseAnimation['@keyframes pulse'],
+                                '&:hover': {
+                                    borderColor: '#2D5741',
+                                    backgroundColor: 'rgba(45, 87, 65, 0.04)',
+                                },
+                                width: '100%',
+                                maxWidth: 250
+                            }}
+                        >
+                            Reset Page
+                        </Button>
+                        </Box>
                     </Grid>
                     <Grid item xs={3}>
                         <Button
@@ -2154,6 +2228,7 @@ const BulkInventoryImport: React.FC = () => {
                                 },
                                 width: '100%',
                                 maxWidth: 250,
+                                height: '85%',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: 0.5,
@@ -2483,6 +2558,7 @@ const BulkInventoryImport: React.FC = () => {
                                                     >
                                                         Resolve
                                                     </Button>
+                                                    
                                                 ) : (
                                                     <Box sx={{ display: 'flex', gap: 1 }}>
                                                         <Tooltip title="View Details">
@@ -2546,7 +2622,7 @@ const BulkInventoryImport: React.FC = () => {
                         No File Uploaded
                         </Typography>
                     <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                        Upload an Excel file (.xlsx, .xls) to import products
+                        Follow the steps above to import products
                     </Typography>
                                             
                 </Paper>
@@ -2636,7 +2712,7 @@ const BulkInventoryImport: React.FC = () => {
                                         <Box>
                                             <Typography variant="subtitle2" color="text.secondary">Category</Typography>
                                             <Typography>
-                                                {categories.find(cat => cat.category_id === selectedProduct.category)?.name || 'No category'}
+                                                {selectedProduct.category_name || 'No category'}
                         </Typography>
                     </Box>
                                     </Box>
