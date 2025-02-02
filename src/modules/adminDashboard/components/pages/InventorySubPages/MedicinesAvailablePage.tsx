@@ -892,9 +892,9 @@ const MedicinesAvailablePage = () => {
     // Search filter
     if (searchQuery) {
       filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.brand_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.barcode.toLowerCase().includes(searchQuery.toLowerCase())
+        (product.name && product.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (product.brand_name && product.brand_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (product.barcode && product.barcode.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 

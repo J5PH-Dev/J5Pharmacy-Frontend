@@ -222,14 +222,17 @@ const Header = () => {
             breadcrumbs.push({ path: '/admin/resources', title: 'Resource Management' });
             
             // Add specific resource management sections
-            if (paths.includes('suppliers')) {
-                breadcrumbs.push({ path: '/admin/resources/SupplierManagements', title: 'Supplier Management' });
+            if (paths.includes('supplier-management')) {
+                breadcrumbs.push({ path: '/admin/resources/supplier-management', title: 'Supplier Management' });
             }
-            if (paths.includes('bulk-import')) {
-                breadcrumbs.push({ path: '/admin/resources/BulkInventoryImport', title: 'Bulk Inventory Import' });
+            if (paths.includes('archived-suppliers')) {
+                breadcrumbs.push({ path: '/admin/resources/archived-suppliers', title: 'Archived Suppliers' });
+            }
+            if (paths.includes('bulk-inventory-import')) {
+                breadcrumbs.push({ path: '/admin/resources/bulk-inventory-import', title: 'Bulk Inventory Import' });
             }
             if (paths.includes('price-management')) {
-                breadcrumbs.push({ path: '/admin/resources/PriceManagement', title: 'Price Management' });
+                breadcrumbs.push({ path: '/admin/resources/price-management', title: 'Price Management' });
             }
         }
 

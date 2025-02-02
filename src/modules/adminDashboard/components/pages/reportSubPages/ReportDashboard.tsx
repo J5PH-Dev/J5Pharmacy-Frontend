@@ -310,10 +310,10 @@ const ReportDashboard: React.FC = () => {
             <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
                 <Tabs value={tabValue} onChange={handleTabChange} aria-label="dashboard tabs">
                     <Tab icon={<TrendingUpIcon />} label="Main Overview" />
-                    <Tab icon={<PeopleIcon />} label="Financial Analytics" />
+                    {/* <Tab icon={<PeopleIcon />} label="Financial Analytics" />
                     <Tab icon={<InventoryIcon />} label="Product Performance" />
                     <Tab icon={<PeopleIcon />} label="Customer Insights" />
-                    <Tab icon={<StorefrontIcon />} label="Branch Performance" />
+                    <Tab icon={<StorefrontIcon />} label="Branch Performance" /> */}
                 </Tabs>
             </Box>
 

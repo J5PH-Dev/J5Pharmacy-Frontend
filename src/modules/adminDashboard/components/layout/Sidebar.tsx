@@ -117,9 +117,9 @@ const navigationItems: NavigationItem[] = [
     icon: <InventoryIcon />,
     path: '/admin/inventory',
     children: [
-      // { title: 'List of Items', path: '/admin/inventory' },
-      // { title: 'Item', path: '/inventory/item' },
-      // { title: 'Encode Items', path: '/inventory/encode' },
+      { title: 'Products Available', path: '/admin/inventory/view-medicines-available' },
+      { title: 'Categories', path: '/admin/inventory/view-medicines-group' },
+      { title: 'Shortage', path: '/admin/inventory/medicine-shortage' },
     ],
   },
   {
@@ -127,8 +127,8 @@ const navigationItems: NavigationItem[] = [
     icon: <LocalShippingIcon />,
     path: '/admin/resources',
     children: [
-      // { title: 'Supplier Management', path: '/admin/resources/supplier-management' },
-      // { title: 'Bulk Inventory Import', path: '/admin/resources/bulk-inventory-import' },
+      { title: 'Supplier Management', path: '/admin/resources/supplier-management' },
+      { title: 'Bulk Inventory Import', path: '/admin/resources/bulk-inventory-import' },
       // { title: 'Price Management', path: '/admin/resources/price-management' },
     ],
   },
@@ -136,55 +136,34 @@ const navigationItems: NavigationItem[] = [
     title: 'Reports',
     icon: <AssessmentIcon />,
     path: '/admin/sales-report',
-    children: [
-      // { title: 'Statistics', path: '/reports/statistics' },
-      // { title: 'Sales', path: '/reports/sales' },
-      // { title: 'Inventory', path: '/reports/inventory' },
-      // { title: 'Returns', path: '/reports/returns' },
-      // { title: 'Void', path: '/reports/void' },
-    ],
+    // children: [
+    //   { title: 'Statistics', path: '/admin/reports/statistics' },
+    //   { title: 'Sales', path: '/admin/reports/sales' },
+    //   { title: 'Inventory', path: '/admin/reports/inventory' },
+    //   { title: 'Returns', path: '/admin/reports/returns' },
+    //   { title: 'Void', path: '/admin/reports/void' },
+    // ],
   },
   {
     title: 'Branches',
     icon: <BusinessIcon />,
     path: '/admin/branches',
-    children: [
-      // { title: 'Manage Branch', path: '/branches/manage' },
-      // { title: 'Add a Branch', path: '/branches/add' },
-    ],
   },
   {
     title: 'Employee & Staff',
     icon: <PeopleIcon />,
     path: '/admin/employee-staff',
-    children: [
-      // { title: 'Manage Staff', path: '/staff/manage' },
-      // { title: 'Add Staff', path: '/staff/add' },
-    ],
   },
   {
     title: 'Customer Info',
     icon: <PersonIcon />,
     path: '/admin/customer-info',
-    children: [
-      // { title: 'Customer List', path: '/customers/list' },
-      // { title: 'StarPoints', path: '/customers/starpoints' },
-    ],
   },
   {
     title: 'Settings',
     icon: <SettingsIcon />,
     path: '/admin/settings',
   },
-  // {
-  //   title: 'Notifications',
-  //   icon: <NotificationsIcon />,
-  //   path: '/admin/notifications',
-  //   children: [
-  //     // { title: 'Announcements', path: '/notifications/announcements' },
-  //     // { title: 'Message Board', path: '/notifications/messages' },
-  //   ],
-  // },
 ];
 
 const Sidebar: React.FC = () => {
@@ -205,9 +184,17 @@ const Sidebar: React.FC = () => {
     ? `data:${userData.image_type || 'image/jpeg'};base64,${userData.image_data}`
     : undefined;
 
-  // Update active item based on the current location (path)
+  // Update active item and handle collapsing when navigating
   React.useEffect(() => {
     setActiveItem(location.pathname);
+    // Find the parent item of the current path
+    const parentItem = navigationItems.find(item => 
+      item.children?.some(child => location.pathname.startsWith(child.path)) ||
+      location.pathname === item.path
+    );
+    
+    // Collapse all items except the parent of the current path
+    setOpenItems(parentItem ? [parentItem.title] : []);
   }, [location.pathname]);
 
   const handleItemClick = (title: string, path: string) => {
@@ -295,24 +282,43 @@ const Sidebar: React.FC = () => {
                     <ListItemButton
                       onClick={() => handleItemClick(item.title, item.path!)}
                       sx={{
-                        backgroundColor: activeItem === item.path ? '#1D9928' : 'transparent', // Active color
+                        backgroundColor: location.pathname.startsWith(item.path) ? '#1D9928' : 'transparent',
                         '&:hover': {
-                          backgroundColor: activeItem === item.path ? '#1D9928' : '#1D3E2E', // Hover color
+                          backgroundColor: location.pathname.startsWith(item.path) ? '#1D9928' : '#1D3E2E',
                         },
-                        pl: '25px', // Left padding
-                        pt: '10px', // Top padding
-                        pb: '10px', // Bottom padding
+                        pl: '25px',
+                        pt: '10px',
+                        pb: '10px',
                       }}
                     >
                       <ListItemIcon style={{ color: 'white' }}>{item.icon}</ListItemIcon>
-                      <ListItemText style={{ color: 'white', fontWeight: 'normal', marginLeft: '-10px' }} primary={item.title} />
+                      <ListItemText 
+                        style={{ 
+                          color: 'white', 
+                          fontWeight: 'normal', 
+                          marginLeft: '-10px' 
+                        }} 
+                        primary={item.title} 
+                      />
+                      {item.children && (
+                        openItems.includes(item.title) ? 
+                          <ExpandLess style={{ color: 'white' }} /> : 
+                          <ExpandMore style={{ color: 'white' }} />
+                      )}
                     </ListItemButton>
                   </Link>
                 ) : (
                   <ListItemButton onClick={() => item.children && handleItemClick(item.title, '')}>
-                    <ListItemIcon>{item.icon}</ListItemIcon>
-                    <ListItemText primary={item.title} />
-                    {item.children && (openItems.includes(item.title) ? <ExpandLess /> : <ExpandMore />)}
+                    <ListItemIcon style={{ color: 'white' }}>{item.icon}</ListItemIcon>
+                    <ListItemText 
+                      style={{ color: 'white' }} 
+                      primary={item.title} 
+                    />
+                    {item.children && (
+                      openItems.includes(item.title) ? 
+                        <ExpandLess style={{ color: 'white' }} /> : 
+                        <ExpandMore style={{ color: 'white' }} />
+                    )}
                   </ListItemButton>
                 )}
               </ListItem>
@@ -320,9 +326,29 @@ const Sidebar: React.FC = () => {
                 <Collapse in={openItems.includes(item.title)} timeout="auto" unmountOnExit>
                   <List component="div" disablePadding>
                     {item.children.map((child) => (
-                      <Link key={child.title} to={child.path} style={{ width: '100%', textDecoration: 'none' }}>
-                        <ListItemButton sx={{ pl: 4 }}>
-                          <ListItemText primary={child.title} />
+                      <Link 
+                        key={child.title} 
+                        to={child.path} 
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <ListItemButton 
+                          sx={{ 
+                            pl: 4,
+                            backgroundColor: location.pathname === child.path ? '#1D9928' : 'transparent',
+                            '&:hover': {
+                              backgroundColor: location.pathname === child.path ? '#1D9928' : '#1D3E2E',
+                            },
+                          }}
+                        >
+                          <ListItemText 
+                            primary={child.title} 
+                            sx={{
+                              '& .MuiTypography-root': {
+                                color: 'white',
+                                fontSize: '0.9rem',
+                              }
+                            }}
+                          />
                         </ListItemButton>
                       </Link>
                     ))}
@@ -330,12 +356,9 @@ const Sidebar: React.FC = () => {
                 </Collapse>
               )}
 
-              {/* Divider after 4th item */}
+              {/* Dividers remain unchanged */}
               {index === 3 && <Divider sx={{ borderColor: '#5D7A6C', mt: '10px', mb: '10px' }} />}
-
-              {/* White Divider after 6th item */}
               {index === 6 && <Divider sx={{ borderColor: '#5D7A6C', mt: '10px', mb: '10px' }} />}
-
             </React.Fragment>
           ))}
         </List>

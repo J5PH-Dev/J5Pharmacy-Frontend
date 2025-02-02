@@ -219,11 +219,9 @@ const PriceManagement: React.FC = () => {
     );
 
     return (
-        <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6" component="h2">
-                    Price Management
-                </Typography>
+        <Box sx={{ p: 3, ml: { xs: 1, md: 35 }, mt: 4 }}>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
                 <TextField
                     size="small"
                     placeholder="Search products..."
@@ -236,105 +234,107 @@ const PriceManagement: React.FC = () => {
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Barcode</TableCell>
-                            <TableCell>Name</TableCell>
-                            <TableCell>Brand</TableCell>
-                            <TableCell>Suppliers</TableCell>
-                            <TableCell>Current Supplier</TableCell>
-                            <TableCell align="right">Supplier Price</TableCell>
-                            <TableCell align="right">Ceiling Price</TableCell>
-                            <TableCell align="right">Markup %</TableCell>
-                            <TableCell align="right">Unit Price</TableCell>
-                            <TableCell align="center">Actions</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {loading ? (
+            <Paper sx={{ width: '100%', overflow: 'hidden', mb: 2 }}>
+                <TableContainer>
+                    <Table>
+                        <TableHead>
                             <TableRow>
-                                <TableCell colSpan={10} align="center">
-                                    <CircularProgress />
-                                </TableCell>
+                                <TableCell>Barcode</TableCell>
+                                <TableCell>Name</TableCell>
+                                <TableCell>Brand</TableCell>
+                                <TableCell>Suppliers</TableCell>
+                                <TableCell>Current Supplier</TableCell>
+                                <TableCell align="right">Supplier Price</TableCell>
+                                <TableCell align="right">Ceiling Price</TableCell>
+                                <TableCell align="right">Markup %</TableCell>
+                                <TableCell align="right">Unit Price</TableCell>
+                                <TableCell align="center">Actions</TableCell>
                             </TableRow>
-                        ) : filteredProducts.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={10} align="center">
-                                    No products found
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredProducts
-                                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                                .map((product) => {
-                                    const supplierCount = getSupplierCount(product);
-                                    const currentSupplier = product.suppliers.find(s => s.supplier_id === product.current_supplier_id);
-                                    return (
-                                        <TableRow key={product.product_id}>
-                                            <TableCell>{product.barcode}</TableCell>
-                                            <TableCell>{product.name}</TableCell>
-                                            <TableCell>{product.brand_name}</TableCell>
-                                            <TableCell>
-                                                <Chip 
-                                                    label={`${supplierCount} supplier${supplierCount !== 1 ? 's' : ''}`}
-                                                    onClick={() => handleOpenSuppliersDialog(product)}
-                                                    color={supplierCount > 1 ? "primary" : "default"}
-                                                    size="small"
-                                                />
-                                            </TableCell>
-                                            <TableCell>{getCurrentSupplierName(product)}</TableCell>
-                                            <TableCell align="right">
-                                                ₱{currentSupplier?.supplier_price.toFixed(2) || '0.00'}
-                                            </TableCell>
-                                            <TableCell align="right">
-                                                ₱{currentSupplier?.ceiling_price.toFixed(2) || '0.00'}
-                                            </TableCell>
-                                            <TableCell align="right">{product.markup_percentage}%</TableCell>
-                                            <TableCell align="right">₱{product.unit_price.toFixed(2)}</TableCell>
-                                            <TableCell align="center">
-                                                <Tooltip title="Edit Price">
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleOpenDialog(product)}
-                                                    >
-                                                        <EditIcon />
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Price History">
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleOpenHistoryDialog(product)}
-                                                    >
-                                                        <HistoryIcon />
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Supplier Details">
-                                                    <IconButton
-                                                        size="small"
+                        </TableHead>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={10} align="center">
+                                        <CircularProgress />
+                                    </TableCell>
+                                </TableRow>
+                            ) : filteredProducts.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={10} align="center">
+                                        No products found
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                filteredProducts
+                                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                                    .map((product) => {
+                                        const supplierCount = getSupplierCount(product);
+                                        const currentSupplier = product.suppliers.find(s => s.supplier_id === product.current_supplier_id);
+                                        return (
+                                            <TableRow key={product.product_id}>
+                                                <TableCell>{product.barcode}</TableCell>
+                                                <TableCell>{product.name}</TableCell>
+                                                <TableCell>{product.brand_name}</TableCell>
+                                                <TableCell>
+                                                    <Chip 
+                                                        label={`${supplierCount} supplier${supplierCount !== 1 ? 's' : ''}`}
                                                         onClick={() => handleOpenSuppliersDialog(product)}
-                                                    >
-                                                        <InfoIcon />
-                                                    </IconButton>
-                                                </Tooltip>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })
-                        )}
-                    </TableBody>
-                </Table>
-                <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    component="div"
-                    count={filteredProducts.length}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                />
-            </TableContainer>
+                                                        color={supplierCount > 1 ? "primary" : "default"}
+                                                        size="small"
+                                                    />
+                                                </TableCell>
+                                                <TableCell>{getCurrentSupplierName(product)}</TableCell>
+                                                <TableCell align="right">
+                                                    ₱{currentSupplier?.supplier_price.toFixed(2) || '0.00'}
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    ₱{currentSupplier?.ceiling_price.toFixed(2) || '0.00'}
+                                                </TableCell>
+                                                <TableCell align="right">{product.markup_percentage}%</TableCell>
+                                                <TableCell align="right">₱{product.unit_price.toFixed(2)}</TableCell>
+                                                <TableCell align="center">
+                                                    <Tooltip title="Edit Price">
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => handleOpenDialog(product)}
+                                                        >
+                                                            <EditIcon />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="Price History">
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => handleOpenHistoryDialog(product)}
+                                                        >
+                                                            <HistoryIcon />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="Supplier Details">
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => handleOpenSuppliersDialog(product)}
+                                                        >
+                                                            <InfoIcon />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
+                            )}
+                        </TableBody>
+                    </Table>
+                    <TablePagination
+                        rowsPerPageOptions={[5, 10, 25]}
+                        component="div"
+                        count={filteredProducts.length}
+                        rowsPerPage={rowsPerPage}
+                        page={page}
+                        onPageChange={handleChangePage}
+                        onRowsPerPageChange={handleChangeRowsPerPage}
+                    />
+                </TableContainer>
+            </Paper>
 
             {/* Edit Price Dialog */}
             <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
