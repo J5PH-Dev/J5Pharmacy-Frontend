@@ -10,6 +10,7 @@
     "@heroicons/react": "^2.2.0",
     "@mui/icons-material": "^5.15.3",
     "@mui/joy": "^5.0.0-beta.48",
+    "@mui/lab": "^6.0.0-beta.24",
     "@mui/material": "^5.16.11",
     "@mui/x-data-grid": "^6.20.4",
     "@mui/x-date-pickers": "^7.23.3",

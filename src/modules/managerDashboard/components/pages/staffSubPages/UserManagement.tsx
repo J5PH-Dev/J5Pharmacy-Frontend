@@ -21,8 +21,7 @@ import {
     Switch,
     FormControlLabel,
     CircularProgress,
-    Tooltip,
-    TablePagination
+    Tooltip
 } from '@mui/material';
 import { Edit, Delete, Add as AddIcon, Visibility, VisibilityOff, DeleteOutline, HelpOutline } from '@mui/icons-material';
 import axios, { AxiosError } from 'axios';
@@ -79,18 +78,16 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
     const [openRemoveImageDialog, setOpenRemoveImageDialog] = useState(false);
     const [isRemovingImage, setIsRemovingImage] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
 
     useEffect(() => {
         fetchUsers();
         fetchBranches();
-    }, [includeArchived, selectedRole, selectedBranch, page, rowsPerPage]);
+    }, [includeArchived, selectedRole, selectedBranch]);
 
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
-            let url = `/api/staff/users?include_archived=${includeArchived}&page=${page + 1}&limit=${rowsPerPage}`;
+            let url = `/api/staff/users?include_archived=${includeArchived}`;
             if (selectedRole) {
                 url += `&role=${selectedRole}`;
             }
@@ -127,22 +124,50 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
             const file = event.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                if (e.target?.result) {
-                    // Show preview in the Avatar
-                    setSelectedUser(prev => prev ? {
-                        ...prev,
-                        image_url: e.target!.result as string
-                    } : null);
-                    // Store the file for later upload after user creation
-                    setSelectedFile(file);
+            try {
+                const imageFormData = new FormData();
+                imageFormData.append('image', file);
+                
+                if (selectedUser) {
+                    // Existing user - upload image directly
+                    const response = await axios.post(
+                        `/api/staff/users/upload-image/${selectedUser.user_id}`,
+                        imageFormData,
+                        {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                            },
+                        }
+                    );
+                    showSnackbar('Profile picture updated successfully', 'success');
+                    
+                    // Update the UI with the new image
+                    if (response.data.image_url) {
+                        await handleImageUploadSuccess(selectedUser.user_id, response.data.image_url);
+                    }
+                } else {
+                    // New user - store the image temporarily
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        if (e.target?.result) {
+                            // Show preview in the Avatar
+                            setSelectedUser(prev => prev ? {
+                                ...prev,
+                                image_url: e.target!.result as string
+                            } : null);
+                            // Store the file for later upload after user creation
+                            setSelectedFile(file);
+                        }
+                    };
+                    reader.readAsDataURL(file);
                 }
-            };
-            reader.readAsDataURL(file);
+            } catch (error) {
+                console.error('Error handling profile picture:', error);
+                showSnackbar('Error handling profile picture', 'error');
+            }
         }
     };
 
@@ -153,30 +178,10 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
             if (selectedUser && selectedUser.user_id) {
                 // Updating existing user
                 response = await axios.put(`/api/staff/users/${selectedUser.user_id}`, formData);
-
-                // Handle image removal if necessary
-                if (!selectedUser.image_url) {
-                    await axios.put(`/api/staff/users/${selectedUser.user_id}/remove-image`);
-                }
-
-                // If we have a selected file, upload it for the user
-                if (selectedFile) {
-                    const imageFormData = new FormData();
-                    imageFormData.append('image', selectedFile);
-                    await axios.post(
-                        `/api/staff/users/upload-image/${selectedUser.user_id}`,
-                        imageFormData,
-                        {
-                            headers: {
-                                'Content-Type': 'multipart/form-data',
-                            },
-                        }
-                    );
-                }
             } else {
                 // Creating new user
                 response = await axios.post('/api/staff/users', formData);
-
+                
                 // If we have a selected file, upload it for the new user
                 if (selectedFile && response.data.user_id) {
                     const imageFormData = new FormData();
@@ -306,14 +311,29 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
         setOpenDetailsDialog(true);
     };
 
-    const handleRemoveImage = () => {
-        if (selectedUser) {
-            setSelectedUser({
-                ...selectedUser,
-                image_url: undefined
-            });
+    const handleRemoveImage = async (userId: number) => {
+        setIsRemovingImage(true);
+        try {
+            await axios.put(`/api/staff/users/${userId}/remove-image`);
+            showSnackbar('Profile picture removed successfully', 'success');
+            
+            // Update the selected user's image in state
+            if (selectedUser) {
+                setSelectedUser({
+                    ...selectedUser,
+                    image_url: undefined
+                });
+            }
+            
+            // Refresh the users list
+            fetchUsers();
+        } catch (error) {
+            console.error('Error removing profile picture:', error);
+            showSnackbar('Error removing profile picture', 'error');
+        } finally {
+            setIsRemovingImage(false);
+            setOpenRemoveImageDialog(false);
         }
-        setOpenRemoveImageDialog(false);
     };
 
     const handleImageUploadSuccess = async (userId: number, imageUrl: string) => {
@@ -326,15 +346,6 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
         }
         // Refresh the users list
         await fetchUsers();
-    };
-
-    const handleChangePage = (event: unknown, newPage: number) => {
-        setPage(newPage);
-    };
-
-    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
     };
 
     return (
@@ -373,10 +384,10 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                 <Grid container spacing={3}>
                     {users.map((user) => (
                         <Grid item xs={12} sm={6} md={4} key={user.user_id}>
-                            <Paper
+                            <Paper 
                                 onClick={() => handleCardClick(user)}
-                                sx={{
-                                    p: 3,
+                                sx={{ 
+                                    p: 3, 
                                     height: '100%',
                                     opacity: user.is_active ? 1 : 0.7,
                                     position: 'relative',
@@ -420,11 +431,11 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                                     />
                                     {user.is_active && user.employee_id !== '000' && (
                                         <Box>
-                                            <IconButton
+                                            <IconButton 
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleEdit(user);
-                                                }}
+                                                }} 
                                                 sx={{ color: '#2B7FF5' }}
                                             >
                                                 <Edit />
@@ -472,15 +483,6 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                     ))}
                 </Grid>
             )}
-
-            <TablePagination
-                component="div"
-                count={users.length}
-                page={page}
-                onPageChange={handleChangePage}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-            />
 
             {/* Add/Edit User Dialog */}
             <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
@@ -626,45 +628,19 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                                             src={selectedUser?.image_url}
                                             sx={{ width: 80, height: 80 }}
                                         />
-                                        {selectedUser?.image_url ? (
-                                            <>
-                                                <Button
-                                                    variant="outlined"
-                                                    color="error"
-                                                    startIcon={<DeleteOutline />}
-                                                    onClick={() => setOpenRemoveImageDialog(true)}
-                                                >
-                                                    Remove Picture
-                                                </Button>
-                                                <Button
-                                                    variant="outlined"
-                                                    component="label"
-                                                    startIcon={<AddIcon />}
-                                                >
-                                                    Change Picture
-                                                    <input
-                                                        type="file"
-                                                        hidden
-                                                        accept="image/*"
-                                                        onChange={handleFileChange}
-                                                    />
-                                                </Button>
-                                            </>
-                                        ) : (
-                                            <Button
-                                                variant="outlined"
-                                                component="label"
-                                                startIcon={<AddIcon />}
-                                            >
-                                                Upload Picture
-                                                <input
-                                                    type="file"
-                                                    hidden
-                                                    accept="image/*"
-                                                    onChange={handleFileChange}
-                                                />
-                                            </Button>
-                                        )}
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            startIcon={<AddIcon />}
+                                        >
+                                            Upload Picture
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                            />
+                                        </Button>
                                     </Box>
                                 </Box>
                             </Grid>
@@ -698,9 +674,9 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenDeleteDialog(false)} disabled={isSubmitting}>Cancel</Button>
-                    <Button
-                        onClick={handleArchive}
-                        color="error"
+                    <Button 
+                        onClick={handleArchive} 
+                        color="error" 
                         variant="contained"
                         disabled={isSubmitting}
                     >
@@ -714,8 +690,8 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
             </Dialog>
 
             {/* Details Dialog */}
-            <Dialog
-                open={openDetailsDialog}
+            <Dialog 
+                open={openDetailsDialog} 
                 onClose={() => setOpenDetailsDialog(false)}
                 maxWidth="sm"
                 fullWidth
@@ -731,9 +707,9 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
                                 <Avatar
                                     src={selectedUser.image_url}
-                                    sx={{
-                                        width: 150,
-                                        height: 150,
+                                    sx={{ 
+                                        width: 150, 
+                                        height: 150, 
                                         mb: 2,
                                         boxShadow: 3
                                     }}
@@ -742,8 +718,66 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                                     <Typography variant="body2" color="textSecondary">
                                         Profile Picture
                                     </Typography>
+                                    <Tooltip title={
+                                        <Box sx={{ p: 1 }}>
+                                            <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                                Profile Picture Requirements:
+                                            </Typography>
+                                            <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                                                <li>Accepted formats: JPG, JPEG, PNG</li>
+                                                <li>Maximum file size: 5MB</li>
+                                                <li>Recommended dimensions: 400x400 pixels</li>
+                                                <li>Square aspect ratio (1:1) recommended</li>
+                                            </ul>
+                                        </Box>
+                                    } arrow>
+                                        <IconButton size="small">
+                                            <HelpOutline fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
                                 </Box>
-                                <Box sx={{ width: '100%', textAlign: 'center' }}>
+                                <Box sx={{ display: 'flex', gap: 2 }}>
+                                    {selectedUser?.image_url ? (
+                                        <>
+                                            <Button
+                                                variant="outlined"
+                                                color="error"
+                                                startIcon={<DeleteOutline />}
+                                                onClick={() => setOpenRemoveImageDialog(true)}
+                                            >
+                                                Remove Picture
+                                            </Button>
+                                            <Button
+                                                variant="outlined"
+                                                component="label"
+                                                startIcon={<AddIcon />}
+                                            >
+                                                Change Picture
+                                                <input
+                                                    type="file"
+                                                    hidden
+                                                    accept="image/*"
+                                                    onChange={handleFileChange}
+                                                />
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            startIcon={<AddIcon />}
+                                        >
+                                            Upload Picture
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                            />
+                                        </Button>
+                                    )}
+                                </Box>
+                                <Box sx={{ mt: 3, width: '100%', textAlign: 'center' }}>
                                     <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                                         {selectedUser.name}
                                     </Typography>
@@ -793,7 +827,7 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                 <DialogActions>
                     <Button onClick={() => setOpenDetailsDialog(false)}>Close</Button>
                     {selectedUser?.is_active && (
-                        <Button
+                        <Button 
                             onClick={() => {
                                 setOpenDetailsDialog(false);
                                 handleEdit(selectedUser);
@@ -818,14 +852,14 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                     </Typography>
                 </DialogContent>
                 <DialogActions>
-                    <Button
+                    <Button 
                         onClick={() => setOpenRemoveImageDialog(false)}
                         disabled={isRemovingImage}
                     >
                         Cancel
                     </Button>
                     <Button
-                        onClick={handleRemoveImage}
+                        onClick={() => selectedUser && handleRemoveImage(selectedUser.user_id)}
                         color="error"
                         variant="contained"
                         disabled={isRemovingImage}
@@ -858,4 +892,4 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
     );
 };
 
-export default UserManagement;
+export default UserManagement; 

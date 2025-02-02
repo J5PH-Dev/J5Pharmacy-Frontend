@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import headerLogo from '../../assets/headerLogo.png';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import GenericAvatar from '../../assets/GenericAvatar.png';
 import DotsMoreDark from '../../assets/dotsMoreDark.png';
 import FaSearch from '@mui/icons-material/Search';
 import FaSun from '@mui/icons-material/WbSunny';
 import FaMoon from '@mui/icons-material/WbCloudy';
 import FaCloudSun from '@mui/icons-material/Bedtime';
-import { Drawer, Button, List, ListItem, ListItemText, Divider, Collapse, ListItemIcon } from '@mui/material';
+import { Drawer, Button, List, ListItem, ListItemText, Divider, Collapse, ListItemIcon, Breadcrumbs, Typography } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu'; // Hamburger menu icon
 import DashboardIcon from '@mui/icons-material/Dashboard'; // Dashboard icon
 import InventoryIcon from '@mui/icons-material/Inventory'; // Inventory icon
@@ -17,27 +17,39 @@ import EmployeeIcon from '@mui/icons-material/People'; // Employee & Staff icon
 import CustomerIcon from '@mui/icons-material/Person'; // Customer Info icon
 import SettingsIcon from '@mui/icons-material/Settings'; // Settings icon
 import NotificationsIcon from '@mui/icons-material/Notifications'; // 
+import axios from 'axios';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping'; // Resource Management icon
 
 // Sample navigation items
 const navigationItems = [
     {
         title: 'Dashboard',
-        path: '/admin/dashboard',
+        path: '/manager/dashboard',
         icon: <DashboardIcon />,
     },
     {
         title: 'Inventory',
-        path: '/admin/inventory',
+        path: '/manager/inventory',
         icon: <InventoryIcon />,
         children: [
-            { title: 'List of Items', path: '/admin/inventory' },
+            { title: 'List of Items', path: '/manager/inventory' },
             { title: 'Item', path: '/inventory/item' },
             { title: 'Encode Items', path: '/inventory/encode' },
         ],
     },
     {
+        title: 'Resource Management',
+        path: '/manager/resources',
+        icon: <LocalShippingIcon />,
+        children: [
+            { title: 'Supplier Management', path: '/manager/resources/SupplierManagement' },
+            { title: 'Bulk Inventory Import', path: '/manager/resources/BulkInventoryImport' },
+            { title: 'Price Management', path: '/manager/resources/PriceManagement' },
+        ],
+    },
+    {
         title: 'Branches',
-        path: '/admin/branches',
+        path: '/manager/branches',
         icon: <BranchesIcon />,
         children: [
             { title: 'Manage Branch', path: '/branches/manage' },
@@ -46,7 +58,7 @@ const navigationItems = [
     },
     {
         title: 'Reports',
-        path: '/admin/reports',
+        path: '/manager/reports',
         icon: <ReportIcon />,
         children: [
             { title: 'Statistics', path: '/reports/statistics' },
@@ -58,7 +70,7 @@ const navigationItems = [
     },
     {
         title: 'Employee & Staff',
-        path: '/admin/employee-staff',
+        path: '/manager/employee-staff',
         icon: <EmployeeIcon />,
         children: [
             { title: 'Manage Staff', path: '/staff/manage' },
@@ -67,7 +79,7 @@ const navigationItems = [
     },
     {
         title: 'Customer Info',
-        path: '/admin/customer-info',
+        path: '/manager/customer-info',
         icon: <CustomerIcon />,
         children: [
             { title: 'Customer List', path: '/customers/list' },
@@ -76,12 +88,12 @@ const navigationItems = [
     },
     {
         title: 'Settings',
-        path: '/admin/settings',
+        path: '/manager/settings',
         icon: <SettingsIcon />,
     },
     {
         title: 'Notifications',
-        path: '/admin/notifications',
+        path: '/manager/notifications',
         icon: <NotificationsIcon />,
         children: [
             { title: 'Announcements', path: '/notifications/announcements' },
@@ -90,6 +102,29 @@ const navigationItems = [
     },
 ];
 
+// Breadcrumb mapping
+const breadcrumbMap = {
+    '/manager/dashboard': 'Overview',
+    '/manager/inventory': 'Inventory Management',
+    '/manager/inventory/view-medicines-available': 'Products Available',
+    '/manager/inventory/view-medicines-group': 'Product Categories',
+    '/manager/inventory/medicine-shortage': 'Product Shortage',
+    '/manager/inventory/archived': 'Archived Products',
+    '/manager/inventory/archived-categories': 'Archived Categories',
+    '/manager/resources': 'Resource Management',
+    '/manager/resources/suppliers': 'Supplier Management',
+    '/manager/resources/bulk-import': 'Bulk Inventory Import',
+    '/manager/resources/price-management': 'Price Management',
+    '/manager/branches': 'Branch Management',
+    '/manager/archived-branches': 'Archived Branches',
+    '/manager/sales-report': 'Sales Report',
+    '/manager/sales-report/view-all-transactions': 'All Transactions',
+    '/manager/employee-staff': 'Staff Management',
+    '/manager/customer-info': 'Customer Management',
+    '/manager/archived-customers': 'Customer Archive',
+    '/manager/settings': 'System Settings',
+    '/manager/notifications': 'Notifications'
+};
 
 const Header = () => {
     const [greeting, setGreeting] = useState('');
@@ -98,6 +133,8 @@ const Header = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false); // State to control Drawer visibility
     const [openSubMenus, setOpenSubMenus] = useState({});
     const [isMobileView, setIsMobileView] = useState(false);
+    const location = useLocation();
+    const [breadcrumbs, setBreadcrumbs] = useState([]);
 
     useEffect(() => {
         // Event listener to track window resizing
@@ -158,6 +195,129 @@ const Header = () => {
     const toggleSubMenu = (menu) => {
         setOpenSubMenus((prev) => ({ ...prev, [menu]: !prev[menu] }));
     };
+
+    const getBreadcrumbTitle = async (path) => {
+        // Check if path contains customer-info with ID
+        if (path.includes('/customer-info/')) {
+            if (path.includes('/edit-details')) {
+                return 'Edit Customer';
+            }
+            return 'Customer Details';
+        }
+        return breadcrumbMap[path] || '';
+    };
+
+    const generateBreadcrumbs = async () => {
+        const paths = location.pathname.split('/').filter(Boolean);
+        let currentPath = '';
+        const breadcrumbs = [];
+
+        // Add Inventory Management if in inventory section
+        if (paths.includes('inventory')) {
+            breadcrumbs.push({ path: '/manager/inventory', title: 'Inventory Management' });
+        }
+
+        // Add Resource Management if in resource management section
+        if (paths.includes('resources')) {
+            breadcrumbs.push({ path: '/manager/resources', title: 'Resource Management' });
+            
+            // Add specific resource management sections
+            if (paths.includes('suppliers')) {
+                breadcrumbs.push({ path: '/manager/resources/SupplierManagements', title: 'Supplier Management' });
+            }
+            if (paths.includes('bulk-import')) {
+                breadcrumbs.push({ path: '/manager/resources/BulkInventoryImport', title: 'Bulk Inventory Import' });
+            }
+            if (paths.includes('price-management')) {
+                breadcrumbs.push({ path: '/manager/resources/PriceManagement', title: 'Price Management' });
+            }
+        }
+
+        // Add Inventory Available if in inventory available section
+        if (paths.includes('view-medicines-available')) {
+            breadcrumbs.push({ path: '/manager/inventory/view-medicines-available', title: 'Available Products' });
+        }
+
+        // Add Product Categories if in product categories section
+        if (paths.includes('view-medicines-group')) {
+            breadcrumbs.push({ path: '/manager/inventory/view-medicines-group', title: 'Product Categories' });
+        }
+
+        // Add Archived Products if in archived products section
+        if (paths.includes('archived')) {
+            breadcrumbs.push({ path: '/manager/inventory/archived', title: 'Archived Products' });
+        }
+
+        // Add Archived Categories if in archived categories section
+        if (paths.includes('archived-categories')) {
+            breadcrumbs.push({ path: '/manager/inventory/archived-categories', title: 'Archived Categories' });
+        }
+
+        // Add Product Shortage if in product shortage section
+        if (paths.includes('medicine-shortage')) {
+            breadcrumbs.push({ path: '/manager/inventory/medicine-shortage', title: 'Product Shortage' });
+        }
+
+
+        // Add Branches Management if in branches section
+        if (paths.includes('branches')) {
+            breadcrumbs.push({ path: '/manager/branches', title: 'Branch Management' });
+        }
+
+        // Add Branch Archive if in branch archive section
+        if (paths.includes('archived-branches')) {
+            breadcrumbs.push({ path: '/manager/archived-branches', title: 'Branch Archive' });
+        }
+
+        // Add Reports Management if in reports section
+        if (paths.includes('sales-report')) {
+            breadcrumbs.push({ path: '/manager/sales-report', title: 'Reports Management' });
+        }
+
+        // Add Staff Management if in staff section
+        if (paths.includes('employee-staff')) {
+            breadcrumbs.push({ path: '/manager/employee-staff', title: 'Staff Management' });
+        }
+
+        // Add Customer Management if in customer section
+        if (paths.includes('customer-info')) {
+            breadcrumbs.push({ path: '/manager/customer-info', title: 'Customer Management' });
+        }
+
+        // Add Settings if in settings section
+        if (paths.includes('settings')) {
+            breadcrumbs.push({ path: '/manager/settings', title: 'Settings' });
+        }
+
+        // Add Customer Details or Edit Customer if viewing/editing a customer
+        if (paths.includes('customer-info') && paths.length > 2) {
+            const isEdit = paths.includes('edit-details');
+            breadcrumbs.push({ 
+                path: `/manager/customer-info/${paths[2]}`, 
+                title: 'Customer Details' 
+            });
+            if (isEdit) {
+                breadcrumbs.push({ 
+                    path: `/manager/customer-info/${paths[2]}/edit-details`, 
+                    title: 'Edit Customer' 
+                });
+            }
+        }
+
+        // Add Customer Archive if in customer archive section
+        if (paths.includes('archived-customers')) {
+            breadcrumbs.push({ path: '/manager/archived-customers', title: 'Customer Archive' });
+        }
+
+
+
+        setBreadcrumbs(breadcrumbs);
+    };
+
+    useEffect(() => {
+        generateBreadcrumbs();
+    }, [location.pathname]);
+
     return (
         <nav className="navbar font-all bg-[#F7FAFD] w-full p-0 border-b-2 border-[#1D242E4D]">
             <div className="container-fluid flex justify-between items-center px-6">
@@ -174,46 +334,67 @@ const Header = () => {
                     </a>
                 </div>
 
-                {/* Search Bar (Visible on larger screens) */}
-                {/* <form className="flex-grow-1 px-4 pe-2" role="search"
-                    style={{
-                        display: window.innerWidth < 900 ? 'none' : 'flex',
-                    }}>
-                    <div className="input-group" style={{ width: '100%', justifyContent: 'flex-start' }}>
-                        <input
-                            className="form-control me-2"
-                            type="search"
-                            placeholder="Search Medicine here"
-                            aria-label="Search"
-                            style={{
-                                padding: '6px 12px',
-                                color: 'rgb(33, 37, 41)',
-                                maxWidth: '440px',  // Keep the input field at 440px
-                                backgroundColor: '#E3EBF3',
-                                fontSize: '13px',
-                                border: 'none',
-                                marginLeft: '0',   // Align input field to the left
-                                paddingLeft: '10px', // Optional: Adds space inside input for text
-                                borderRadius: '5px'
+                {/* Breadcrumbs */}
+                <div className="flex-grow flex items-center ml-4">
+                    <Breadcrumbs 
+                        aria-label="breadcrumb"
+                        sx={{
+                            '& .MuiBreadcrumbs-separator': {
+                                color: '#5D7A6C',
+                                margin: '0 8px',
+                                fontSize: '16px'
+                            },
+                            padding: '8px 16px',
+                            backgroundColor: 'white',
+                            borderRadius: '8px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            '& .MuiBreadcrumbs-li': {
+                                display: 'flex',
+                                alignItems: 'center'
+                            }
+                        }}
+                    >
+                        <Link
+                            to="/manager/dashboard"
+                            style={{ 
+                                color: '#5D7A6C',
+                                textDecoration: 'none',
+                                fontSize: '14px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontWeight: '500',
+                                '&:hover': {
+                                    color: '#1B3E2D'
+                                }
                             }}
-                        />
-                        <button
-                            type="submit"
-                            className="btn"
-                            aria-label="Search"
-                            style={{
-                                backgroundColor: '#F7FAFD',
-                                border: '1px solid #A4A5A7',
-                                marginLeft: '-9px',
-                                cursor: 'pointer',
-                                padding: '2.7px 7px'
-                            }}>
-                            <FaSearch />
-                        </button>
-                    </div>
-                </form> */}
-
-
+                        >
+                            <DashboardIcon sx={{ fontSize: 18 }} />
+                            Overview
+                        </Link>
+                        {breadcrumbs.map((breadcrumb) => (
+                            <Link
+                                key={breadcrumb.path}
+                                to={breadcrumb.path}
+                                style={{ 
+                                    color: '#5D7A6C',
+                                    textDecoration: 'none',
+                                    fontSize: '14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    fontWeight: '500',
+                                    '&:hover': {
+                                        color: '#1B3E2D',
+                                        textDecoration: 'underline'
+                                    }
+                                }}
+                            >
+                                {breadcrumb.title}
+                            </Link>
+                        ))}
+                    </Breadcrumbs>
+                </div>
 
                 {/* Greeting and Date (Visible on larger devices) */}
                 <div className="text-end hidden lg:flex flex-col pr-5"

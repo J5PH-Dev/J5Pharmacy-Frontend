@@ -39,7 +39,6 @@ import BusinessIcon from '@mui/icons-material/Business';
 import CheckBox from '@mui/icons-material/CheckBox';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ArrowBack from '@mui/icons-material/ArrowBack';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ExportDialog from '../../common/ExportDialog';
@@ -90,9 +89,6 @@ const ArchivedBranchesPage = () => {
     const [selectedBranches, setSelectedBranches] = useState<number[]>([]);
 
     const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [branchToDelete, setBranchToDelete] = useState<number | null>(null);
 
     const exportColumns = [
         { field: 'branch_code', header: 'Branch Code' },
@@ -213,31 +209,6 @@ const ArchivedBranchesPage = () => {
         await fetchArchivedBranches();
         setSearchQuery('');
         setSuccessMessage('Data refreshed successfully');
-    };
-
-    const handleDeleteClick = (branchId: number) => {
-        setBranchToDelete(branchId);
-        setIsDeleteDialogOpen(true);
-    };
-
-    const handleDeleteConfirm = async () => {
-        if (branchToDelete !== null) {
-            await deleteBranch(branchToDelete);
-            setIsDeleteDialogOpen(false);
-            setBranchToDelete(null);
-            fetchArchivedBranches(); // Refresh the list
-        }
-    };
-
-    const deleteBranch = async (branchId: number) => {
-        try {
-            const response = await axios.post(`/api/admin/deleteBranch/${branchId}`);
-            if (response.status !== 200) {
-                throw new Error('Failed to delete branch');
-            }
-        } catch (error) {
-            console.error('Error deleting branch:', error);
-        }
     };
 
     // Pagination
@@ -515,9 +486,6 @@ const ArchivedBranchesPage = () => {
                                         >
                                             <RestoreIcon />
                                         </IconButton>
-                                        <IconButton onClick={() => handleDeleteClick(archive.branch_id)}>
-                                            <DeleteIcon />
-                                        </IconButton>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -563,23 +531,6 @@ const ArchivedBranchesPage = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* Delete Branch Modal */}
-            <Dialog
-                open={isDeleteDialogOpen}
-                onClose={() => setIsDeleteDialogOpen(false)}
-            >
-                <DialogTitle>Confirm Delete</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        Are you sure you want to delete this branch? This action cannot be undone.
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleDeleteConfirm} color="primary">Yes, Delete</Button>
-                </DialogActions>
-            </Dialog>
-
             {/* Export Dialog */}
             <ExportDialog
                 open={isExportDialogOpen}
@@ -592,4 +543,4 @@ const ArchivedBranchesPage = () => {
     );
 };
 
-export default ArchivedBranchesPage;
+export default ArchivedBranchesPage; 

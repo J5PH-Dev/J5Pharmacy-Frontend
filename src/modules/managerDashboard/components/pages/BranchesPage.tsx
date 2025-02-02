@@ -152,8 +152,8 @@ const BranchesPage = () => {
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>({
         branch_code: false,
         branch_name: false,
-        address: false,
-        city: false,
+      address: false,
+      city: false,
         date_opened: false,
         branch_manager: false
     });
@@ -161,17 +161,17 @@ const BranchesPage = () => {
     const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
     const exportColumns = [
-        { field: 'branch_code', header: 'Branch Code' },
-        { field: 'branch_name', header: 'Branch Name' },
-        { field: 'address', header: 'Address' },
-        { field: 'city', header: 'City' },
-        { field: 'date_opened', header: 'Date Opened' },
-        { field: 'manager_name', header: 'Branch Manager' },
-        { field: 'email', header: 'Manager Email' },
-        { field: 'contact_number', header: 'Manager Contact' },
-        { field: 'is_active', header: 'Status' },
-        { field: 'created_at', header: 'Created At' },
-        { field: 'updated_at', header: 'Updated At' }
+      { field: 'branch_code', header: 'Branch Code' },
+      { field: 'branch_name', header: 'Branch Name' },
+      { field: 'address', header: 'Address' },
+      { field: 'city', header: 'City' },
+      { field: 'date_opened', header: 'Date Opened' },
+      { field: 'manager_name', header: 'Branch Manager' },
+      { field: 'email', header: 'Manager Email' },
+      { field: 'contact_number', header: 'Manager Contact' },
+      { field: 'is_active', header: 'Status' },
+      { field: 'created_at', header: 'Created At' },
+      { field: 'updated_at', header: 'Updated At' }
     ];
 
     useEffect(() => {
@@ -232,10 +232,10 @@ const BranchesPage = () => {
         };
 
         if (Object.values(errors).some(error => error)) {
-            setValidationErrors(errors);
-            return;
-        }
-
+      setValidationErrors(errors);
+      return;
+    }
+  
         try {
             await axios.post('/api/admin/add-branch', tempFormData);
             setSuccessMessage('Branch added successfully');
@@ -317,13 +317,13 @@ const BranchesPage = () => {
         const sorted = [...filteredBranches].sort((a, b) => {
             const aValue = a[key] ?? '';
             const bValue = b[key] ?? '';
-
+            
             if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
                 return sortConfig.direction === 'asc'
                     ? (aValue === bValue ? 0 : aValue ? -1 : 1)
                     : (aValue === bValue ? 0 : aValue ? 1 : -1);
             }
-
+            
             if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
             if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
             return 0;
@@ -333,22 +333,17 @@ const BranchesPage = () => {
 
     const handleEditClick = (branch: Branch) => {
         setSelectedBranch(branch);
-        
-        // Convert "YYYY-MM-DD HH:MM:SS" to "YYYY-MM-DD"
-        const formattedDateOpened = branch.date_opened.split(' ')[0];
-    
         setFormData({
             branch_code: branch.branch_code,
             branch_name: branch.branch_name,
             address: branch.address,
             city: branch.city,
-            date_opened: formattedDateOpened, // Corrected format
+            date_opened: branch.date_opened,
             branch_manager: branch.branch_manager.toString(),
             is_active: branch.is_active
         });
         setIsEditModalOpen(true);
     };
-    
 
     const handleViewClick = (branch: Branch) => {
         setSelectedBranch(branch);
@@ -414,7 +409,7 @@ const BranchesPage = () => {
     };
 
     const handleSelectBranch = (branchId: number) => {
-        setSelectedBranches(prev =>
+        setSelectedBranches(prev => 
             prev.includes(branchId)
                 ? prev.filter(id => id !== branchId)
                 : [...prev, branchId]
@@ -473,8 +468,8 @@ const BranchesPage = () => {
         setSelectionMode(!selectionMode);
     };
 
-    return (
-        <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
+  return (
+    <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
             {/* Alerts */}
             {error && (
                 <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
@@ -488,7 +483,7 @@ const BranchesPage = () => {
             )}
 
             {/* Controls */}
-            <Box sx={{
+            <Box sx={{ 
                 backgroundColor: 'white',
                 padding: 2,
                 borderRadius: 1,
@@ -497,8 +492,8 @@ const BranchesPage = () => {
                 mt: 2
             }}>
                 {/* Action Buttons Group */}
-                <Box sx={{
-                    display: 'flex',
+                <Box sx={{ 
+                    display: 'flex', 
                     gap: 1,
                     mb: 2,
                     flexWrap: 'wrap',
@@ -506,52 +501,52 @@ const BranchesPage = () => {
                 }}>
                     {/* Left side buttons */}
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        <Button
-                            variant="contained"
-                            sx={{
-                                backgroundColor: '#01A768',
-                                color: '#fff',
-                                fontWeight: 'medium',
-                                textTransform: 'none',
+          <Button
+  variant="contained"
+  sx={{
+                                backgroundColor: '#01A768', 
+                                color: '#fff', 
+    fontWeight: 'medium',
+    textTransform: 'none',
                                 '&:hover': { backgroundColor: '#017F4A' }
-                            }}
+  }}
                             onClick={handleAddModalOpen}
                             startIcon={<AddIcon />}
-                        >
+>
                             Add Branch
-                        </Button>
-                        <Button
+</Button>
+      <Button
                             variant="contained"
                             color="inherit"
                             onClick={handleExportClick}
                             startIcon={<FileDownloadIcon />}
-                            sx={{ textTransform: 'none' }}
-                        >
+        sx={{ textTransform: 'none' }}
+      >
                             Export
-                        </Button>
-                        <Button
-                            variant="contained"
+      </Button>
+      <Button
+        variant="contained"
                             color="inherit"
                             onClick={handleRefresh}
                             startIcon={<RefreshIcon />}
-                            sx={{ textTransform: 'none' }}
-                        >
+        sx={{ textTransform: 'none' }}
+      >
                             Refresh
-                        </Button>
-                        <Button
+      </Button>
+              <Button
                             variant="contained"
                             color="inherit"
                             onClick={() => navigate('/admin/archived-branches')}
                             startIcon={<ArchiveIcon />}
-                            sx={{ textTransform: 'none' }}
-                        >
+                sx={{ textTransform: 'none' }}
+              >
                             View Archive
-                        </Button>
-                    </Box>
+              </Button>
+            </Box>
 
                     {/* Right side buttons */}
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        <Button
+      <Button
                             variant="contained"
                             color={selectionMode ? "primary" : "inherit"}
                             onClick={toggleSelectionMode}
@@ -559,9 +554,9 @@ const BranchesPage = () => {
                             sx={{ textTransform: 'none' }}
                         >
                             Selection Mode {selectionMode ? 'ON' : 'OFF'}
-                        </Button>
-                        <Button
-                            variant="contained"
+</Button>
+      <Button
+  variant="contained"
                             color="error"
                             startIcon={<DeleteIcon />}
                             onClick={handleBulkArchive}
@@ -569,9 +564,9 @@ const BranchesPage = () => {
                             sx={{ textTransform: 'none' }}
                         >
                             Archive Selected ({selectedBranches.length})
-                        </Button>
-                    </Box>
-                </Box>
+</Button>
+    </Box>
+  </Box>
 
                 <Box sx={{ display: 'flex', gap: 2 }}>
                     <TextField
@@ -609,140 +604,140 @@ const BranchesPage = () => {
             {/* Branches Table */}
             <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 300px)', overflow: 'auto' }}>
                 <Table stickyHeader>
-                    <TableHead>
-                        <TableRow>
-                            {selectionMode && (
-                                <TableCell padding="checkbox">
-                                    <Checkbox
-                                        indeterminate={selectedBranches.length > 0 && selectedBranches.length < paginatedBranches.length}
-                                        checked={selectedBranches.length === paginatedBranches.length && paginatedBranches.length > 0}
-                                        onChange={handleSelectAll}
-                                    />
-                                </TableCell>
+                <TableHead>
+                  <TableRow>
+                        {selectionMode && (
+                            <TableCell padding="checkbox">
+                                <Checkbox
+                                    indeterminate={selectedBranches.length > 0 && selectedBranches.length < paginatedBranches.length}
+                                    checked={selectedBranches.length === paginatedBranches.length && paginatedBranches.length > 0}
+                                    onChange={handleSelectAll}
+                                />
+                            </TableCell>
+                        )}
+                        <TableCell 
+                            onClick={() => handleSort('branch_name')}
+                            sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                            Branch Name
+                            {sortConfig.key === 'branch_name' && (
+                                sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
                             )}
-                            <TableCell
-                                onClick={() => handleSort('branch_name')}
-                                sx={{ cursor: 'pointer', fontWeight: 'bold' }}
-                            >
-                                Branch Name
-                                {sortConfig.key === 'branch_name' && (
-                                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                                )}
-                            </TableCell>
-                            <TableCell
-                                onClick={() => handleSort('branch_code')}
-                                sx={{ cursor: 'pointer', fontWeight: 'bold' }}
-                            >
-                                Branch Code
-                                {sortConfig.key === 'branch_code' && (
-                                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                                )}
-                            </TableCell>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Location</TableCell>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Manager</TableCell>
-                            <TableCell
-                                onClick={() => handleSort('date_opened')}
-                                sx={{ cursor: 'pointer', fontWeight: 'bold' }}
-                            >
-                                Date Opened
-                                {sortConfig.key === 'date_opened' && (
-                                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                                )}
-                            </TableCell>
-                            <TableCell
-                                onClick={() => handleSort('is_active')}
-                                sx={{ cursor: 'pointer', fontWeight: 'bold' }}
-                            >
-                                Status
-                                {sortConfig.key === 'is_active' && (
-                                    sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-                                )}
-                            </TableCell>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {isLoading ? (
-                            <TableRow>
-                                <TableCell colSpan={7} align="center">
-                                    <CircularProgress />
-                                </TableCell>
-                            </TableRow>
-                        ) : paginatedBranches.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={7} align="center">
-                                    No branches found
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            paginatedBranches.map((branch) => (
-                                <TableRow
-                                    key={branch.branch_id}
-                                    onClick={() => selectionMode && handleSelectBranch(branch.branch_id)}
-                                    sx={{
-                                        height: '60px',
-                                        backgroundColor: !branch.is_active ? 'rgba(0, 0, 0, 0.04)' :
-                                            selectedBranches.includes(branch.branch_id) ? 'rgba(25, 118, 210, 0.08)' :
-                                                'inherit',
-                                        cursor: selectionMode ? 'pointer' : 'default',
-                                        '&:hover': {
-                                            backgroundColor: selectionMode ? 'rgba(25, 118, 210, 0.12)' : 'rgba(0, 0, 0, 0.04)'
-                                        }
-                                    }}
-                                >
-                                    {selectionMode && (
-                                        <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
-                                            <Checkbox
-                                                checked={selectedBranches.includes(branch.branch_id)}
-                                                onChange={(e) => handleSelectBranch(branch.branch_id)}
-                                            />
-                                        </TableCell>
-                                    )}
-                                    <TableCell>{branch.branch_name}</TableCell>
-                                    <TableCell>{branch.branch_code}</TableCell>
-                                    <TableCell>{`${branch.address}, ${branch.city}`}</TableCell>
-                                    <TableCell>{branch.manager_name || 'Not Assigned'}</TableCell>
-                                    <TableCell>{new Date(branch.date_opened).toLocaleDateString()}</TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={branch.is_active ? 'Active' : 'Inactive'}
-                                            color={branch.is_active ? 'success' : 'error'}
-                                            size="small"
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Stack direction="row" spacing={1}>
-                                            <IconButton
-                                                onClick={() => handleViewClick(branch)}
-                                                color="info"
-                                                title="View Details"
-                                            >
-                                                <VisibilityIcon />
-                                            </IconButton>
-                                            <IconButton
-                                                onClick={() => handleEditClick(branch)}
-                                                color="primary"
-                                                title="Edit Branch"
-                                            >
-                                                <EditIcon />
-                                            </IconButton>
-                                            <IconButton
-                                                onClick={() => {
-                                                    setSelectedBranch(branch);
-                                                    setIsArchiveModalOpen(true);
-                                                }}
-                                                color="error"
-                                                title="Archive Branch"
-                                            >
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </Stack>
+                        </TableCell>
+                        <TableCell 
+                            onClick={() => handleSort('branch_code')}
+                            sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                            Branch Code
+                            {sortConfig.key === 'branch_code' && (
+                                sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                            )}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Location</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Manager</TableCell>
+                        <TableCell 
+                            onClick={() => handleSort('date_opened')}
+                            sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                            Date Opened
+                            {sortConfig.key === 'date_opened' && (
+                                sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                            )}
+                        </TableCell>
+                        <TableCell 
+                            onClick={() => handleSort('is_active')}
+                            sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                            Status
+                            {sortConfig.key === 'is_active' && (
+                                sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                            )}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} align="center">
+                                        <CircularProgress />
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
+                            ) : paginatedBranches.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} align="center">
+                                        No branches found
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                paginatedBranches.map((branch) => (
+                                    <TableRow 
+                                        key={branch.branch_id} 
+                                        onClick={() => selectionMode && handleSelectBranch(branch.branch_id)}
+      sx={{
+                                            height: '60px',
+                                            backgroundColor: !branch.is_active ? 'rgba(0, 0, 0, 0.04)' : 
+                                                            selectedBranches.includes(branch.branch_id) ? 'rgba(25, 118, 210, 0.08)' : 
+                                                            'inherit',
+                                            cursor: selectionMode ? 'pointer' : 'default',
+                                            '&:hover': {
+                                                backgroundColor: selectionMode ? 'rgba(25, 118, 210, 0.12)' : 'rgba(0, 0, 0, 0.04)'
+                                            }
+                                        }}
+                                    >
+                                        {selectionMode && (
+                                            <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                                                <Checkbox
+                                                    checked={selectedBranches.includes(branch.branch_id)}
+                                                    onChange={(e) => handleSelectBranch(branch.branch_id)}
+                                                />
+                                            </TableCell>
+                                        )}
+                                        <TableCell>{branch.branch_name}</TableCell>
+                                        <TableCell>{branch.branch_code}</TableCell>
+                                        <TableCell>{`${branch.address}, ${branch.city}`}</TableCell>
+                                        <TableCell>{branch.manager_name || 'Not Assigned'}</TableCell>
+                                        <TableCell>{new Date(branch.date_opened).toLocaleDateString()}</TableCell>
+                                        <TableCell>
+                                            <Chip 
+                                                label={branch.is_active ? 'Active' : 'Inactive'}
+                                                color={branch.is_active ? 'success' : 'error'}
+                                                size="small"
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Stack direction="row" spacing={1}>
+                                                <IconButton
+                                                    onClick={() => handleViewClick(branch)}
+                                                    color="info"
+                                                    title="View Details"
+    >
+      <VisibilityIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    onClick={() => handleEditClick(branch)}
+      color="primary"
+                                                    title="Edit Branch"
+                                                >
+                                                    <EditIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    onClick={() => {
+                                                        setSelectedBranch(branch);
+                                                        setIsArchiveModalOpen(true);
+                                                    }}
+        color="error"
+                                                    title="Archive Branch"
+                                                >
+                                                    <DeleteIcon />
+                                                </IconButton>
+                                            </Stack>
+                      </TableCell>
+                    </TableRow>
+                                ))
+                            )}
+                </TableBody>
+              </Table>
             </TableContainer>
 
             <TablePagination
@@ -768,57 +763,57 @@ const BranchesPage = () => {
                 <DialogContent>
                     <Grid container spacing={2} sx={{ mt: 1 }}>
                         <Grid item xs={12} sm={6}>
-                            <TextField
+        <TextField
                                 label="Branch Code"
                                 value={tempFormData.branch_code}
                                 disabled
-                                fullWidth
+          fullWidth
                                 required
                                 error={validationErrors.branch_code}
-                            />
-                        </Grid>
+        />
+      </Grid>
                         <Grid item xs={12} sm={6}>
-                            <TextField
+        <TextField
                                 label="Branch Name"
                                 value={tempFormData.branch_name}
                                 onChange={(e) => setTempFormData({ ...tempFormData, branch_name: e.target.value })}
-                                fullWidth
+          fullWidth
                                 required
                                 error={validationErrors.branch_name}
-                            />
-                        </Grid>
+        />
+      </Grid>
                         <Grid item xs={12}>
-                            <TextField
+        <TextField
                                 label="Address"
                                 value={tempFormData.address}
                                 onChange={(e) => setTempFormData({ ...tempFormData, address: e.target.value })}
-                                fullWidth
+          fullWidth
                                 required
                                 error={validationErrors.address}
-                            />
-                        </Grid>
+        />
+      </Grid>
                         <Grid item xs={12} sm={6}>
-                            <TextField
+        <TextField
                                 label="City"
                                 value={tempFormData.city}
                                 onChange={(e) => setTempFormData({ ...tempFormData, city: e.target.value })}
-                                fullWidth
+          fullWidth
                                 required
                                 error={validationErrors.city}
-                            />
-                        </Grid>
+        />
+      </Grid>
                         <Grid item xs={12} sm={6}>
-                            <TextField
+        <TextField
                                 label="Date Opened"
                                 type="date"
                                 value={tempFormData.date_opened}
                                 onChange={(e) => setTempFormData({ ...tempFormData, date_opened: e.target.value })}
-                                fullWidth
+          fullWidth
                                 required
                                 error={validationErrors.date_opened}
                                 InputLabelProps={{ shrink: true }}
-                            />
-                        </Grid>
+        />
+      </Grid>
                         <Grid item xs={12}>
                             <FormControl fullWidth required error={validationErrors.branch_manager}>
                                 <InputLabel>Branch Manager</InputLabel>
@@ -840,29 +835,29 @@ const BranchesPage = () => {
                                 control={
                                     <Switch
                                         checked={tempFormData.is_active}
-                                        onChange={(e) => setTempFormData({
-                                            ...tempFormData,
-                                            is_active: e.target.checked
+                                        onChange={(e) => setTempFormData({ 
+                                            ...tempFormData, 
+                                            is_active: e.target.checked 
                                         })}
                                     />
                                 }
                                 label="Active"
-                            />
-                        </Grid>
-                    </Grid>
+        />
+      </Grid>
+    </Grid>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-                    <Button
-                        onClick={() => {
+      <Button
+        onClick={() => {
                             setFormData(tempFormData);
                             handleAddBranch();
-                        }}
-                        variant="contained"
-                        color="primary"
-                    >
+                        }} 
+        variant="contained"
+        color="primary"
+      >
                         Add Branch
-                    </Button>
+      </Button>
                 </DialogActions>
             </Dialog>
 
@@ -877,64 +872,64 @@ const BranchesPage = () => {
                 <DialogContent>
                     <Grid container spacing={2} sx={{ mt: 1 }}>
                         <Grid item xs={12} sm={6}>
-                            <TextField
+      <TextField
                                 label="Branch Code"
-                                value={formData.branch_code}
-                                onChange={(e) => setFormData({ ...formData, branch_code: e.target.value })}
-                                fullWidth
+                                value={tempFormData.branch_code}
+                                onChange={(e) => setTempFormData({ ...tempFormData, branch_code: e.target.value })}
+  fullWidth
                                 required
                                 error={validationErrors.branch_code}
                             />
-                        </Grid>
+      </Grid>
                         <Grid item xs={12} sm={6}>
-                            <TextField
+      <TextField
                                 label="Branch Name"
-                                value={formData.branch_name}
-                                onChange={(e) => setFormData({ ...formData, branch_name: e.target.value })}
-                                fullWidth
+                                value={tempFormData.branch_name}
+                                onChange={(e) => setTempFormData({ ...tempFormData, branch_name: e.target.value })}
+  fullWidth
                                 required
                                 error={validationErrors.branch_name}
-                            />
-                        </Grid>
+/>
+      </Grid>
                         <Grid item xs={12}>
-                            <TextField
+      <TextField
                                 label="Address"
-                                value={formData.address}
-                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                fullWidth
+                                value={tempFormData.address}
+                                onChange={(e) => setTempFormData({ ...tempFormData, address: e.target.value })}
+  fullWidth
                                 required
                                 error={validationErrors.address}
-                            />
-                        </Grid>
+/>
+      </Grid>
                         <Grid item xs={12} sm={6}>
-                            <TextField
+      <TextField
                                 label="City"
-                                value={formData.city}
-                                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                                fullWidth
+                                value={tempFormData.city}
+                                onChange={(e) => setTempFormData({ ...tempFormData, city: e.target.value })}
+  fullWidth
                                 required
                                 error={validationErrors.city}
-                            />
-                        </Grid>
+/>
+      </Grid>
                         <Grid item xs={12} sm={6}>
-                            <TextField
+      <TextField
                                 label="Date Opened"
                                 type="date"
-                                value={formData.date_opened}
-                                onChange={(e) => setFormData({ ...formData, date_opened: e.target.value })}
-                                fullWidth
+                                value={tempFormData.date_opened}
+                                onChange={(e) => setTempFormData({ ...tempFormData, date_opened: e.target.value })}
+  fullWidth
                                 required
                                 error={validationErrors.date_opened}
                                 InputLabelProps={{ shrink: true }}
-                            />
-                        </Grid>
+/>
+      </Grid>
                         <Grid item xs={12}>
                             <FormControl fullWidth required error={validationErrors.branch_manager}>
                                 <InputLabel>Branch Manager</InputLabel>
                                 <Select
-                                    value={formData.branch_manager}
+                                    value={tempFormData.branch_manager}
                                     label="Branch Manager"
-                                    onChange={(e) => setFormData({ ...formData, branch_manager: e.target.value })}
+                                    onChange={(e) => setTempFormData({ ...tempFormData, branch_manager: e.target.value })}
                                 >
                                     {managers.map((manager) => (
                                         <MenuItem key={manager.user_id} value={manager.user_id}>
@@ -948,20 +943,31 @@ const BranchesPage = () => {
                             <FormControlLabel
                                 control={
                                     <Switch
-                                        checked={formData.is_active}
-                                        onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                                        checked={tempFormData.is_active}
+                                        onChange={(e) => setTempFormData({ 
+                                            ...tempFormData, 
+                                            is_active: e.target.checked 
+                                        })}
                                     />
                                 }
                                 label="Active"
-                            />
-                        </Grid>
-                    </Grid>
+/>
+      </Grid>
+    </Grid>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-                    <Button
-                        onClick={handleUpdateBranch}
-                        variant="contained"
+                    <Button 
+                        onClick={() => {
+                            if (tempFormData.is_active !== formData.is_active) {
+                                setNewStatus(tempFormData.is_active);
+                                setIsStatusChangeModalOpen(true);
+                            } else {
+                                setFormData(tempFormData);
+                                handleUpdateBranch();
+                            }
+                        }} 
+                        variant="contained" 
                         color="primary"
                     >
                         Update Branch
@@ -1018,7 +1024,7 @@ const BranchesPage = () => {
                             )}
                             <Grid item xs={12}>
                                 <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                                <Chip
+                                <Chip 
                                     label={selectedBranch.is_active ? 'Active' : 'Inactive'}
                                     color={selectedBranch.is_active ? 'success' : 'error'}
                                     size="small"
@@ -1056,14 +1062,14 @@ const BranchesPage = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setIsArchiveModalOpen(false)}>Cancel</Button>
-                    <Button
+    <Button
                         onClick={handleArchiveBranch}
                         variant="contained"
                         color="warning"
                         disabled={!archiveReason}
                     >
                         Archive
-                    </Button>
+</Button>
                 </DialogActions>
             </Dialog>
 
@@ -1086,16 +1092,16 @@ const BranchesPage = () => {
                     }}>
                         Cancel
                     </Button>
-                    <Button
+      <Button
                         onClick={() => {
                             setFormData(tempFormData);
                             handleStatusChange();
                         }}
-                        variant="contained"
+        variant="contained"
                         color={newStatus ? 'success' : 'error'}
-                    >
+      >
                         {newStatus ? 'Activate' : 'Deactivate'}
-                    </Button>
+      </Button>
                 </DialogActions>
             </Dialog>
 
@@ -1107,8 +1113,8 @@ const BranchesPage = () => {
                 columns={exportColumns}
                 filename="branches"
             />
-        </Box>
-    );
+    </Box>
+  );
 };
 
 export default BranchesPage;
