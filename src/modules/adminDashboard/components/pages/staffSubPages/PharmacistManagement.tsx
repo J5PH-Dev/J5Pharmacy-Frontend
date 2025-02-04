@@ -644,6 +644,13 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
                                         boxShadow: 3
                                     }}
                                 />
+
+                                <Box sx={{ width: '100%', textAlign: 'center' }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                        {selectedPharmacist.name}
+                                    </Typography>
+                                </Box>
+                                
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                                     <Typography variant="body2" color="textSecondary">
                                         Profile Picture
@@ -708,58 +715,7 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
                                     )}
                                 </Box>
 
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <Avatar
-                                        src={selectedPharmacist.image_url}
-                                        sx={{ width: 56, height: 56, mb: 2 }}
-                                    />
-                                    {selectedPharmacist.is_active && (
-                                        <Box>
-                                            <IconButton 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleEdit(selectedPharmacist);
-                                                }} 
-                                                sx={{ color: '#2B7FF5' }}
-                                            >
-                                                <Edit />
-                                            </IconButton>
-                                            <IconButton
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedPharmacist(selectedPharmacist);
-                                                    setOpenDeleteDialog(true);
-                                                }}
-                                                sx={{ color: '#D42A4C' }}
-                                            >
-                                                <Delete />
-                                            </IconButton>
-                                        </Box>
-                                    )}
-                                </Box>
 
-                                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                                    {selectedPharmacist.name}
-                                </Typography>
-                                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                                    Staff ID: {selectedPharmacist.staff_id}
-                                </Typography>
-
-                                <Box sx={{ mb: 2 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Branch:</Typography>
-                                    <Typography variant="body2">{selectedPharmacist.branch_name}</Typography>
-                                </Box>
-
-                                <Box sx={{ mb: 2 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Contact:</Typography>
-                                    <Typography variant="body2">{selectedPharmacist.email}</Typography>
-                                    <Typography variant="body2">{selectedPharmacist.phone}</Typography>
-                                </Box>
-
-                                <Box>
-                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>PIN Code:</Typography>
-                                    <Typography variant="body2">{selectedPharmacist.pin_code}</Typography>
-                                </Box>
                             </Box>
 
                             <Grid container spacing={2}>

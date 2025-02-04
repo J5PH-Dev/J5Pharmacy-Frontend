@@ -986,7 +986,7 @@ const BulkInventoryImport: React.FC = () => {
                 'brand_name': 'Brand',
                 'category': 'BRANDED',
                 'quantity': '100',
-                'expiry': '12/31/2024',
+                'expiry': '12/31/2025',
                 'dosage_amount': '500',
                 'dosage_unit': 'mg',
                 'prescription': '0',
@@ -2198,12 +2198,6 @@ const BulkInventoryImport: React.FC = () => {
                             sx={{
                                 borderColor: '#1B3E2D',
                                 color: '#1B3E2D',
-                                animation: !hasSeenGuidelines ? 'pulse 2s infinite' : 'none',
-                                '@keyframes pulse': pulseAnimation['@keyframes pulse'],
-                                '&:hover': {
-                                    borderColor: '#2D5741',
-                                    backgroundColor: 'rgba(45, 87, 65, 0.04)',
-                                },
                                 width: '100%',
                                 maxWidth: 250
                             }}

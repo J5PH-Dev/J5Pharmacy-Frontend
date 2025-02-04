@@ -22,7 +22,6 @@ import {
     FormControlLabel,
     CircularProgress,
     Tooltip,
-    TablePagination
 } from '@mui/material';
 import { Edit, Delete, Add as AddIcon, Visibility, VisibilityOff, DeleteOutline, HelpOutline } from '@mui/icons-material';
 import axios, { AxiosError } from 'axios';
@@ -79,18 +78,16 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
     const [openRemoveImageDialog, setOpenRemoveImageDialog] = useState(false);
     const [isRemovingImage, setIsRemovingImage] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
 
     useEffect(() => {
         fetchUsers();
         fetchBranches();
-    }, [includeArchived, selectedRole, selectedBranch, page, rowsPerPage]);
+    }, [includeArchived, selectedRole, selectedBranch]);
 
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
-            let url = `/api/staff/users?include_archived=${includeArchived}&page=${page + 1}&limit=${rowsPerPage}`;
+            let url = `/api/staff/users?include_archived=${includeArchived}`;
             if (selectedRole) {
                 url += `&role=${selectedRole}`;
             }
@@ -328,15 +325,6 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
         await fetchUsers();
     };
 
-    const handleChangePage = (event: unknown, newPage: number) => {
-        setPage(newPage);
-    };
-
-    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
-    };
-
     return (
         <Box sx={{ p: 3, height: 'calc(100vh - 200px)', overflow: 'auto' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -406,7 +394,10 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                                             size="small"
                                             variant="contained"
                                             color="primary"
-                                            onClick={() => handleRestore(user)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleRestore(user);
+                                            }}
                                             sx={{ fontSize: '0.75rem', py: 0.5 }}
                                         >
                                             Restore
@@ -472,15 +463,6 @@ const UserManagement: React.FC<Props> = ({ selectedRole, selectedBranch }) => {
                     ))}
                 </Grid>
             )}
-
-            <TablePagination
-                component="div"
-                count={users.length}
-                page={page}
-                onPageChange={handleChangePage}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-            />
 
             {/* Add/Edit User Dialog */}
             <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
