@@ -4,6 +4,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 import { AuthProvider, useAuth } from './modules/auth/contexts/AuthContext';
+import { POSProvider } from './modules/pos/contexts/POSContext';
 import LoginPage from './modules/auth/components/LoginPage';
 import CreateNewPassword from './modules/auth/components/ForgotPassword/CreateNewPassword';
 import CreatedNewPassword from './modules/auth/components/ForgotPassword/SuccessfullyNewPass';
@@ -88,7 +89,9 @@ const AppRoutes: React.FC = () => {
         path="/pos"
         element={
           <ProtectedRoute allowedRoles={[UserRole.PHARMACIST]}>
-            <POSPage />
+            <POSProvider>
+              <POSPage />
+            </POSProvider>
           </ProtectedRoute>
         }
       />

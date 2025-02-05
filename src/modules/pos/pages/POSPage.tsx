@@ -38,6 +38,9 @@ import { HeldTransaction, Transaction } from '../types/transaction';
 import { sampleItems } from '../../../devtools/sampleData';
 import { generateTransactionId } from '../utils/transactionManager';
 import { devStorage } from '../../../devtools/storage';
+import { usePOS } from '../contexts/POSContext';
+import { MIN_SEARCH_LENGTH } from '../constants';
+import { ERROR_MESSAGES } from '../constants/errorMessages';
 
 const POSPage: React.FC = () => {
   const { logout } = useAuth();
@@ -67,6 +70,15 @@ const POSPage: React.FC = () => {
   const [prescriptionVerified, setPrescriptionVerified] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<CartItem | null>(null);
   const [isBox, setIsBox] = useState(false);
+
+  const { 
+    searchProducts,
+    addToCart,
+    showNotification,
+    cartItems: posCartItems,
+    branchId,
+    sessionId
+  } = usePOS();
 
   const {
     subtotal,
@@ -354,19 +366,6 @@ const POSPage: React.FC = () => {
     );
   };
 
-  // Add new function for API search
-  const searchProducts = async (query: string) => {
-    try {
-      const response = await axios.get(`http://localhost:5000/api/products/search?${
-        query.length >= 13 ? `barcode=${query}` : `query=${query}`
-      }`);
-      return response.data;
-    } catch (error) {
-      console.error('Error searching products:', error);
-      return [];
-    }
-  };
-
   // Update handleManualSearch
   const handleManualSearch = async (query: string) => {
     setSearchQuery(query);
@@ -378,9 +377,14 @@ const POSPage: React.FC = () => {
       return;
     }
 
-    if (query.length >= 3) {
-      const results = await searchProducts(query);
-      setSearchResults(results);
+    if (query.length >= MIN_SEARCH_LENGTH) {
+      try {
+        const results = await searchProducts(query);
+        setSearchResults(results);
+      } catch (error) {
+        console.error('Error searching products:', error);
+        showNotification(ERROR_MESSAGES.PRODUCT.SEARCH_FAILED, 'error', error);
+      }
     } else {
       setSearchResults([]);
     }
@@ -427,7 +431,7 @@ const POSPage: React.FC = () => {
   };
 
   // Update handleProductSelect
-  const handleProductSelect = (product: CartItem) => {
+  const handleProductSelect = async (product: CartItem) => {
     setSelectedProduct(product);
     const rawQuantity = preSelectedQuantity;
     
@@ -438,23 +442,21 @@ const POSPage: React.FC = () => {
     
     // Check stock before adding
     if (actualQuantity > product.stock) {
-      showMessage(
+      showNotification(
         product.stock === 0 
-          ? `${product.name} is out of stock`
-          : `Cannot add ${rawQuantity}${isBox ? ' box(es)' : ' piece(s)'}. Only ${
-              isBox 
-                ? Math.floor(product.stock / (product.pieces_per_box || 1)) + ' box(es)'
-                : product.stock + ' piece(s)'
-            } available.`,
+          ? ERROR_MESSAGES.PRODUCT.OUT_OF_STOCK
+          : ERROR_MESSAGES.PRODUCT.INSUFFICIENT_STOCK,
         'error'
       );
       return;
     }
 
-    handleAddProduct({ 
+    addToCart({ 
       ...product, 
       quantity: actualQuantity 
     });
+    
+    showNotification(`Added ${rawQuantity}${isBox ? ' box(es)' : ' piece(s)'} of ${product.name}`, 'success');
     
     setPreSelectedQuantity(1); // Reset to 1 after adding
     setIsBox(false); // Reset to pieces
@@ -466,42 +468,48 @@ const POSPage: React.FC = () => {
 
   // Update barcode scanning handler
   useEffect(() => {
-    const BARCODE_SCAN_TIMEOUT = 50; // ms between keystrokes for barcode scanner
+    const BARCODE_SCAN_TIMEOUT = 50;
 
     const handleBarcodeScanner = async (event: KeyboardEvent) => {
-      // Skip if the event originated from an input element
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      const currentTime = Date.now();
-      
-      // If it's a rapid keystroke (likely from scanner)
-      if (currentTime - lastKeyTime < BARCODE_SCAN_TIMEOUT) {
-        if (event.key === 'Enter' && barcodeBuffer) {
-          // Search for product with this barcode
-          const products = await searchProducts(barcodeBuffer);
-          if (products.length > 0) {
-            const product = products[0];
-            handleAddProduct({ ...product, quantity: preSelectedQuantity });
-            showMessage(`Added ${preSelectedQuantity}x ${product.name} to cart`, 'success');
-          } else {
-            showMessage(`No product found with barcode: ${barcodeBuffer}`, 'error');
-          }
-          setBarcodeBuffer('');
-        } else if (event.key.length === 1 && /[^\s]/.test(event.key)) { // Accept any character except spaces
-          setBarcodeBuffer(prev => prev + event.key);
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+            return;
         }
-      } else if (event.key.length === 1 && /[^\s]/.test(event.key)) { // Start new barcode with any character except spaces
-        setBarcodeBuffer(event.key);
-      }
-      
-      setLastKeyTime(currentTime);
+
+        const currentTime = Date.now();
+        
+        if (currentTime - lastKeyTime < BARCODE_SCAN_TIMEOUT) {
+            if (event.key === 'Enter' && barcodeBuffer) {
+                try {
+                    const product = await searchProducts(barcodeBuffer);
+                    if (product && product.length > 0) {
+                        const item = product[0];
+                        if (item.stock <= 0) {
+                            showNotification(ERROR_MESSAGES.PRODUCT.OUT_OF_STOCK, 'error');
+                            return;
+                        }
+                        addToCart({ ...item, quantity: preSelectedQuantity });
+                        showNotification(`Added ${preSelectedQuantity}x ${item.name} to cart`, 'success');
+                    } else {
+                        showNotification(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error searching product by barcode:', error);
+                    showNotification(ERROR_MESSAGES.PRODUCT.SEARCH_FAILED, 'error', error);
+                }
+                setBarcodeBuffer('');
+            } else if (event.key.length === 1 && /[^\s]/.test(event.key)) {
+                setBarcodeBuffer(prev => prev + event.key);
+            }
+        } else if (event.key.length === 1 && /[^\s]/.test(event.key)) {
+            setBarcodeBuffer(event.key);
+        }
+        
+        setLastKeyTime(currentTime);
     };
 
     window.addEventListener('keydown', handleBarcodeScanner);
     return () => window.removeEventListener('keydown', handleBarcodeScanner);
-  }, [barcodeBuffer, lastKeyTime, preSelectedQuantity, handleAddProduct, showMessage]);
+}, [barcodeBuffer, lastKeyTime, preSelectedQuantity, searchProducts, showNotification, addToCart]);
 
   // Update FunctionKeys props to include setHoldDialogOpen
   const handleHoldClick = () => {

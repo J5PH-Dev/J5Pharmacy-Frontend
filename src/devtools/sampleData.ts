@@ -36,6 +36,7 @@ const createMedicine = (
     requiresPrescription,
     expiryDate: expiryDate || '2024-12-31',
     totalPieces: stock,
+    is_in_branch: true,
     quantity: 1
   };
 };

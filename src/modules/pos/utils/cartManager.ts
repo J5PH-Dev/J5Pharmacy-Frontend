@@ -29,14 +29,15 @@ export const cartManager = {
         dosage_amount: product.dosage_amount,
         dosage_unit: product.dosage_unit,
         price: product.price,
-        quantity: quantity,
+        stock: product.stock,
+        pieces_per_box: product.pieces_per_box,
         category: product.category,
         barcode: product.barcode,
         requiresPrescription: product.requiresPrescription,
         expiryDate: product.expiryDate,
-        stock: product.stock,
-        pieces_per_box: product.pieces_per_box,
-        totalPieces: product.totalPieces
+        totalPieces: product.stock,
+        is_in_branch: product.is_in_branch,
+        quantity: quantity
       };
       newItems = [...currentState.items, newItem];
     }

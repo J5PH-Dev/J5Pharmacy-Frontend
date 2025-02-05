@@ -14,6 +14,7 @@ export interface Product {
   requiresPrescription: boolean;
   expiryDate: string | null;
   totalPieces: number;
+  is_in_branch: boolean;
 }
 
 export interface CartItem extends Product {

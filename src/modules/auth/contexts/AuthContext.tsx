@@ -91,6 +91,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 throw new Error('Invalid response: pharmacist data missing');
             }
 
+            console.log('Login response:', response); // Debug login response
+            
+            // Store token first
+            authService.setAuthToken(response.token);
+            localStorage.setItem('token', response.token);
+            console.log('Token stored:', response.token); // Debug token storage
+
             // Store pharmacist data
             const pharmacistData = {
                 ...response.pharmacist,
@@ -98,14 +105,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 isPOS: true
             };
             
-            authService.setAuthToken(response.token);
             localStorage.setItem('user', JSON.stringify(pharmacistData));
+            console.log('User data stored:', pharmacistData); // Debug user storage
+            
             localStorage.setItem('salesSessionId', response.pharmacist.salesSessionId.toString());
             
             setUser(pharmacistData);
             setIsAuthenticated(true);
             
-            // POS users also go through loading screen now
+            console.log('POS Login successful:', { token: response.token, user: pharmacistData }); // Debug log
+            
             navigate('/loading-screen');
         } catch (error) {
             console.error('POS Login error:', error);

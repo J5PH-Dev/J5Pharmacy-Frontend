@@ -13,37 +13,44 @@ import {
   Button,
   Box,
   Typography,
-  Chip
+  Chip,
+  CircularProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import { CartItem } from '../../../types/cart';
-import { sampleItems } from '../../../../../devtools/sampleData';
+import { usePOS } from '../../../contexts/POSContext';
 
-interface ProductInquiryDialogProps {
+interface SearchProductDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
-const ProductInquiryDialog: React.FC<ProductInquiryDialogProps> = ({
+const SearchProductDialog: React.FC<SearchProductDialogProps> = ({
   open,
   onClose
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CartItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { searchProducts, showNotification } = usePOS();
   const MIN_SEARCH_LENGTH = 3;
 
-  // Search function that filters products based on search term
-  const handleSearch = (term: string) => {
+  // Search function that uses the API
+  const handleSearch = async (term: string) => {
     setSearchTerm(term);
     
     if (term.length >= MIN_SEARCH_LENGTH) {
-      const results = sampleItems.filter(item =>
-        item.name.toLowerCase().includes(term.toLowerCase()) ||
-        item.category.toLowerCase().includes(term.toLowerCase()) ||
-        (item.barcode && item.barcode.toLowerCase().includes(term.toLowerCase()))
-      );
-      setSearchResults(results);
+      setIsLoading(true);
+      try {
+        const results = await searchProducts(term);
+        setSearchResults(results);
+      } catch (error) {
+        console.error('Search error:', error);
+        showNotification('Failed to search products', 'error', error);
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       setSearchResults([]);
     }
@@ -60,6 +67,24 @@ const ProductInquiryDialog: React.FC<ProductInquiryDialogProps> = ({
       setSearchResults([]);
     }
   }, [open]);
+
+  const getStockStatus = (product: CartItem) => {
+    if (!product.is_in_branch) {
+      return {
+        label: 'Not Available in Branch',
+        color: 'warning' as const,
+        variant: 'outlined' as const
+      };
+    }
+    if (product.stock <= 0) {
+      return {
+        label: 'Out of Stock',
+        color: 'error' as const,
+        variant: 'outlined' as const
+      };
+    }
+    return null;
+  };
 
   return (
     <Dialog 
@@ -93,6 +118,11 @@ const ProductInquiryDialog: React.FC<ProductInquiryDialogProps> = ({
                 <SearchIcon />
               </InputAdornment>
             ),
+            endAdornment: isLoading && (
+              <InputAdornment position="end">
+                <CircularProgress size={20} />
+              </InputAdornment>
+            )
           }}
         />
 
@@ -107,7 +137,7 @@ const ProductInquiryDialog: React.FC<ProductInquiryDialogProps> = ({
                 Please enter at least {MIN_SEARCH_LENGTH} characters to search
                 ({MIN_SEARCH_LENGTH - searchTerm.length} more to go)
               </Typography>
-            ) : searchResults.length === 0 ? (
+            ) : searchResults.length === 0 && !isLoading ? (
               <Typography 
                 variant="body2" 
                 color="text.secondary"
@@ -133,6 +163,7 @@ const ProductInquiryDialog: React.FC<ProductInquiryDialogProps> = ({
               sx={{
                 borderRadius: 1,
                 mb: 1,
+                opacity: !product.is_in_branch || product.stock <= 0 ? 0.7 : 1,
                 '&:hover': {
                   bgcolor: 'action.hover',
                 },
@@ -155,8 +186,15 @@ const ProductInquiryDialog: React.FC<ProductInquiryDialogProps> = ({
                       label={product.requiresPrescription ? 'Rx' : 'OTC'} 
                       size="small"
                       color={product.requiresPrescription ? 'error' : 'success'}
-                      sx={{ fontSize: '1rem' }}
+                      sx={{ fontSize: '0.9rem' }}
                     />
+                    {/* Stock status chip */}
+                    {getStockStatus(product) && (
+                      <Chip 
+                        {...getStockStatus(product)}
+                        size="small"
+                      />
+                    )}
                   </Box>
                 }
                 secondary={
@@ -171,8 +209,17 @@ const ProductInquiryDialog: React.FC<ProductInquiryDialogProps> = ({
                         <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
                           {product.category} • {product.dosage_amount}{product.dosage_unit}
                         </Typography>
+                        <Typography 
+                          variant="body2" 
+                          color={product.stock > 0 ? 'text.secondary' : 'error.main'}
+                        >
+                          Stock: {product.stock} {product.pieces_per_box ? 
+                            `(${Math.floor(product.stock / product.pieces_per_box)} boxes)` : 
+                            'pcs'
+                          }
+                        </Typography>
                         {product.barcode && (
-                          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5, fontSize: '1.1rem' }}>
+                          <Typography variant="body2" color="text.secondary">
                             Barcode: {product.barcode}
                           </Typography>
                         )}
@@ -203,4 +250,4 @@ const ProductInquiryDialog: React.FC<ProductInquiryDialogProps> = ({
   );
 };
 
-export default ProductInquiryDialog; 
+export default SearchProductDialog; 
