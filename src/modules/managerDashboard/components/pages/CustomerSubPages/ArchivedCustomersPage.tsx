@@ -459,16 +459,6 @@ const ArchivedCustomersPage = () => {
                                                 >
                                                     <RestoreIcon />
                                                 </IconButton>
-                                                <IconButton
-                                                    onClick={() => {
-                                                        setCustomerToDelete(customer);
-                                                        setIsDeleteDialogOpen(true);
-                                                    }}
-                                                    color="error"
-                                                    title="Delete Customer"
-                                                >
-                                                    <DeleteIcon />
-                                                </IconButton>
                                             </Stack>
                                         </TableCell>
                                     </TableRow>
