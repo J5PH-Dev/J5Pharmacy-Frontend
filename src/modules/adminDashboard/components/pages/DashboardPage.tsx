@@ -607,7 +607,7 @@ const DashboardPage: React.FC = () => {
       </Grid>
 
       {/* DevTools Speed Dial */}
-      <SpeedDial
+      {/* <SpeedDial
         ariaLabel="Dev Tools"
         sx={{ position: 'fixed', bottom: 16, right: 16 }}
         icon={<SpeedDialIcon icon={<CodeIcon />} openIcon={<CloseIcon />} />}
@@ -622,7 +622,7 @@ const DashboardPage: React.FC = () => {
             onClick={action.onClick}
           />
         ))}
-      </SpeedDial>
+      </SpeedDial> */}
 
       {/* Transaction Generator Dialog */}
       <Dialog 

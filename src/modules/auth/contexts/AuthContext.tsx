@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as authService from '../services/authService';
+import axios from 'axios';
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -10,6 +11,12 @@ interface AuthContextType {
     posLogin: (pin_code: string) => Promise<void>;
     login: (employee_id: string, password: string) => Promise<void>;
     logout: () => void;
+    currentSession: {
+        pharmacistSessionId: number | null;
+        salesSessionId: number | null;
+        branchId: number | null;
+        branchCode: string | null;
+    };
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +25,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [currentSession, setCurrentSession] = useState<{
+        pharmacistSessionId: number | null;
+        salesSessionId: number | null;
+        branchId: number | null;
+        branchCode: string | null;
+    }>({
+        pharmacistSessionId: null,
+        salesSessionId: null,
+        branchId: null,
+        branchCode: null
+    });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -39,12 +57,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const response = await authService.pmsLogin(employee_id, password);
             
             if (!response.user) {
-                throw new Error('Invalid response: user data missing');
+                throw new Error('Invalid login response');
             }
 
-            authService.setAuthToken(response.token);
-            localStorage.setItem('user', JSON.stringify(response.user));
-            
+            // Create new sales session
+            const sessionResponse = await axios.post('/api/pos/sessions', 
+                { branchId: response.user.branchId },
+                { withCredentials: true }
+            );
+
             setUser(response.user);
             setIsAuthenticated(true);
             
@@ -55,6 +76,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else if (userRole === 'MANAGER') {
                 navigate('/manager/dashboard');
             }
+
+            setCurrentSession({
+                pharmacistSessionId: sessionResponse.data.pharmacistSessionId,
+                salesSessionId: sessionResponse.data.sessionId,
+                branchId: response.user.branchId,
+                branchCode: response.user.branchCode
+            });
         } catch (error) {
             console.error('Login error:', error);
             throw error;
@@ -91,13 +119,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 throw new Error('Invalid response: pharmacist data missing');
             }
 
+            // Update current session state
+            setCurrentSession({
+                salesSessionId: response.pharmacist.salesSessionId || null,
+                pharmacistSessionId: response.pharmacist.sessionId || null,
+                branchId: response.pharmacist.branchId || null,
+                branchCode: response.pharmacist.branchCode || null
+            });
+
             // Store pharmacist data
             const pharmacistData = {
                 ...response.pharmacist,
                 staffId: response.pharmacist.staffId,
                 isPOS: true
             };
-            
+
+
             authService.setAuthToken(response.token);
             localStorage.setItem('user', JSON.stringify(pharmacistData));
             localStorage.setItem('salesSessionId', response.pharmacist.salesSessionId.toString());
@@ -113,13 +150,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const logout = () => {
-        authService.logout();
-        authService.removeAuthToken();
-        localStorage.removeItem('salesSessionId');
-        setUser(null);
-        setIsAuthenticated(false);
-        navigate('/login');
+    const logout = async () => {
+        try {
+            console.log('Logging out with session:', currentSession);
+            
+            if (currentSession?.pharmacistSessionId) {
+                const response = await axios.post('/api/auth/end-pharmacist-session', {}, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (!response.data.success) {
+                    console.error('Error ending session:', response.data.message);
+                }
+            }
+
+            // Clear local storage and state regardless of session end result
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
+            setCurrentSession({
+                pharmacistSessionId: null,
+                salesSessionId: null,
+                branchId: null,
+                branchCode: null
+            });
+            
+            // Navigate to loading screen
+            navigate('/loading-screen', { state: { isLoggingOut: true } });
+
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Still clear everything even if session end fails
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
+            setCurrentSession({
+                pharmacistSessionId: null,
+                salesSessionId: null,
+                branchId: null,
+                branchCode: null
+            });
+            navigate('/loading-screen', { state: { isLoggingOut: true } });
+        }
     };
 
     return (
@@ -130,7 +204,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             pmsLogin,
             posLogin,
             login,
-            logout
+            logout,
+            currentSession
         }}>
             {children}
         </AuthContext.Provider>

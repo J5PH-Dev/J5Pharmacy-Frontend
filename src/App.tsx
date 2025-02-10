@@ -9,7 +9,7 @@ import CreateNewPassword from './modules/auth/components/ForgotPassword/CreateNe
 import CreatedNewPassword from './modules/auth/components/ForgotPassword/SuccessfullyNewPass';
 import ForgotPassword from './modules/auth/components/ForgotPassword/ForgotPassword';
 import EmailVerification from './modules/auth/components/ForgotPassword/EmailCodeVerification';
-import POSPage from './modules/pos/pages/POSPage';
+import POSPage from './modules/pointofsale/pages/POSPage';
 import NotFoundPage from './modules/auth/components/NotfoundPage';
 import AdminRoutes from './modules/adminDashboard/AdminRoutes';
 import ManagerRoutes from './modules/managerDashboard/ManagerRoutes';

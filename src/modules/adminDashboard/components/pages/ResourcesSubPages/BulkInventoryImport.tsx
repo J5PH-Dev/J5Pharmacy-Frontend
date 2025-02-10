@@ -986,7 +986,7 @@ const BulkInventoryImport: React.FC = () => {
                 'brand_name': 'Brand',
                 'category': 'BRANDED',
                 'quantity': '100',
-                'expiry': '12/31/2025',
+                'expiry': '12/31/2024',
                 'dosage_amount': '500',
                 'dosage_unit': 'mg',
                 'prescription': '0',
@@ -2198,6 +2198,12 @@ const BulkInventoryImport: React.FC = () => {
                             sx={{
                                 borderColor: '#1B3E2D',
                                 color: '#1B3E2D',
+                                animation: !hasSeenGuidelines ? 'pulse 2s infinite' : 'none',
+                                '@keyframes pulse': pulseAnimation['@keyframes pulse'],
+                                '&:hover': {
+                                    borderColor: '#2D5741',
+                                    backgroundColor: 'rgba(45, 87, 65, 0.04)',
+                                },
                                 width: '100%',
                                 maxWidth: 250
                             }}
@@ -2261,7 +2267,7 @@ const BulkInventoryImport: React.FC = () => {
                         >
                                 Download New & Existing
                         </Button>
-                        <Button
+                        {/* <Button
                             variant="contained"
                                 startIcon={<FileDownloadIcon />}
                                 onClick={() => {
@@ -2278,7 +2284,7 @@ const BulkInventoryImport: React.FC = () => {
                             }}
                         >
                                 Download Existing Only
-                        </Button>
+                        </Button> */}
                     </Box>
                     </Grid>
                     <Grid item xs={3}>
@@ -2706,7 +2712,7 @@ const BulkInventoryImport: React.FC = () => {
                                         <Box>
                                             <Typography variant="subtitle2" color="text.secondary">Category</Typography>
                                             <Typography>
-                                                {selectedProduct.category_name || 'No category'}
+                                                {selectedProduct.category_name || 'NO CATEGORY'}
                         </Typography>
                     </Box>
                                     </Box>
