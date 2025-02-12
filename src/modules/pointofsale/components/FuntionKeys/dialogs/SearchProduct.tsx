@@ -17,12 +17,10 @@ import {
   InputAdornment,
   Box,
   Typography,
-  CircularProgress,
-  Tooltip
+  CircularProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
-import MedicalInformationIcon from '@mui/icons-material/MedicalInformation';
 import { CartItem } from '../../../types/cart';
 import { useNotification } from '../../../contexts/NotificationContext';
 import axios, { AxiosError } from 'axios';
@@ -114,13 +112,9 @@ const SearchProduct: React.FC<SearchProductProps> = ({
     }
   };
 
-  const handleAddProduct = (product: CartItem) => {
-    onAddProduct(product);
-  };
-
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Search Product</DialogTitle>
+      <DialogTitle>Search Products</DialogTitle>
       <DialogContent>
         <Box sx={{ mb: 2 }}>
           <TextField
@@ -146,88 +140,32 @@ const SearchProduct: React.FC<SearchProductProps> = ({
             <CircularProgress />
           </Box>
         ) : products.length > 0 ? (
-          <TableContainer component={Paper} sx={{ mt: 2 }}>
+          <TableContainer component={Paper}>
             <Table>
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
+                  <TableCell>Brand</TableCell>
                   <TableCell>Barcode</TableCell>
                   <TableCell align="right">Price</TableCell>
                   <TableCell align="right">Stock</TableCell>
-                  <TableCell align="center">Action</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {products.map((product) => (
                   <TableRow 
                     key={product.id}
-                    hover={product.stock > 0}
-                    sx={{
-                      cursor: product.stock > 0 ? 'pointer' : 'not-allowed',
-                      opacity: product.stock <= 0 ? 0.5 : 1
+                    sx={{ 
+                      opacity: product.stock <= 0 ? 0.5 : 1,
+                      backgroundColor: product.stock <= 0 ? 'action.hover' : 'inherit'
                     }}
                   >
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {Boolean(product.requiresPrescription) && (
-                          <Tooltip title="This item requires a prescription. Please use F6 to add prescription details.">
-                            <MedicalInformationIcon 
-                              color="warning"
-
-                              sx={{ 
-                                flexShrink: 0,
-                                animation: 'pulse 2s infinite',
-                                '@keyframes pulse': {
-                                  '0%': { opacity: 1 },
-                                  '50%': { opacity: 0.6 },
-                                  '100%': { opacity: 1 },
-                                }
-                              }}
-                            />
-                          </Tooltip>
-                        )}
-                        <Box>
-                          <Typography variant="body2" fontWeight={500}>
-                            {product.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {product.brand_name} • {product.category_name}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
+                    <TableCell>{product.name}</TableCell>
+                    <TableCell>{product.brand_name}</TableCell>
                     <TableCell>{product.barcode}</TableCell>
-                    <TableCell align="right">
-                      ₱{Number(product.price).toLocaleString('en-PH', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
-                    </TableCell>
-                    <TableCell 
-                      align="right"
-                      sx={{ 
-                        color: product.stock <= 0 ? 'error.main' : 'inherit'
-                      }}
-                    >
+                    <TableCell align="right">₱{product.price.toFixed(2)}</TableCell>
+                    <TableCell align="right" sx={{ color: product.stock <= 0 ? 'error.main' : 'inherit' }}>
                       {product.stock <= 0 ? 'Out of Stock' : product.stock}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title={
-                        product.requiresPrescription 
-                          ? "This item requires a prescription"
-                          : "Add to cart"
-                      }>
-
-                        <span>
-                          <IconButton
-                            onClick={() => handleAddProduct(product)}
-                            disabled={product.stock <= 0}
-                            color={product.requiresPrescription ? "warning" : "primary"}
-                          >
-                            <AddIcon />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}

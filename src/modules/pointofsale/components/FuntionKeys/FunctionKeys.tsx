@@ -28,7 +28,6 @@ import ProcessReturn from './dialogs/ProcessReturn';
 import { useAuth } from '../../../auth/contexts/AuthContext';
 
 interface FunctionKeysProps {
-  onLogout: () => void;
   onAddProduct: (product: CartItem) => void;
   currentItems: CartItem[];
   currentTotal: number;
@@ -38,7 +37,6 @@ interface FunctionKeysProps {
 }
 
 const FunctionKeys: React.FC<FunctionKeysProps> = ({
-  onLogout,
   onAddProduct,
   currentItems,
   currentTotal,
@@ -54,34 +52,13 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
   const [openPrescription, setOpenPrescription] = useState(false);
   const [openProcessReturn, setOpenProcessReturn] = useState(false);
 
-  const { currentSession } = useAuth();
-
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     try {
-      if (currentSession?.salesSessionId) {
-        console.log('Ending session:', currentSession.salesSessionId);
-        console.log('Ending session with:', {
-          salesSessionId: currentSession?.salesSessionId,
-          pharmacistSessionId: currentSession?.pharmacistSessionId
-        });
-        
-        await axios.post(
-          '/api/auth/end-pharmacist-session', 
-          {},
-          { 
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            withCredentials: true
-          }
-        );
-      }
+      await logout();
     } catch (error) {
-      console.error('Session end error:', error);
-    } finally {
-      localStorage.removeItem('token');
-      onLogout();
+      console.error('Logout error:', error);
     }
   };
 
@@ -170,7 +147,7 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
 
         <Divider />
 
-        <Button
+        {/* <Button
           fullWidth
           variant="contained"
           startIcon={<AssessmentIcon />}
@@ -195,7 +172,7 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
           onClick={() => setOpenProcessReturn(true)}
         >
           F7 - Process Return
-        </Button>
+        </Button> */}
 
         {/* <Button
           fullWidth
@@ -254,7 +231,7 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
         onClose={() => setOpenRecallTransaction(false)}
         onRecall={onRecallTransaction}
       />
-
+{/* 
 
       <ViewReports
         open={openViewReports}
@@ -264,15 +241,12 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
       <Prescription
         open={openPrescription}
         onClose={() => setOpenPrescription(false)}
-        onSave={() => {}}
-        customerId={0}
-        prescriptionItems={[]}
       />
 
       <ProcessReturn
         open={openProcessReturn}
         onClose={() => setOpenProcessReturn(false)}
-      />
+      /> */}
     </Box>
   );
 };

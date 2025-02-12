@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Box, Grid, Paper, Typography, useTheme, List, ListItem, ListItemText, Divider, Button, Fab, Dialog, DialogTitle, DialogContent, DialogActions, SpeedDial, SpeedDialIcon, SpeedDialAction, TextField, CircularProgress, Snackbar, Alert, Chip, Stack } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -13,6 +13,7 @@ import CodeIcon from '@mui/icons-material/Code';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import CloseIcon from '@mui/icons-material/Close';
 import WarningIcon from '@mui/icons-material/Warning';
+import { useAuth } from '../../../auth/contexts/AuthContext'; // Import useAuth
 
 // Initialize socket connection
 const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000');
@@ -44,9 +45,9 @@ interface LowStockItem {
 }
 
 interface DevTransaction {
-    total_amount: number;
-    payment_method: 'cash' | 'card' | 'gcash';
-    branch_name: string;
+  total_amount: number;
+  payment_method: 'cash' | 'card' | 'gcash';
+  branch_name: string;
 }
 
 interface Branch {
@@ -87,12 +88,20 @@ const DashboardPage: React.FC = () => {
   // Add initial load tracking
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
+  const { user } = useAuth(); // Use useAuth to get the current user
+  const branchId = user?.branchId;
+
+  console.log('User Object:', user); // Add this line
+  console.log('User Branch ID:', branchId); // Add this line
+
+
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      
+      console.log('User Branch ID:', branchId);
       // Fetch dashboard overview data
-      const overviewResponse = await axios.get('/api/dashboard/overview');
+      const overviewResponse = await axios.get(`/api/dashboard/overviewByBranch?branch_id=${branchId}`);
+      console.log('Dashboard Data:', overviewResponse.data); // Add this line
       setDashboardData(overviewResponse.data);
 
     } catch (error) {
@@ -102,25 +111,34 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+
   const fetchTransactions = async () => {
     try {
+      if (!branchId) {
+        console.log('User Branch ID is not available yet.');
+        return;
+      }
+
       if (!initialLoadComplete) {
         setTransactionsLoading(true);
       }
-      
-      const response = await axios.get<{ transactions: Transaction[] }>('/api/dashboard/recent-transactions');
+
+      console.log(`Fetching transactions for branch ID: ${branchId}`);
+
+      // Fetch transactions based on user branch ID
+      const response = await axios.get<{ transactions: Transaction[] }>(`/api/dashboard/recent-transactionsByBranch?branch_id=${branchId}`);
       const newTransactions = response.data.transactions;
-      
+
       if (newTransactions && newTransactions.length > 0) {
         setRecentTransactions(prev => {
           // Create a new array with existing transactions
           const existingTransactions = [...prev];
-          
+
           // Sort new transactions by created_at in descending order
-          const sortedNewTransactions = [...newTransactions].sort((a, b) => 
+          const sortedNewTransactions = [...newTransactions].sort((a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           );
-          
+
           // Update or add transactions
           sortedNewTransactions.forEach(newTx => {
             const existingIndex = existingTransactions.findIndex(tx => tx.invoice_number === newTx.invoice_number);
@@ -130,7 +148,7 @@ const DashboardPage: React.FC = () => {
               existingTransactions.unshift(newTx);
             }
           });
-          
+
           // Sort final array by created_at and take latest 5
           return existingTransactions
             .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -146,32 +164,33 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+
   const fetchLowStock = async () => {
     try {
-      // Only show loading on initial load
+      if (!branchId) {
+        console.log('User Branch ID is not available yet.');
+        return;
+      }
+
       if (!initialLoadComplete) {
         setLowStockLoading(true);
       }
-      
-      const response = await axios.get<{ items: LowStockItem[] }>('/api/dashboard/low-stock');
-      const newItems = response.data.items;
-      
-      if (newItems && newItems.length > 0) {
-        setLowStockItems(prev => {
-          const existingItems = [...prev];
-          
-          newItems.forEach(newItem => {
-            const existingIndex = existingItems.findIndex(item => item.id === newItem.id);
-            if (existingIndex >= 0) {
-              existingItems[existingIndex] = newItem;
-            } else {
-              existingItems.unshift(newItem);
-            }
-          });
-          
-          return existingItems;
-        });
-      }
+
+      console.log(`Fetching low stock items for branch ID: ${branchId}`);
+
+      const response = await axios.get<{ items: LowStockItem[] }>(
+        `/api/dashboard/low-stockByBranch?branch_id=${branchId}`
+      );
+
+      const newItems = response.data.items || []; // 🛠 Ensure it's always an array
+
+      setLowStockItems(prev => {
+        return newItems.map(newItem => ({
+          ...newItem,
+          critical_branches: newItem.critical_branches || "", // 🔥 Ensure it's never undefined
+        }));
+      });
+
     } catch (error) {
       console.error('Error fetching low stock items:', error);
     } finally {
@@ -180,6 +199,8 @@ const DashboardPage: React.FC = () => {
       }
     }
   };
+
+
 
   // Fetch branches only when DevTools is opened
   useEffect(() => {
@@ -210,7 +231,7 @@ const DashboardPage: React.FC = () => {
       ]);
       setInitialLoadComplete(true);
     };
-    
+
     initialLoad();
 
     // Socket listeners for real-time updates
@@ -218,14 +239,14 @@ const DashboardPage: React.FC = () => {
       setRecentTransactions(prev => {
         // Remove the transaction if it already exists
         const withoutNew = prev.filter(tx => tx.invoice_number !== newTransaction.invoice_number);
-        
+
         // Add the new transaction at the beginning
         const updated = [newTransaction, ...withoutNew];
-        
+
         // Keep only the latest 5 transactions
         return updated.slice(0, 5);
       });
-      
+
       fetchDashboardData();
     });
 
@@ -394,24 +415,24 @@ const DashboardPage: React.FC = () => {
       {/* Recent Transactions and Low Stock Alert */}
       <Grid container spacing={6} sx={{ justifyContent: 'center', mb: 4 }}>
         <Grid item xs={12} md={5.35}>
-          <Paper 
-            sx={{ 
-              p: 3, 
+          <Paper
+            sx={{
+              p: 3,
               height: 'calc(100vh - 450px)',
               border: '2px solid #1976d2',
               bgcolor: 'background.paper',
               display: 'flex',
               flexDirection: 'column',
               mb: 2
-            }} 
+            }}
             elevation={2}
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
                 Recent Transactions
               </Typography>
-              <Button 
-                variant="text" 
+              <Button
+                variant="text"
                 onClick={() => navigate('/manager/sales-report')}
                 sx={{ textTransform: 'none', color: '#1976d2' }}
               >
@@ -423,7 +444,7 @@ const DashboardPage: React.FC = () => {
                 <CircularProgress sx={{ color: '#1976d2' }} />
               </Box>
             ) : (
-              <Box sx={{ 
+              <Box sx={{
                 flex: 1,
                 overflow: 'auto',
                 '&::-webkit-scrollbar': {
@@ -463,13 +484,13 @@ const DashboardPage: React.FC = () => {
                             label={transaction.payment_status.toUpperCase()}
                             variant="outlined"
                             size="medium"
-                            sx={{ 
-                              color: transaction.payment_status === 'paid' ? '#2e7d32' : 
-                                    transaction.payment_status === 'pending' ? '#ed6c02' : 
-                                    '#d32f2f',
-                              borderColor: transaction.payment_status === 'paid' ? '#2e7d32' : 
-                                         transaction.payment_status === 'pending' ? '#ed6c02' : 
-                                         '#d32f2f',
+                            sx={{
+                              color: transaction.payment_status === 'paid' ? '#2e7d32' :
+                                transaction.payment_status === 'pending' ? '#ed6c02' :
+                                  '#d32f2f',
+                              borderColor: transaction.payment_status === 'paid' ? '#2e7d32' :
+                                transaction.payment_status === 'pending' ? '#ed6c02' :
+                                  '#d32f2f',
                               backgroundColor: 'transparent',
                               fontSize: '0.9rem'
                             }}
@@ -478,7 +499,7 @@ const DashboardPage: React.FC = () => {
                             label={transaction.payment_method.toUpperCase()}
                             variant="outlined"
                             size="medium"
-                            sx={{ 
+                            sx={{
                               color: '#1976d2',
                               borderColor: '#1976d2',
                               backgroundColor: 'transparent',
@@ -489,7 +510,7 @@ const DashboardPage: React.FC = () => {
                             label={transaction.branch_name}
                             variant="outlined"
                             size="medium"
-                            sx={{ 
+                            sx={{
                               color: '#757575',
                               borderColor: '#757575',
                               backgroundColor: 'transparent',
@@ -506,24 +527,24 @@ const DashboardPage: React.FC = () => {
           </Paper>
         </Grid>
         <Grid item xs={12} md={5.35}>
-          <Paper 
-            sx={{ 
-              p: 3, 
+          <Paper
+            sx={{
+              p: 3,
               height: 'calc(100vh - 450px)',
               border: '2px solid #d32f2f',
               bgcolor: 'background.paper',
               display: 'flex',
               flexDirection: 'column',
               mb: 2
-            }} 
+            }}
             elevation={2}
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#d32f2f' }}>
                 Low Stock Alert
               </Typography>
-              <Button 
-                variant="text" 
+              <Button
+                variant="text"
                 onClick={() => navigate('/manager/inventory/medicine-shortage')}
                 sx={{ textTransform: 'none', color: '#d32f2f' }}
               >
@@ -535,7 +556,7 @@ const DashboardPage: React.FC = () => {
                 <CircularProgress sx={{ color: '#d32f2f' }} />
               </Box>
             ) : (
-              <Box sx={{ 
+              <Box sx={{
                 flex: 1,
                 overflow: 'auto',
                 '&::-webkit-scrollbar': {
@@ -568,27 +589,28 @@ const DashboardPage: React.FC = () => {
                           {item.barcode} • {item.category_name}
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'text.primary', mt: 1, fontSize: '1rem' }}>
-                          Critical Level: {item.critical}
+                          Critical Level: {item.critical ?? "N/A"} {/* 🔥 Ensure this doesn't break */}
                         </Typography>
+                        
                         <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap', gap: 1 }}>
-                          {item.critical_branches.split(', ').map((branch, idx) => {
+                          {(item.critical_branches || "").split(', ').map((branch, idx) => {
                             const [branchName, stock] = branch.split(': ');
                             const stockNum = parseInt(stock);
                             const isOutOfStock = stockNum === 0;
-                            
+
                             return (
                               <Chip
                                 key={idx}
                                 icon={isOutOfStock ? <WarningIcon /> : undefined}
-                                label={`${branchName}: ${stock}`}
+                                label={`${branchName}: ${stock || "N/A"}`}
                                 variant="outlined"
                                 size="medium"
-                                sx={{ 
+                                sx={{
                                   color: isOutOfStock ? '#ff1744' : '#ff9800',
                                   borderColor: isOutOfStock ? '#ff1744' : '#ff9800',
                                   backgroundColor: 'transparent',
                                   fontSize: '0.9rem',
-                                  '& .MuiChip-icon': { 
+                                  '& .MuiChip-icon': {
                                     color: isOutOfStock ? '#ff1744' : '#ff9800'
                                   }
                                 }}
@@ -607,7 +629,7 @@ const DashboardPage: React.FC = () => {
       </Grid>
 
       {/* DevTools Speed Dial */}
-      <SpeedDial
+      {/* <SpeedDial
         ariaLabel="Dev Tools"
         sx={{ position: 'fixed', bottom: 16, right: 16 }}
         icon={<SpeedDialIcon icon={<CodeIcon />} openIcon={<CloseIcon />} />}
@@ -622,11 +644,11 @@ const DashboardPage: React.FC = () => {
             onClick={action.onClick}
           />
         ))}
-      </SpeedDial>
+      </SpeedDial> */}
 
       {/* Transaction Generator Dialog */}
-      <Dialog 
-        open={transactionDialogOpen} 
+      <Dialog
+        open={transactionDialogOpen}
         onClose={handleTransactionDialogClose}
         maxWidth="sm"
         fullWidth
@@ -703,8 +725,8 @@ const DashboardPage: React.FC = () => {
         onClose={() => setTransactionSuccess(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       >
-        <Alert 
-          onClose={() => setTransactionSuccess(false)} 
+        <Alert
+          onClose={() => setTransactionSuccess(false)}
           severity="success"
           sx={{ width: '100%' }}
         >

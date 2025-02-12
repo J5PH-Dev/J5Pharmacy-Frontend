@@ -9,12 +9,10 @@ import {
   TableRow,
   IconButton,
   Typography,
-  Paper,
-  Tooltip
+  Paper
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import MedicalInformationIcon from '@mui/icons-material/MedicalInformation';
 import { CartItem } from '../../types/cart';
 import { QuantityDialog } from './action/QuantityDialog';
 
@@ -75,11 +73,11 @@ const Cart: React.FC<CartProps> = ({
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell>Item</TableCell>
-                <TableCell align="right">Price</TableCell>
-                <TableCell align="right">Qty</TableCell>
+                <TableCell>Product Name</TableCell>
+                <TableCell align="center">Quantity</TableCell>
+                <TableCell align="right">Unit Price</TableCell>
                 <TableCell align="right">Subtotal</TableCell>
-                <TableCell align="center">Action</TableCell>
+                <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -95,51 +93,27 @@ const Cart: React.FC<CartProps> = ({
                 items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {Boolean(item.requiresPrescription) && (
-                          <Tooltip title="This item requires a prescription. Use F6 to add prescription details.">
-                            <MedicalInformationIcon 
-                              color="warning"
-                              sx={{ 
-                                flexShrink: 0,
-                                animation: 'pulse 2s infinite',
-                                '@keyframes pulse': {
-                                  '0%': { opacity: 1 },
-                                  '50%': { opacity: 0.6 },
-                                  '100%': { opacity: 1 },
-                                }
-                              }}
-                            />
-                          </Tooltip>
-                        )}
-                        <Box>
-                          <Typography variant="body2" fontWeight={500}>
-                            {item.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {item.brand_name} • {item.category_name}
-                          </Typography>
-                        </Box>
-                      </Box>
+                      <Typography variant="body2" fontWeight={500}>
+                        {item.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {item.brand_name} • {item.category_name}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      {item.quantity}
                     </TableCell>
                     <TableCell align="right">
-                      ₱{Number(item.price).toLocaleString('en-PH', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
+                      ₱{Number(item.price).toFixed(2)}
                     </TableCell>
-                    <TableCell align="right">{item.quantity}</TableCell>
                     <TableCell align="right">
-                      ₱{Number(item.price * item.quantity).toLocaleString('en-PH', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
+                      ₱{(Number(item.price) * item.quantity).toFixed(2)}
                     </TableCell>
                     <TableCell align="center">
                       <IconButton
                         size="small"
                         onClick={() => handleQuantityEdit(item)}
-                        color={item.requiresPrescription ? "warning" : "primary"}
+                        color="primary"
                       >
                         <EditIcon />
                       </IconButton>

@@ -40,13 +40,4 @@ export interface CheckoutResponse {
   saleId: number;
   invoiceNumber: string;
   dailySequence: number;
-}
-
-// Add new interface for prescription items
-export interface PrescriptionItem {
-  product_id: number;
-  name: string;
-  prescribed_quantity: number;
-  dispensed_quantity: number;
-  dosage_instructions?: string;
 } 

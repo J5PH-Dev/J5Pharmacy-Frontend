@@ -27,10 +27,6 @@ interface ActionButtonsProps {
   customerName: string;
   starPointsId: string;
   pointsBalance: number;
-  isCheckoutDisabled: boolean;
-  onPrescription: () => void;
-  hasPrescriptionItems: boolean;
-  prescriptionSaved: boolean;
 }
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -49,10 +45,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   customerName,
   starPointsId,
   pointsBalance,
-  isCheckoutDisabled,
-  onPrescription,
-  hasPrescriptionItems,
-  prescriptionSaved
 }) => {
   const [openCheckout, setOpenCheckout] = useState(false);
   const [openCustomer, setOpenCustomer] = useState(false);
@@ -72,31 +64,21 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   return (
     <Box>
       <Stack spacing={2}>
+        {/* Checkout Button */}
         <Button
           variant="contained"
           color="success"
           size="large"
           onClick={() => setOpenCheckout(true)}
-          disabled={isCartEmpty || isCheckoutDisabled}
-          sx={{ height: 80, fontSize: '1.2rem' }}
+          disabled={isCartEmpty}
+          sx={{ 
+            height: 80, 
+            fontSize: '1.2rem',
+            width: '100%'
+          }}
         >
-          {hasPrescriptionItems && !prescriptionSaved 
-            ? 'Save Prescription First (F6)' 
-            : 'Checkout (F10)'}
+          Checkout (F10)
         </Button>
-
-        {/* Add Prescription Button */}
-        {hasPrescriptionItems && (
-          <Button
-            variant="contained"
-            color="warning"
-            size="large"
-            onClick={onPrescription}
-            sx={{ height: 60 }}
-          >
-            Add Prescription (F6)
-          </Button>
-        )}
 
         {/* Customer and Discount Buttons */}
         <Box sx={{ width: '100%' }}>

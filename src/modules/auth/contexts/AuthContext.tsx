@@ -154,19 +154,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             console.log('Logging out with session:', currentSession);
             
-            if (currentSession?.pharmacistSessionId) {
-                const response = await axios.post('/api/auth/end-pharmacist-session', {}, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
+            if (currentSession?.salesSessionId) {
+                const token = localStorage.getItem('token');
                 
-                if (!response.data.success) {
-                    console.error('Error ending session:', response.data.message);
-                }
+                await axios.post('/api/auth/end-pharmacist-session', 
+                    {
+                        salesSessionId: currentSession.salesSessionId,
+                        pharmacistSessionId: currentSession.pharmacistSessionId
+                    },
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
+                );
             }
 
-            // Clear local storage and state regardless of session end result
+            // Clear local storage and state
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             setUser(null);
@@ -177,7 +181,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 branchCode: null
             });
             
-            // Navigate to loading screen
             navigate('/loading-screen', { state: { isLoggingOut: true } });
 
         } catch (error) {

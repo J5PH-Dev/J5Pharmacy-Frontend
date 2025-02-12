@@ -12,10 +12,7 @@ import {
   TableCell,
   IconButton,
   Paper,
-  InputAdornment,
-  Box,
-  Typography,
-  Tooltip
+  InputAdornment
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
@@ -23,7 +20,6 @@ import { CartItem } from '../../../types/cart';
 import { useNotification } from '../../../contexts/NotificationContext';
 import axios, { AxiosError } from 'axios';
 import { useTheme } from '@mui/material/styles';
-import MedicalInformationIcon from '@mui/icons-material/MedicalInformation';
 
 interface AddItemDialogProps {
   open: boolean;
@@ -108,7 +104,7 @@ export const AddItemDialog: React.FC<AddItemDialogProps> = ({
   const searchProducts = async (query: string) => {
     try {
       console.log('AddItem search initiated:', {
-        query,
+        query: query.toUpperCase(),
         branchId
       });
 
@@ -116,7 +112,7 @@ export const AddItemDialog: React.FC<AddItemDialogProps> = ({
         `http://localhost:5000/api/pos/search`,
         {
           params: {
-            query: query,
+            query: query.toUpperCase(),
             branchId: branchId
           },
           withCredentials: true
@@ -140,7 +136,7 @@ export const AddItemDialog: React.FC<AddItemDialogProps> = ({
   };
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
+    const value = event.target.value.toUpperCase();
     setSearchInput(value);
     
     if (value.length >= 3) {
@@ -156,7 +152,7 @@ export const AddItemDialog: React.FC<AddItemDialogProps> = ({
       if (/^\d+$/.test(searchInput)) {
         try {
           const response = await axios.get(
-            `http://localhost:5000/api/pos/barcode/${searchInput}`,
+            `http://localhost:5000/api/pos/barcode/${searchInput.toUpperCase()}`,
             {
               params: { branchId },
               withCredentials: true
@@ -248,6 +244,7 @@ export const AddItemDialog: React.FC<AddItemDialogProps> = ({
                 <SearchIcon />
               </InputAdornment>
             ),
+            style: { textTransform: 'uppercase' }
           }}
         />
 
@@ -257,6 +254,7 @@ export const AddItemDialog: React.FC<AddItemDialogProps> = ({
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
+                  <TableCell>Brand</TableCell>
                   <TableCell>Barcode</TableCell>
                   <TableCell align="right">Price</TableCell>
                   <TableCell align="right">Stock</TableCell>
@@ -280,34 +278,8 @@ export const AddItemDialog: React.FC<AddItemDialogProps> = ({
                     }}
                     id={`product-row-${index}`}
                   >
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {Boolean(product.requiresPrescription) && (
-                          <Tooltip title="This item requires a prescription. Please use F6 to add prescription details.">
-                            <MedicalInformationIcon 
-                              color="warning"
-                              sx={{ 
-                                flexShrink: 0,
-                                animation: 'pulse 2s infinite',
-                                '@keyframes pulse': {
-                                  '0%': { opacity: 1 },
-                                  '50%': { opacity: 0.6 },
-                                  '100%': { opacity: 1 },
-                                }
-                              }}
-                            />
-                          </Tooltip>
-                        )}
-                        <Box>
-                          <Typography variant="body2" fontWeight={500}>
-                            {product.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {product.brand_name} • {product.category_name}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
+                    <TableCell>{product.name}</TableCell>
+                    <TableCell>{product.brand_name}</TableCell>
                     <TableCell>{product.barcode}</TableCell>
                     <TableCell align="right">
                       ₱{Number(product.price).toLocaleString('en-PH', {
@@ -319,29 +291,13 @@ export const AddItemDialog: React.FC<AddItemDialogProps> = ({
                       {product.stock <= 0 ? 'Out of Stock' : product.stock}
                     </TableCell>
                     <TableCell align="center">
-                      <Tooltip title={
-                        product.requiresPrescription 
-                          ? "This item requires a prescription. Use F6 after adding to cart."
-                          : product.stock <= 0 
-                            ? "Out of stock"
-                            : "Add to cart"
-                      }>
-                        <span>
-                          <IconButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              product.stock > 0 && handleAddProduct(product);
-                            }}
-                            disabled={product.stock <= 0}
-                            color={product.requiresPrescription ? "warning" : "primary"}
-                            sx={{
-                              opacity: product.stock <= 0 ? 0.5 : 1
-                            }}
-                          >
-                            <AddIcon />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
+                      <IconButton
+                        onClick={() => product.stock > 0 && handleAddProduct(product)}
+                        disabled={product.stock <= 0}
+                        sx={{ opacity: product.stock <= 0 ? 0.5 : 1 }}
+                      >
+                        <AddIcon />
+                      </IconButton>
                     </TableCell>
                   </TableRow>
                 ))}

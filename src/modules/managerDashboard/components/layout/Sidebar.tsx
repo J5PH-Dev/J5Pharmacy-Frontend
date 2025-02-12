@@ -132,10 +132,10 @@ const navigationItems: NavigationItem[] = [
   //     // { title: 'Price Management', path: '/manager/resources/price-management' },
   //   ],
   // },
-  // {
-  //   title: 'Reports',
-  //   icon: <AssessmentIcon />,
-  //   path: '/manager/sales-report',
+  {
+    title: 'Reports',
+    icon: <AssessmentIcon />,
+    path: '/manager/sales-report',
   //   children: [
   //     // { title: 'Statistics', path: '/manager/reports/statistics' },
   //     // { title: 'Sales', path: '/manager/reports/sales' },
@@ -143,7 +143,7 @@ const navigationItems: NavigationItem[] = [
   //     // { title: 'Returns', path: '/manager/reports/returns' },
   //     // { title: 'Void', path: '/manager/reports/void' },
   //   ],
-  // },
+  },
   {
     title: 'Employee & Staff',
     icon: <PeopleIcon />,

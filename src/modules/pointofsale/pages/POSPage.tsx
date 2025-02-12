@@ -17,14 +17,12 @@ import { AddItemDialog } from '../components/Cart/addItem/AddItemDialog';
 import { ManualStockDialog } from '../components/Cart/manualStock/ManualStockDialog';
 import RecallTransaction from '../components/FuntionKeys/dialogs/RecallTransaction';
 import { CheckoutDialog } from '../components/ActionButtons/checkout/CheckoutDialog';
-import { PrescriptionDialog } from '../components/FuntionKeys/dialogs/Prescription';
 // Import types and utilities
 import { CartItem } from '../types/cart';
 import { DiscountType } from '../types/discount';
 import { calculateTotals } from '../utils/calculations';
 
 interface Customer {
-  customer_id: number;
   name: string;
   card_id: string;
   points_balance: number;
@@ -36,13 +34,6 @@ interface PaymentDetails {
   change?: number;
   discountIdNumber?: string;
   referenceNumber?: string;
-}
-
-interface CustomerData {
-  id: number;
-  name: string;
-  starPointsId: string;
-  pointsBalance: number;
 }
 
 const POSPage: React.FC = () => {
@@ -61,17 +52,17 @@ const POSPage: React.FC = () => {
   const [customerName, setCustomerName] = useState<string>('Walk-in Customer');
   const [starPointsId, setStarPointsId] = useState<string | null>(null);
   const [currentInvoiceNumber, setCurrentInvoiceNumber] = useState<string>('');
-  const [customerData, setCustomerData] = useState<CustomerData>({
-    id: 1, // Default customer ID for walk-in
+  const [customerData, setCustomerData] = useState<{
+    name: string;
+    starPointsId: string;
+    pointsBalance: number;
+  }>({
     name: 'Walk-in Customer',
     starPointsId: '001',
     pointsBalance: 0
   });
   const [openCheckout, setOpenCheckout] = useState(false);
   const [pointsUsed, setPointsUsed] = useState(0);
-  const [hasPrescriptionItems, setHasPrescriptionItems] = useState(false);
-  const [prescriptionSaved, setPrescriptionSaved] = useState(false);
-  const [openPrescription, setOpenPrescription] = useState(false);
 
   const {
     subtotal,
@@ -185,6 +176,11 @@ const POSPage: React.FC = () => {
         setCustomDiscountValue(undefined);
         setPointsUsed(0);
         setCurrentInvoiceNumber('');
+        setCustomerData({
+          name: 'Walk-in Customer',
+          starPointsId: '001',
+          pointsBalance: 0
+        });
         showNotification('Transaction completed successfully', 'success');
       }
     } catch (error) {
@@ -254,24 +250,9 @@ const POSPage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    const requiresPrescription = cartItems.some(item => item.requiresPrescription);
-    setHasPrescriptionItems(requiresPrescription);
-    if (!requiresPrescription) {
-      setPrescriptionSaved(false);
-    }
-  }, [cartItems]);
-
-  const handlePrescriptionSave = () => {
-    setPrescriptionSaved(true);
-    setOpenPrescription(false);
-    showNotification('Prescription saved successfully', 'success');
-  };
-
   const handleCustomerSelect = (customer: Customer) => {
     console.log('Selected customer:', customer);
     setCustomerData({
-      id: customer.customer_id || 1,
       name: customer.name || 'Walk-in Customer',
       starPointsId: customer.card_id || '001',
       pointsBalance: customer.points_balance || 0
@@ -310,7 +291,6 @@ const POSPage: React.FC = () => {
         <Grid item xs={2} sx={{ height: '100%' }}>
           <Paper elevation={2} sx={{ height: '100%', overflow: 'hidden' }}>
             <FunctionKeys 
-              onLogout={logout}
               onAddProduct={handleAddProduct}
               currentItems={cartItems}
               currentTotal={total}
@@ -387,10 +367,6 @@ const POSPage: React.FC = () => {
                   customerName={customerData.name}
                   starPointsId={customerData.starPointsId}
                   pointsBalance={customerData.pointsBalance}
-                  isCheckoutDisabled={hasPrescriptionItems && !prescriptionSaved}
-                  onPrescription={() => setOpenPrescription(true)}
-                  hasPrescriptionItems={hasPrescriptionItems}
-                  prescriptionSaved={prescriptionSaved}
                 />
               </Paper>
             </Grid>
@@ -430,21 +406,12 @@ const POSPage: React.FC = () => {
         pointsBalance={customerData.pointsBalance}
         onCustomerSelect={(customer: Customer) => {
           setCustomerData({
-            id: customer.customer_id || 1,
             name: customer.name || 'Walk-in Customer',
             starPointsId: customer.card_id || '001',
             pointsBalance: customer.points_balance || 0
           });
         }}
         onCheckout={handleCheckout}
-      />
-
-      <PrescriptionDialog
-        open={openPrescription}
-        onClose={() => setOpenPrescription(false)}
-        onSave={handlePrescriptionSave}
-        customerId={customerData.id}
-        prescriptionItems={cartItems.filter(item => item.requiresPrescription)}
       />
     </Box>
   );
