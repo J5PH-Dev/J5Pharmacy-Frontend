@@ -9,11 +9,13 @@ export interface LoginResponse {
         role: string;
         employeeId: string;
         branchId: number;
+        branchCode: string;
     };
     pharmacist?: {
         name: string;
         staffId: number;
         branchId: number;
+        branchCode: string;
         sessionId: number;
         salesSessionId: number;
         branch_name: string;

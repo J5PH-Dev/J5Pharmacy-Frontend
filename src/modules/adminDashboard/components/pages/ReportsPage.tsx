@@ -56,16 +56,16 @@ const ReportsPage = () => {
                         },
                     }}
                 >
-                    <Tab label="Dashboard" />
+                    {/* <Tab label="Dashboard" /> */}
                     <Tab label="All Transactions" />
                 </Tabs>
             </Box>
-
+{/* 
             <TabPanel value={currentTab} index={0}>
                 <ReportDashboard />
-            </TabPanel>
+            </TabPanel> */}
 
-            <TabPanel value={currentTab} index={1}>
+            <TabPanel value={currentTab} index={0}>
                 <ViewAllTransaction />
             </TabPanel>
         </Box>

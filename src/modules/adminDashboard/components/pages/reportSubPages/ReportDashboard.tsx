@@ -239,7 +239,7 @@ const ReportDashboard: React.FC = () => {
     return (
         <Box sx={{ p: 2 }}>
             {/* Filters Panel */}
-            <Paper sx={{ mb: 2, p: 2 }}>
+            {/* <Paper sx={{ mb: 2, p: 2 }}>
                 <Grid container spacing={2} alignItems="center">
                     <Grid item xs={12} md={3}>
                         <TextField
@@ -304,23 +304,23 @@ const ReportDashboard: React.FC = () => {
                         />
                     </Grid>
                 </Grid>
-            </Paper>
+            </Paper> */}
 
             {/* Tabs Navigation */}
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+            {/* <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
                 <Tabs value={tabValue} onChange={handleTabChange} aria-label="dashboard tabs">
                     <Tab icon={<TrendingUpIcon />} label="Main Overview" />
-                    {/* <Tab icon={<PeopleIcon />} label="Financial Analytics" />
+                    <Tab icon={<PeopleIcon />} label="Financial Analytics" />
                     <Tab icon={<InventoryIcon />} label="Product Performance" />
                     <Tab icon={<PeopleIcon />} label="Customer Insights" />
-                    <Tab icon={<StorefrontIcon />} label="Branch Performance" /> */}
+                    <Tab icon={<StorefrontIcon />} label="Branch Performance" />
                 </Tabs>
-            </Box>
+            </Box> */}
 
             {/* Main Overview Tab */}
             <TabPanel value={tabValue} index={0}>
                 <Grid container spacing={2}>
-                    {/* Sales Overview Chart */}
+                    {/* Sales Overview Chart
                     <Grid item xs={12} md={8}>
                         <Paper 
                             sx={{ 
@@ -382,7 +382,7 @@ const ReportDashboard: React.FC = () => {
                                 </LineChart>
                             </ResponsiveContainer>
                         </Paper>
-                    </Grid>
+                    </Grid> */}
 
                     {/* Latest Transactions */}
                     <Grid item xs={12} md={4}>
@@ -396,9 +396,9 @@ const ReportDashboard: React.FC = () => {
                         >
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                 <Typography variant="h6">Latest Transactions</Typography>
-                                <IconButton onClick={() => toggleSection('latestTransactions')}>
+                                {/* <IconButton onClick={() => toggleSection('latestTransactions')}>
                                     {isExpanded.latestTransactions ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                                </IconButton>
+                                </IconButton> */}
                             </Box>
                             <Box sx={{ height: 'calc(100% - 48px)', overflow: 'auto' }}>
                                 <AnimatePresence>
@@ -453,13 +453,13 @@ const ReportDashboard: React.FC = () => {
                     </Grid>
 
                     {/* Quick Stats */}
-                    <Grid item xs={12}>
+                    <Grid item xs={12} md={8}>
                         <Paper sx={{ p: 2 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                <Typography variant="h6">Quick Stats</Typography>
-                                <IconButton onClick={() => toggleSection('quickStats')}>
+                                <Typography variant="h6">Quick Stats (Today's Sale)</Typography>
+                                {/* <IconButton onClick={() => toggleSection('quickStats')}>
                                     {isExpanded.quickStats ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                                </IconButton>
+                                </IconButton> */}
                             </Box>
                             <Grid container spacing={3}>
                                 {metrics && (

@@ -26,7 +26,7 @@ interface Category {
     category_id: number;
     name: string;
     prefix: string;
-    product_count?: number;
+    product_count: number;
 }
 
 const MedicineGroupPage = () => {
@@ -62,7 +62,26 @@ const MedicineGroupPage = () => {
         setIsLoading(true);
         try {
             const response = await axios.get('/admin/inventory/categories');
-            const categoriesData = response.data;
+            console.log('Raw API response:', response.data);
+            
+            const categoriesData = response.data.map((category: any) => {
+                const processedCategory = {
+                    ...category,
+                    product_count: Number(category.product_count) || 0
+                };
+                // Debug log to check each category's mapping
+                console.log(`Category: ${processedCategory.name}, Count: ${processedCategory.product_count}`);
+                return processedCategory;
+            });
+
+            // Log the final processed data
+            console.log('All categories with their counts:', 
+                categoriesData.map((c: Category) => ({
+                    name: c.name,
+                    count: c.product_count
+                }))
+            );
+
             setCategories(categoriesData);
             setError(null);
         } catch (error) {
@@ -457,7 +476,7 @@ const MedicineGroupPage = () => {
                                 )}
                                 <TableCell>{category.name}</TableCell>
                                 <TableCell>{category.prefix}</TableCell>
-                                <TableCell>{category.product_count || 0}</TableCell>
+                                <TableCell>{category.product_count}</TableCell>
                                 <TableCell>
                                     <IconButton 
                                         size="small" 

@@ -122,16 +122,16 @@ const navigationItems: NavigationItem[] = [
       { title: 'Shortage', path: '/admin/inventory/medicine-shortage' },
     ],
   },
-  {
-    title: 'Resource Management',
-    icon: <LocalShippingIcon />,
-    path: '/admin/resources',
-    children: [
-      { title: 'Supplier Management', path: '/admin/resources/supplier-management' },
-      { title: 'Bulk Inventory Import', path: '/admin/resources/bulk-inventory-import' },
-      // { title: 'Price Management', path: '/admin/resources/price-management' },
-    ],
-  },
+  // {
+  //   title: 'Resource Management',
+  //   icon: <LocalShippingIcon />,
+  //   path: '/admin/resources',
+  //   children: [
+  //     { title: 'Supplier Management', path: '/admin/resources/supplier-management' },
+  //     { title: 'Bulk Inventory Import', path: '/admin/resources/bulk-inventory-import' },
+  //     // { title: 'Price Management', path: '/admin/resources/price-management' },
+  //   ],
+  // },
   {
     title: 'Reports',
     icon: <AssessmentIcon />,
@@ -159,11 +159,11 @@ const navigationItems: NavigationItem[] = [
     icon: <PersonIcon />,
     path: '/admin/customer-info',
   },
-  {
-    title: 'Settings',
-    icon: <SettingsIcon />,
-    path: '/admin/settings',
-  },
+  // {
+  //   title: 'Settings',
+  //   icon: <SettingsIcon />,
+  //   path: '/admin/settings',
+  // },
 ];
 
 const Sidebar: React.FC = () => {

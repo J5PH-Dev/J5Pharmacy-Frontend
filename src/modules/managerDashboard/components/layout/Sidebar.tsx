@@ -136,13 +136,13 @@ const navigationItems: NavigationItem[] = [
     title: 'Reports',
     icon: <AssessmentIcon />,
     path: '/manager/sales-report',
-    children: [
-      // { title: 'Statistics', path: '/manager/reports/statistics' },
-      // { title: 'Sales', path: '/manager/reports/sales' },
-      // { title: 'Inventory', path: '/manager/reports/inventory' },
-      // { title: 'Returns', path: '/manager/reports/returns' },
-      // { title: 'Void', path: '/manager/reports/void' },
-    ],
+  //   children: [
+  //     // { title: 'Statistics', path: '/manager/reports/statistics' },
+  //     // { title: 'Sales', path: '/manager/reports/sales' },
+  //     // { title: 'Inventory', path: '/manager/reports/inventory' },
+  //     // { title: 'Returns', path: '/manager/reports/returns' },
+  //     // { title: 'Void', path: '/manager/reports/void' },
+  //   ],
   },
   {
     title: 'Employee & Staff',
@@ -162,11 +162,11 @@ const navigationItems: NavigationItem[] = [
       // { title: 'StarPoints', path: '/manager/customers/starpoints' },
     ],
   },
-  {
-    title: 'Settings',
-    icon: <SettingsIcon />,
-    path: '/manager/settings',
-  },
+  // {
+  //   title: 'Settings',
+  //   icon: <SettingsIcon />,
+  //   path: '/manager/settings',
+  // },
   // {
   //   title: 'Notifications',
   //   icon: <NotificationsIcon />,

@@ -383,7 +383,7 @@ const ViewAllTransaction = () => {
                                             >
                                                 <VisibilityIcon />
                                             </IconButton>
-                                            <IconButton
+                                            {/* <IconButton
                                                 onClick={() => {
                                                     setTransactionToDelete(transaction);
                                                     setOpenModal(true);
@@ -392,7 +392,7 @@ const ViewAllTransaction = () => {
                                                 title="Delete Transaction"
                                             >
                                                 <DeleteIcon />
-                                            </IconButton>
+                                            </IconButton> */}
                                         </Stack>
                                     </TableCell>
                                 </TableRow>
