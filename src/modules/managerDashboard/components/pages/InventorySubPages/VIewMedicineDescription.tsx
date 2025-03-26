@@ -351,76 +351,7 @@ const ViewMedicineDescription = () => {
                     </Box>
                 </Box>
                 
-                {/* Branch Inventory */}
-                <Box
-                    sx={{
-                        width: '500px',
-                        border: '1px solid #e0e0e0',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        backgroundColor: 'white',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                    }}
-                >
-                    {/* Header */}
-                    <div className="flex flex-row justify-between items-center">
-                        <Box sx={{ padding: '14px 30px', textAlign: 'left' }}>
-                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>
-                                Branch Inventory
-                                <Typography component="span" sx={{ ml: 1, color: 'text.secondary', fontSize: '15px' }}>
-                                    ({medicineDetails.branchInventory.length} {medicineDetails.branchInventory.length === 1 ? 'Branch' : 'Branches'})
-                                </Typography>
-                            </Typography>
-                        </Box>
-                        <Box sx={{ padding: '14px 30px', textAlign: 'left' }}>
-                            <IconButton onClick={() => setOpenBranchesModal(true)}>
-                                <EditIcon sx={{ fontSize: '19px', color: 'gray' }} />
-                            </IconButton>
-                        </Box>
-                    </div>
-                    <Divider />
-                    {/* Content Section with Scroll */}
-                    <Box sx={{ 
-                        maxHeight: '300px', 
-                        overflowY: 'auto',
-                        '&::-webkit-scrollbar': {
-                            width: '8px',
-                        },
-                        '&::-webkit-scrollbar-track': {
-                            background: '#f1f1f1',
-                        },
-                        '&::-webkit-scrollbar-thumb': {
-                            background: '#888',
-                            borderRadius: '4px',
-                        },
-                        '&::-webkit-scrollbar-thumb:hover': {
-                            background: '#555',
-                        },
-                    }}>
-                        {medicineDetails.branchInventory.map((branch) => (
-                            <Box 
-                                key={branch.branch_id} 
-                                sx={{ 
-                                    padding: '21px 30px', 
-                                    display: 'flex', 
-                                    justifyContent: 'space-between',
-                                    borderBottom: '1px solid #f0f0f0',
-                                    '&:last-child': {
-                                        borderBottom: 'none'
-                                    }
-                                }}
-                            >
-                                <Box sx={{ flex: 1 }}>
-                                    <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>{branch.stock}</Typography>
-                                    <Typography sx={{ color: 'black', fontSize: '15px' }}>{branch.branch_name}</Typography>
-                                    <Typography sx={{ color: 'text.secondary', fontSize: '13px' }}>
-                                        Expires: {branch.expiryDate ? new Date(branch.expiryDate).toLocaleDateString() : 'N/A'}
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        ))}
-                    </Box>
-                </Box>
+
 
                 {/* Instructions */}
                 <Box

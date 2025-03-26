@@ -256,7 +256,7 @@ const MedicineGroupPage = () => {
     }, [processedCategories, page, rowsPerPage]);
 
     const handleViewCategory = (categoryName: string) => {
-        navigate('/admin/inventory/view-medicines-available', {
+        navigate('/manager/inventory/view-medicines-available', {
             state: { preSelectedCategory: categoryName }
         });
     };
@@ -327,7 +327,7 @@ const MedicineGroupPage = () => {
                         <Button
                             variant="contained"
                             color="inherit"
-                            onClick={() => navigate('/admin/inventory/archived-categories')}
+                            onClick={() => navigate('/manager/inventory/archived-categories')}
                             startIcon={<ArchiveIcon />}
                             sx={{ textTransform: 'none' }}
                         >
@@ -336,7 +336,7 @@ const MedicineGroupPage = () => {
                         <Button
                             variant="contained"
                             color="inherit"
-                            onClick={() => navigate('/admin/inventory/view-medicines-available')}
+                            onClick={() => navigate('/manager/inventory/view-medicines-available')}
                             startIcon={<VisibilityIcon />}
                             sx={{ textTransform: 'none' }}
                         >
