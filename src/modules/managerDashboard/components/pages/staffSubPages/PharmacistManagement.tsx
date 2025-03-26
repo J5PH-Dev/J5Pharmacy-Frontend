@@ -58,7 +58,8 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
     const [openDialog, setOpenDialog] = useState(false);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
     const [selectedPharmacist, setSelectedPharmacist] = useState<Pharmacist | null>(null);
-    const [tempImageUrl, setTempImageUrl] = useState<string | undefined>(undefined);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
     const [formData, setFormData] = useState({
         name: '',
@@ -76,25 +77,18 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
 
     useEffect(() => {
         fetchPharmacists();
+        fetchBranches();
     }, [includeArchived, selectedBranch]);
 
     const fetchPharmacists = async () => {
         setIsLoading(true);
         try {
-            console.log('User object:', user); // Check if user is available
-            console.log('User branch_id:', user?.branch_id); // Check branch_id
-            
             let url = `/api/staff/pharmacistsByBranches?include_archived=${includeArchived}`;
             if (user?.branchId) {
                 url += `&branch_id=${user.branchId}`;
             }
-            
-            console.log('Fetching pharmacists from URL:', url); // Final check before request
-    
+
             const response = await axios.get(url);
-    
-            console.log("Fetched pharmacists data:", response.data.data); // ✅ Log the response data
-    
             setPharmacists(response.data.data);
         } catch (error) {
             console.error('Error fetching pharmacists:', error);
@@ -103,7 +97,16 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
             setIsLoading(false);
         }
     };
-    
+
+    const fetchBranches = async () => {
+        try {
+            const response = await axios.get('/api/staff/branches');
+            setBranches(response.data.data);
+        } catch (error) {
+            console.error('Error fetching branches:', error);
+            showSnackbar('Error fetching branches', 'error');
+        }
+    };
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
@@ -118,57 +121,24 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
             const file = event.target.files[0];
-            try {
-                const imageFormData = new FormData();
-                imageFormData.append('image', file);
-                
+            setSelectedFile(file);
+
+            // Create a preview URL for immediate display
+            const reader = new FileReader();
+            reader.onload = () => {
+                const previewUrl = reader.result as string;
                 if (selectedPharmacist) {
-                    // Existing pharmacist - upload image directly
-                    const response = await axios.post(
-                        `/api/staff/pharmacists/upload-image/${selectedPharmacist.staff_id}`,
-                        imageFormData,
-                        {
-                            headers: {
-                                'Content-Type': 'multipart/form-data',
-                            },
-                        }
-                    );
-                    showSnackbar('Profile picture updated successfully', 'success');
-                    
-                    // Update the UI with the new image
-                    if (response.data.image_url) {
-                        await handleImageUploadSuccess(selectedPharmacist.staff_id, response.data.image_url);
-                    }
+                    // Update the preview for existing pharmacist
+                    setSelectedPharmacist({
+                        ...selectedPharmacist,
+                        image_url: previewUrl
+                    });
                 } else {
-                    // New pharmacist - store the image temporarily
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        if (e.target?.result) {
-                            // Show preview in the Avatar
-                            const tempPharmacist: Pharmacist = {
-                                staff_id: 0,
-                                name: '',
-                                email: '',
-                                phone: '',
-                                pin_code: '',
-                                branch_id: 0,
-                                branch_name: '',
-                                image_url: e.target.result as string,
-                                created_at: '',
-                                updated_at: '',
-                                is_active: true
-                            };
-                            setSelectedPharmacist(tempPharmacist);
-                            // Store the file for later upload after pharmacist creation
-                            setTempImageUrl(e.target.result as string);
-                        }
-                    };
-                    reader.readAsDataURL(file);
+                    // Store preview for new pharmacist
+                    setImagePreview(previewUrl);
                 }
-            } catch (error) {
-                console.error('Error handling profile picture:', error);
-                showSnackbar('Error handling profile picture', 'error');
-            }
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -177,25 +147,43 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
         try {
             let response;
             if (selectedPharmacist) {
+                // Update pharmacist info
                 response = await axios.put(`/api/staff/pharmacists/${selectedPharmacist.staff_id}`, formData);
-            } else {
-                response = await axios.post('/api/staff/pharmacists', formData);
-            }
 
-            if (tempImageUrl) {
-                const imageFormData = new FormData();
-                imageFormData.append('image', tempImageUrl);
-                const staffId = selectedPharmacist ? selectedPharmacist.staff_id : response.data.staffId;
-                
-                await axios.post(
-                    `/api/staff/pharmacists/upload-image/${staffId}`, 
-                    imageFormData,
-                    {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                        },
-                    }
-                );
+                // Upload image separately if selected
+                if (selectedFile) {
+                    const imageFormData = new FormData();
+                    imageFormData.append('image', selectedFile);
+
+                    await axios.post(
+                        `/api/staff/pharmacists/upload-image/${selectedPharmacist.staff_id}`,
+                        imageFormData,
+                        {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                            },
+                        }
+                    );
+                }
+            } else {
+                // Create new pharmacist
+                response = await axios.post('/api/staff/pharmacists', formData);
+
+                // Upload image if selected and pharmacist was created successfully
+                if (selectedFile && response.data && response.data.staffId) {
+                    const imageFormData = new FormData();
+                    imageFormData.append('image', selectedFile);
+
+                    await axios.post(
+                        `/api/staff/pharmacists/upload-image/${response.data.staffId}`,
+                        imageFormData,
+                        {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                            },
+                        }
+                    );
+                }
             }
 
             showSnackbar(selectedPharmacist ? 'Pharmacist updated successfully' : 'Pharmacist created successfully', 'success');
@@ -236,13 +224,16 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
             pin_code: pharmacist.pin_code,
             branch_id: pharmacist.branch_id.toString()
         });
+        setSelectedFile(null); // Reset any previously selected file
         setOpenDialog(true);
+        setOpenDetailsDialog(false); // Close details dialog if open
     };
 
     const handleClose = () => {
         setOpenDialog(false);
         setSelectedPharmacist(null);
-        setTempImageUrl(undefined);
+        setSelectedFile(null);
+        setImagePreview(null);
         setFormData({
             name: '',
             email: '',
@@ -263,11 +254,13 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
     const handleArchive = async () => {
         setIsSubmitting(true);
         try {
-            await axios.put(`/api/staff/pharmacists/${selectedPharmacist?.staff_id}/archive`);
-            showSnackbar('Pharmacist archived successfully', 'success');
-            setOpenDeleteDialog(false);
-            setSelectedPharmacist(null);
-            fetchPharmacists();
+            if (selectedPharmacist) {
+                await axios.put(`/api/staff/pharmacists/${selectedPharmacist.staff_id}/archive`);
+                showSnackbar('Pharmacist archived successfully', 'success');
+                setOpenDeleteDialog(false);
+                setSelectedPharmacist(null);
+                fetchPharmacists();
+            }
         } catch (error) {
             console.error('Error archiving pharmacist:', error);
             showSnackbar('Error archiving pharmacist', 'error');
@@ -298,36 +291,28 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
         try {
             await axios.put(`/api/staff/pharmacists/${staffId}/remove-image`);
             showSnackbar('Profile picture removed successfully', 'success');
-            
-            // Update the selected pharmacist's image in state
-            if (selectedPharmacist) {
-                setSelectedPharmacist({
-                    ...selectedPharmacist,
-                    image_url: undefined
-                });
-            }
-            
-            // Refresh the pharmacists list
+            setOpenRemoveImageDialog(false);
             fetchPharmacists();
         } catch (error) {
             console.error('Error removing profile picture:', error);
             showSnackbar('Error removing profile picture', 'error');
         } finally {
             setIsRemovingImage(false);
-            setOpenRemoveImageDialog(false);
         }
     };
 
-    const handleImageUploadSuccess = async (staffId: number, imageUrl: string) => {
-        // Update the selected pharmacist's image in state
-        if (selectedPharmacist && selectedPharmacist.staff_id === staffId) {
-            setSelectedPharmacist({
-                ...selectedPharmacist,
-                image_url: imageUrl
-            });
-        }
-        // Refresh the pharmacists list
-        await fetchPharmacists();
+    const openAddNewDialog = () => {
+        setSelectedPharmacist(null);
+        setSelectedFile(null);
+        setImagePreview(null);
+        setFormData({
+            name: '',
+            email: '',
+            phone: '',
+            pin_code: '',
+            branch_id: ''
+        });
+        setOpenDialog(true);
     };
 
     return (
@@ -335,7 +320,7 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Box>
                     <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        Pharmacist Managementss
+                        Pharmacist Management
                     </Typography>
                     <FormControlLabel
                         control={
@@ -348,6 +333,14 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
                         label="Show Archived Pharmacists"
                     />
                 </Box>
+                <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={openAddNewDialog}
+                    sx={{ backgroundColor: '#01A768', '&:hover': { backgroundColor: '#017F4A' } }}
+                >
+                    Add New Pharmacist
+                </Button>
             </Box>
 
             {isLoading ? (
@@ -358,10 +351,10 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
                 <Grid container spacing={3}>
                     {pharmacists.map((pharmacist) => (
                         <Grid item xs={12} sm={6} md={4} key={pharmacist.staff_id}>
-                            <Paper 
+                            <Paper
                                 onClick={() => handleCardClick(pharmacist)}
-                                sx={{ 
-                                    p: 3, 
+                                sx={{
+                                    p: 3,
                                     height: '100%',
                                     opacity: pharmacist.is_active ? 1 : 0.7,
                                     position: 'relative',
@@ -391,7 +384,10 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
                                             size="small"
                                             variant="contained"
                                             color="primary"
-                                            onClick={() => handleRestore(pharmacist)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleRestore(pharmacist);
+                                            }}
                                             sx={{ fontSize: '0.75rem', py: 0.5 }}
                                         >
                                             Restore
@@ -405,11 +401,11 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
                                     />
                                     {pharmacist.is_active && (
                                         <Box>
-                                            <IconButton 
+                                            <IconButton
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleEdit(pharmacist);
-                                                }} 
+                                                }}
                                                 sx={{ color: '#2B7FF5' }}
                                             >
                                                 <Edit />
@@ -462,53 +458,55 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
                 <DialogContent>
                     <Box component="form" sx={{ mt: 2 }}>
                         <Grid container spacing={2}>
-                            {!selectedPharmacist && (
-                                <Grid item xs={12}>
-                                    <Box sx={{ mt: 2, mb: 2 }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                                                Profile Picture
-                                            </Typography>
-                                            <Tooltip title={
-                                                <Box sx={{ p: 1 }}>
-                                                    <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                                                        Profile Picture Requirements:
-                                                    </Typography>
-                                                    <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
-                                                        <li>Accepted formats: JPG, JPEG, PNG</li>
-                                                        <li>Maximum file size: 5MB</li>
-                                                        <li>Recommended dimensions: 400x400 pixels</li>
-                                                        <li>Square aspect ratio (1:1) recommended</li>
-                                                    </ul>
-                                                </Box>
-                                            } arrow>
-                                                <IconButton size="small">
-                                                    <HelpOutline fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </Box>
-                                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                                            <Avatar
-                                                src={tempImageUrl}
-                                                sx={{ width: 80, height: 80 }}
+                            <Grid item xs={12}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+                                    <Avatar
+                                        src={selectedPharmacist?.image_url || imagePreview || undefined}
+                                        sx={{ width: 100, height: 100, mb: 2 }}
+                                    />
+
+                                    <Box sx={{ display: 'flex', gap: 2 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            startIcon={<AddIcon />}
+                                        >
+                                            {(selectedPharmacist?.image_url || imagePreview) ? 'Change Picture' : 'Upload Picture'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*"
+                                                onChange={handleFileChange}
                                             />
+                                        </Button>
+
+                                        {(selectedPharmacist?.image_url || imagePreview) && (
                                             <Button
                                                 variant="outlined"
-                                                component="label"
-                                                startIcon={<AddIcon />}
+                                                color="error"
+                                                startIcon={<DeleteOutline />}
+                                                onClick={() => {
+                                                    if (selectedPharmacist?.image_url) {
+                                                        setOpenRemoveImageDialog(true);
+                                                    } else {
+                                                        setImagePreview(null);
+                                                        setSelectedFile(null);
+                                                    }
+                                                }}
                                             >
-                                                Upload Picture
-                                                <input
-                                                    type="file"
-                                                    hidden
-                                                    accept="image/*"
-                                                    onChange={handleFileChange}
-                                                />
+                                                Remove Picture
                                             </Button>
-                                        </Box>
+                                        )}
                                     </Box>
-                                </Grid>
-                            )}
+
+                                    {selectedFile && (
+                                        <Typography variant="caption" sx={{ mt: 1 }}>
+                                            Selected file: {selectedFile.name}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </Grid>
+
                             <Grid item xs={12}>
                                 <TextField
                                     name="name"
@@ -597,9 +595,9 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenDeleteDialog(false)} disabled={isSubmitting}>Cancel</Button>
-                    <Button 
-                        onClick={handleArchive} 
-                        color="error" 
+                    <Button
+                        onClick={handleArchive}
+                        color="error"
                         variant="contained"
                         disabled={isSubmitting}
                     >
@@ -613,8 +611,8 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
             </Dialog>
 
             {/* Details Dialog */}
-            <Dialog 
-                open={openDetailsDialog} 
+            <Dialog
+                open={openDetailsDialog}
                 onClose={() => setOpenDetailsDialog(false)}
                 maxWidth="sm"
                 fullWidth
@@ -630,127 +628,21 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
                                 <Avatar
                                     src={selectedPharmacist.image_url}
-                                    sx={{ 
-                                        width: 150, 
-                                        height: 150, 
+                                    sx={{
+                                        width: 150,
+                                        height: 150,
                                         mb: 2,
                                         boxShadow: 3
                                     }}
                                 />
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                                    <Typography variant="body2" color="textSecondary">
-                                        Profile Picture
+
+                                <Box sx={{ mt: 3, width: '100%', textAlign: 'center' }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                        {selectedPharmacist.name}
                                     </Typography>
-                                    <Tooltip title={
-                                        <Box sx={{ p: 1 }}>
-                                            <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                                                Profile Picture Requirements:
-                                            </Typography>
-                                            <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
-                                                <li>Accepted formats: JPG, JPEG, PNG</li>
-                                                <li>Maximum file size: 5MB</li>
-                                                <li>Recommended dimensions: 400x400 pixels</li>
-                                                <li>Square aspect ratio (1:1) recommended</li>
-                                            </ul>
-                                        </Box>
-                                    } arrow>
-                                        <IconButton size="small">
-                                            <HelpOutline fontSize="small" />
-                                        </IconButton>
-                                    </Tooltip>
-                                </Box>
-                                <Box sx={{ display: 'flex', gap: 2 }}>
-                                    {selectedPharmacist?.image_url ? (
-                                        <>
-                                            <Button
-                                                variant="outlined"
-                                                color="error"
-                                                startIcon={<DeleteOutline />}
-                                                onClick={() => setOpenRemoveImageDialog(true)}
-                                            >
-                                                Remove Picture
-                                            </Button>
-                                            <Button
-                                                variant="outlined"
-                                                component="label"
-                                                startIcon={<AddIcon />}
-                                            >
-                                                Change Picture
-                                                <input
-                                                    type="file"
-                                                    hidden
-                                                    accept="image/*"
-                                                    onChange={handleFileChange}
-                                                />
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <Button
-                                            variant="outlined"
-                                            component="label"
-                                            startIcon={<AddIcon />}
-                                        >
-                                            Upload Picture
-                                            <input
-                                                type="file"
-                                                hidden
-                                                accept="image/*"
-                                                onChange={handleFileChange}
-                                            />
-                                        </Button>
-                                    )}
-                                </Box>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <Avatar
-                                        src={selectedPharmacist.image_url}
-                                        sx={{ width: 56, height: 56, mb: 2 }}
-                                    />
-                                    {selectedPharmacist.is_active && (
-                                        <Box>
-                                            <IconButton 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleEdit(selectedPharmacist);
-                                                }} 
-                                                sx={{ color: '#2B7FF5' }}
-                                            >
-                                                <Edit />
-                                            </IconButton>
-                                            <IconButton
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedPharmacist(selectedPharmacist);
-                                                    setOpenDeleteDialog(true);
-                                                }}
-                                                sx={{ color: '#D42A4C' }}
-                                            >
-                                                <Delete />
-                                            </IconButton>
-                                        </Box>
-                                    )}
-                                </Box>
-
-                                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                                    {selectedPharmacist.name}
-                                </Typography>
-                                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                                    Staff ID: {selectedPharmacist.staff_id}
-                                </Typography>
-
-                                <Box sx={{ mb: 2 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Branch:</Typography>
-                                    <Typography variant="body2">{selectedPharmacist.branch_name}</Typography>
-                                </Box>
-
-                                <Box sx={{ mb: 2 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Contact:</Typography>
-                                    <Typography variant="body2">{selectedPharmacist.email}</Typography>
-                                    <Typography variant="body2">{selectedPharmacist.phone}</Typography>
-                                </Box>
-
-                                <Box>
-                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>PIN Code:</Typography>
-                                    <Typography variant="body2">{selectedPharmacist.pin_code}</Typography>
+                                    <Typography color="textSecondary">
+                                        Staff ID: {selectedPharmacist.staff_id}
+                                    </Typography>
                                 </Box>
                             </Box>
 
@@ -792,12 +684,14 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
                 <DialogActions>
                     <Button onClick={() => setOpenDetailsDialog(false)}>Close</Button>
                     {selectedPharmacist?.is_active && (
-                        <Button 
+                        <Button
                             onClick={() => {
                                 setOpenDetailsDialog(false);
                                 handleEdit(selectedPharmacist);
                             }}
                             color="primary"
+                            variant="contained"
+                            sx={{ backgroundColor: '#01A768', '&:hover': { backgroundColor: '#017F4A' } }}
                         >
                             Edit
                         </Button>
@@ -817,7 +711,7 @@ const PharmacistManagement: React.FC<Props> = ({ selectedBranch }) => {
                     </Typography>
                 </DialogContent>
                 <DialogActions>
-                    <Button 
+                    <Button
                         onClick={() => setOpenRemoveImageDialog(false)}
                         disabled={isRemovingImage}
                     >

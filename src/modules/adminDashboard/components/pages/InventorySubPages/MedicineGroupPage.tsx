@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-    Box, Typography, Breadcrumbs, Link, Button, Stack, TextField, 
-    TableContainer, Table, TableHead, TableRow, TableCell, TableBody, 
-    Paper, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, 
+import {
+    Box, Typography, Breadcrumbs, Link, Button, Stack, TextField,
+    TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
+    Paper, IconButton, Alert, FormControl, InputLabel, Select, MenuItem,
     SelectChangeEvent, InputAdornment, TablePagination, Checkbox, Dialog,
     DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
@@ -27,6 +27,7 @@ interface Category {
     name: string;
     prefix: string;
     product_count?: number;
+    is_active: number;
 }
 
 const MedicineGroupPage = () => {
@@ -61,9 +62,14 @@ const MedicineGroupPage = () => {
     const fetchCategories = async () => {
         setIsLoading(true);
         try {
-            const response = await axios.get('/admin/inventory/categories');
-            const categoriesData = response.data;
-            setCategories(categoriesData);
+            // By default, only get active categories
+            const response = await axios.get('/admin/inventory/categories', {
+                params: {
+                    includeInactive: 'false'
+                }
+            });
+            console.log('Fetched categories:', response.data); // For debugging
+            setCategories(response.data);
             setError(null);
         } catch (error) {
             console.error('Error fetching categories:', error);
@@ -125,7 +131,7 @@ const MedicineGroupPage = () => {
 
     const handleSelectItem = (id: number) => {
         if (!isSelectionMode) return;
-        setSelectedItems(prev => 
+        setSelectedItems(prev =>
             prev.includes(id)
                 ? prev.filter(itemId => itemId !== id)
                 : [...prev, id]
@@ -179,11 +185,11 @@ const MedicineGroupPage = () => {
         try {
             // Get affected products first
             const response = await axios.get(`/admin/inventory/category-products/${selectedItems[0]}`);
-            
+
             if (response.data.affectedProducts) {
                 setAffectedProducts(response.data.affectedProducts);
             }
-            
+
             // Don't archive yet, just show the confirmation dialog
             setIsDeleteDialogOpen(true);
         } catch (error: any) {
@@ -197,10 +203,11 @@ const MedicineGroupPage = () => {
             await axios.post('/admin/inventory/archive-category/' + selectedItems[0], {
                 archivedBy: user?.user_id
             });
-            
+
             setSuccessMessage('Category archived successfully');
             setIsDeleteDialogOpen(false);
             setSelectedItems([]);
+            setIsSelectionMode(false);
             await fetchCategories();
         } catch (error: any) {
             console.error('Error archiving category:', error);
@@ -235,7 +242,7 @@ const MedicineGroupPage = () => {
         filtered.sort((a, b) => {
             const aValue = String(a[sortConfig.key] || '');
             const bValue = String(b[sortConfig.key] || '');
-            return sortConfig.direction === 'asc' 
+            return sortConfig.direction === 'asc'
                 ? aValue.localeCompare(bValue)
                 : bValue.localeCompare(aValue);
         });
@@ -257,8 +264,8 @@ const MedicineGroupPage = () => {
     return (
         <Box sx={{ p: 0, ml: { xs: 1, md: 38 }, mt: 1, mr: 3 }}>
             {error && (
-                <Alert 
-                    severity="error" 
+                <Alert
+                    severity="error"
                     sx={{ mb: 2 }}
                     onClose={() => setError(null)}
                 >
@@ -266,8 +273,8 @@ const MedicineGroupPage = () => {
                 </Alert>
             )}
             {successMessage && (
-                <Alert 
-                    severity="success" 
+                <Alert
+                    severity="success"
                     sx={{ mb: 2 }}
                     onClose={() => setSuccessMessage(null)}
                 >
@@ -275,15 +282,15 @@ const MedicineGroupPage = () => {
                 </Alert>
             )}
 
-            <Box sx={{ 
+            <Box sx={{
                 backgroundColor: 'white',
                 padding: 2,
                 borderRadius: 1,
                 boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
                 mb: 3
             }}>
-                <Box sx={{ 
-                    display: 'flex', 
+                <Box sx={{
+                    display: 'flex',
                     justifyContent: 'space-between',
                     mb: 2,
                     flexWrap: 'wrap',
@@ -360,7 +367,7 @@ const MedicineGroupPage = () => {
                     </Box>
                 </Box>
 
-                <Box sx={{ 
+                <Box sx={{
                     display: 'flex',
                     flexDirection: { xs: 'column', md: 'row' },
                     gap: 2,
@@ -459,8 +466,8 @@ const MedicineGroupPage = () => {
                                 <TableCell>{category.prefix}</TableCell>
                                 <TableCell>{category.product_count || 0}</TableCell>
                                 <TableCell>
-                                    <IconButton 
-                                        size="small" 
+                                    <IconButton
+                                        size="small"
                                         onClick={() => handleViewCategory(category.name)}
                                         sx={{ color: '#2BA3B6', mr: 0 }}
                                     >
@@ -468,14 +475,14 @@ const MedicineGroupPage = () => {
                                     </IconButton>
                                     {category.category_id !== 12 && (
                                         <>
-                                            <IconButton 
-                                                size="small" 
+                                            <IconButton
+                                                size="small"
                                                 onClick={() => handleEditItem(category)}
                                             >
                                                 <EditIcon />
                                             </IconButton>
                                             <IconButton
-                                                size="small" 
+                                                size="small"
                                                 color="error"
                                                 onClick={() => {
                                                     setSelectedItems([category.category_id]);

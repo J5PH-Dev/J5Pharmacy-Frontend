@@ -276,7 +276,7 @@ const MedicinesAvailablePage = () => {
 
   useEffect(() => {
     if (preSelectedCategory) {
-        setCategoryFilter(preSelectedCategory);
+      setCategoryFilter(preSelectedCategory);
     }
   }, [preSelectedCategory]);
 
@@ -286,6 +286,7 @@ const MedicinesAvailablePage = () => {
     barcode: '',
     category: '',
     price: '',
+    stock: '',
     description: '',
     sideEffects: '',
     dosage_amount: '',
@@ -385,11 +386,24 @@ const MedicinesAvailablePage = () => {
         handleModalClose();
         resetForm();
         setSuccessMessage(`${newMedicineData.name} has been added successfully!`);
-        
-        // Refresh the medicines list
-        const response = await axios.get('/admin/inventory/view-medicines-available');
+
+        // Fetch updated data
+        const response = await axios.get<Medicine[]>('/admin/inventory/view-medicines-available', {
+          params: {
+            orderBy: sortConfig.key || 'updatedAt',
+            sortDirection: sortConfig.direction,
+            createdStartDate: createdDateFilter.startDate || undefined,
+            createdEndDate: createdDateFilter.endDate || undefined,
+            updatedStartDate: updatedDateFilter.startDate || undefined,
+            updatedEndDate: updatedDateFilter.endDate || undefined
+          }
+        });
+
+        // Update all state variables with the new data
+        setOriginalRows(response.data);
         setFilteredRows(response.data);
         setSortedRows(response.data);
+        setPage(0); // Reset to first page
       }
     } catch (error) {
       console.error('Error adding new item:', error);
@@ -404,7 +418,7 @@ const MedicinesAvailablePage = () => {
   // Handle change for modal inputs
   const handleModalInputChange = (field: keyof typeof newMedicineData, value: any) => {
     setNewMedicineData(prev => ({ ...prev, [field]: value }));
-    
+
     // If category changes and barcode prefix is enabled, clear the barcode
     if (field === 'category' && useBarcodePrefix) {
       const selectedCategory = categories.find(c => c.name === value);
@@ -510,7 +524,7 @@ const MedicinesAvailablePage = () => {
     console.log('Starting archive process...');
     console.log('Selected items:', selectedItems);
     console.log('Archive reason:', archiveReason);
-    console.log('Current user:', currentUser); // Add logging
+    console.log('Current user:', currentUser);
 
     if (!archiveReason) {
       console.log('Validation failed: Missing required fields');
@@ -527,7 +541,7 @@ const MedicinesAvailablePage = () => {
     setIsLoading(true);
     try {
       const archivePromises = selectedItems.map(async (barcode) => {
-        console.log(`Sending archive request for barcode: ${barcode} with user:`, currentUser); // Add logging
+        console.log(`Sending archive request for barcode: ${barcode} with user:`, currentUser);
         return axios.post(`/admin/inventory/archive-product/${barcode}`, {
           employee_id: currentUser.employeeId,
           userName: currentUser.name,
@@ -542,11 +556,24 @@ const MedicinesAvailablePage = () => {
       if (allSuccessful) {
         console.log('All archives successful, updating UI...');
         const removedBarcodes = selectedItems;
-        setOriginalRows(prev => prev.filter(row => !removedBarcodes.includes(row.barcode)));
-        setFilteredRows(prev => prev.filter(row => !removedBarcodes.includes(row.barcode)));
-        setSortedRows(prev => prev.filter(row => !removedBarcodes.includes(row.barcode)));
+
+        // Update the rows and maintain sorting
+        const updatedRows = originalRows.filter(row => !removedBarcodes.includes(row.barcode));
+
+        // Sort the updated rows by updatedAt in descending order
+        updatedRows.sort((a, b) => {
+          const dateA = new Date(a.updatedAt).getTime();
+          const dateB = new Date(b.updatedAt).getTime();
+          return dateB - dateA;
+        });
+
+        setOriginalRows(updatedRows);
+        setFilteredRows(updatedRows);
+        setSortedRows(updatedRows);
         setSelectedItems([]);
-        
+        setPage(0); // Reset to first page
+        setSortConfig({ key: 'updatedAt', direction: 'desc' }); // Ensure sorting is set to most recent first
+
         setSuccessMessage(`Successfully archived ${selectedItems.length} item(s)`);
       } else {
         console.log('Some archives failed');
@@ -629,6 +656,7 @@ const MedicinesAvailablePage = () => {
       barcode: '',
       category: '',
       price: '',
+      stock: '',
       description: '',
       sideEffects: '',
       dosage_amount: '',
@@ -709,7 +737,7 @@ const MedicinesAvailablePage = () => {
 
   const handleSelectItem = (barcode: string) => {
     if (!selectionMode) return;
-    
+
     setSelectedItems(prev => {
       const isSelected = prev.includes(barcode);
       if (isSelected) {
@@ -731,12 +759,12 @@ const MedicinesAvailablePage = () => {
 
   const handleDeleteSelected = () => {
     if (selectedItems.length === 0) return;
-    
+
     // Find the names of selected products
     const selectedProducts = paginatedRows.filter(row => selectedItems.includes(row.barcode));
     const selectedNames = selectedProducts.map(product => product.name).join(", ");
-    
-    setMedicineToDelete({ 
+
+    setMedicineToDelete({
       barcode: selectedItems[0], // We'll use this as a reference
       name: selectedNames
     });
@@ -789,7 +817,7 @@ const MedicinesAvailablePage = () => {
     if (field === 'type' || (dateFilter.startDate && dateFilter.endDate)) {
       const filtered = originalRows.filter(row => {
         if (!dateFilter.type) return true;
-        
+
         const dateStr = dateFilter.type === 'createdAt' ? row.createdAt : row.updatedAt;
         if (!dateStr) return true;
 
@@ -891,23 +919,25 @@ const MedicinesAvailablePage = () => {
 
     // Search filter
     if (searchQuery) {
+      const searchTerm = searchQuery.toLowerCase();
       filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.brand_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.barcode.toLowerCase().includes(searchQuery.toLowerCase())
+        (product.name?.toLowerCase() || '').includes(searchTerm) ||
+        (product.brand_name?.toLowerCase() || '').includes(searchTerm) ||
+        (product.barcode?.toLowerCase() || '').includes(searchTerm)
       );
     }
 
     // Category filter
     if (categoryFilter !== 'All') {
       filtered = filtered.filter(product =>
-        product.category.toLowerCase() === categoryFilter.toLowerCase()
+        (product.category?.toLowerCase() || '') === categoryFilter.toLowerCase()
       );
     }
 
     // Created Date filter
     if (createdDateFilter.startDate || createdDateFilter.endDate) {
       filtered = filtered.filter(product => {
+        if (!product.createdAt) return false;
         const createdDate = new Date(product.createdAt).setHours(0, 0, 0, 0);
         const start = createdDateFilter.startDate ? new Date(createdDateFilter.startDate).setHours(0, 0, 0, 0) : null;
         const end = createdDateFilter.endDate ? new Date(createdDateFilter.endDate).setHours(23, 59, 59, 999) : null;
@@ -926,6 +956,7 @@ const MedicinesAvailablePage = () => {
     // Updated Date filter
     if (updatedDateFilter.startDate || updatedDateFilter.endDate) {
       filtered = filtered.filter(product => {
+        if (!product.updatedAt) return false;
         const updatedDate = new Date(product.updatedAt).setHours(0, 0, 0, 0);
         const start = updatedDateFilter.startDate ? new Date(updatedDateFilter.startDate).setHours(0, 0, 0, 0) : null;
         const end = updatedDateFilter.endDate ? new Date(updatedDateFilter.endDate).setHours(23, 59, 59, 999) : null;
@@ -944,7 +975,7 @@ const MedicinesAvailablePage = () => {
     // Add branch inventory data to each product
     filtered = filtered.map(product => {
       const enhancedProduct: Medicine = { ...product };
-      
+
       branches.forEach(branch => {
         const branchInventory = product.branch_inventory?.find((bi: BranchInventory) => bi.branch_id === branch.branch_id);
         enhancedProduct[`branch_${branch.branch_id}_stock`] = branchInventory?.stock?.toString() || '0';
@@ -959,16 +990,16 @@ const MedicinesAvailablePage = () => {
       filtered.sort((a: Medicine, b: Medicine) => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
-        
+
         if (aValue === undefined || bValue === undefined) return 0;
-        
+
         if (typeof aValue === 'number' && typeof bValue === 'number') {
           return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
         }
-        
-        const aStr = String(aValue).toLowerCase();
-        const bStr = String(bValue).toLowerCase();
-        
+
+        const aStr = String(aValue || '').toLowerCase();
+        const bStr = String(bValue || '').toLowerCase();
+
         if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
@@ -1091,7 +1122,7 @@ const MedicinesAvailablePage = () => {
       </Box>
 
       {/* Table Controls */}
-      <Box sx={{ 
+      <Box sx={{
         backgroundColor: 'white',
         padding: 2,
         borderRadius: 1,
@@ -1100,19 +1131,19 @@ const MedicinesAvailablePage = () => {
         mt: 2
       }}>
         {/* Action Buttons Group */}
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           gap: 1,
           mb: 2,
           flexWrap: 'wrap'
         }}>
           <Button
             variant="contained"
-            sx={{ 
-              backgroundColor: '#01A768', 
-              color: '#fff', 
-              fontWeight: 'medium', 
-              textTransform: 'none', 
+            sx={{
+              backgroundColor: '#01A768',
+              color: '#fff',
+              fontWeight: 'medium',
+              textTransform: 'none',
               '&:hover': { backgroundColor: '#017F4A' }
             }}
             onClick={handleAddNewItemClick}
@@ -1182,7 +1213,7 @@ const MedicinesAvailablePage = () => {
         </Box>
 
         {/* Search and Filters Group */}
-        <Box sx={{ 
+        <Box sx={{
           display: 'flex',
           flexDirection: { xs: 'column', md: 'row' },
           gap: 2,
@@ -1374,7 +1405,7 @@ const MedicinesAvailablePage = () => {
                   />
                 </TableCell>
               )}
-              <TableCell 
+              <TableCell
                 sx={{ fontWeight: 'bold', cursor: 'pointer' }}
                 onClick={() => handleSort('name')}
               >
@@ -1385,7 +1416,7 @@ const MedicinesAvailablePage = () => {
                   )}
                 </Box>
               </TableCell>
-              <TableCell 
+              <TableCell
                 sx={{ fontWeight: 'bold', cursor: 'pointer' }}
                 onClick={() => handleSort('brand_name')}
               >
@@ -1396,7 +1427,7 @@ const MedicinesAvailablePage = () => {
                   )}
                 </Box>
               </TableCell>
-              <TableCell 
+              <TableCell
                 sx={{ fontWeight: 'bold', cursor: 'pointer' }}
                 onClick={() => handleSort('barcode')}
               >
@@ -1407,7 +1438,7 @@ const MedicinesAvailablePage = () => {
                   )}
                 </Box>
               </TableCell>
-              <TableCell 
+              <TableCell
                 sx={{ fontWeight: 'bold', cursor: 'pointer' }}
                 onClick={() => handleSort('category')}
               >
@@ -1418,7 +1449,7 @@ const MedicinesAvailablePage = () => {
                   )}
                 </Box>
               </TableCell>
-              <TableCell 
+              <TableCell
                 sx={{ fontWeight: 'bold', cursor: 'pointer' }}
                 onClick={() => handleSort('price')}
               >
@@ -1429,7 +1460,7 @@ const MedicinesAvailablePage = () => {
                   )}
                 </Box>
               </TableCell>
-              <TableCell 
+              <TableCell
                 sx={{ fontWeight: 'bold', cursor: 'pointer' }}
                 onClick={() => handleSort('stock')}
               >
@@ -1440,7 +1471,7 @@ const MedicinesAvailablePage = () => {
                   )}
                 </Box>
               </TableCell>
-              <TableCell 
+              <TableCell
                 sx={{ fontWeight: 'bold', cursor: 'pointer' }}
                 onClick={() => handleSort('createdAt')}
               >
@@ -1471,7 +1502,7 @@ const MedicinesAvailablePage = () => {
               processedProducts
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((product) => (
-                  <TableRow 
+                  <TableRow
                     key={product.barcode}
                     onClick={() => handleSelectItem(product.barcode)}
                     sx={{
@@ -1500,29 +1531,29 @@ const MedicinesAvailablePage = () => {
                     <TableCell>{product.createdAt ? new Date(product.createdAt).toLocaleString() : 'N/A'}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        <IconButton 
+                        <IconButton
                           onClick={(e) => {
                             e.stopPropagation();
                             handleViewDetails(product.barcode);
-                          }} 
+                          }}
                           sx={{ color: '#2BA3B6' }}
                         >
                           <VisibilityIcon />
                         </IconButton>
-                        <IconButton 
+                        <IconButton
                           onClick={(e) => {
                             e.stopPropagation();
                             handleEditItem(product.barcode);
-                          }} 
+                          }}
                           sx={{ color: '#1D7DFA' }}
                         >
                           <EditIcon />
                         </IconButton>
-                        <IconButton 
+                        <IconButton
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteItem(product.barcode, product.name);
-                          }} 
+                          }}
                           sx={{ color: '#D83049' }}
                         >
                           <DeleteIcon />
@@ -1561,7 +1592,7 @@ const MedicinesAvailablePage = () => {
         maxWidth="md"
       >
         <DialogTitle>Add New Product Item</DialogTitle>
-          <DialogContent>
+        <DialogContent>
           <Box sx={{ mt: 2 }}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
@@ -1778,13 +1809,13 @@ const MedicinesAvailablePage = () => {
               </Grid>
             </Grid>
           </Box>
-          </DialogContent>
-          <DialogActions>
+        </DialogContent>
+        <DialogActions>
           <Button onClick={handleModalClose}>Cancel</Button>
           <Button variant="contained" onClick={handleSaveNewItem} color="primary">
             Add Item
-            </Button>
-          </DialogActions>
+          </Button>
+        </DialogActions>
       </Dialog>
 
       {/* Show All Warning Dialog */}
@@ -1838,8 +1869,8 @@ const MedicinesAvailablePage = () => {
             Cancel
           </Button>
           <Button
-            onClick={handleConfirmDeleteItem} 
-            color="error" 
+            onClick={handleConfirmDeleteItem}
+            color="error"
             variant="contained"
             disabled={!archiveReason}
           >

@@ -35,7 +35,6 @@ import RestoreIcon from '@mui/icons-material/Restore';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ExportDialog from '../../common/ExportDialog';
@@ -80,8 +79,6 @@ const ArchivedCustomersPage = () => {
     const { user } = useAuth();
     const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
     const [selectionMode, setSelectionMode] = useState(false);
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [customerToDelete, setCustomerToDelete] = useState<ArchivedCustomer | null>(null);
 
     const exportColumns = [
         { field: 'name', header: 'Name' },
@@ -122,10 +119,10 @@ const ArchivedCustomersPage = () => {
     const handleSearch = () => {
         const query = searchQuery.toLowerCase();
         const filtered = customers.filter(customer =>
-            customer.name.toLowerCase().includes(query) ||
-            customer.phone.toLowerCase().includes(query) ||
-            customer.email.toLowerCase().includes(query) ||
-            customer.address.toLowerCase().includes(query)
+            (customer.name?.toLowerCase() || '').includes(query) ||
+            (customer.phone?.toLowerCase() || '').includes(query) ||
+            (customer.email?.toLowerCase() || '').includes(query) ||
+            (customer.address?.toLowerCase() || '').includes(query)
         );
         setFilteredCustomers(filtered);
         setPage(0);
@@ -155,20 +152,6 @@ const ArchivedCustomersPage = () => {
             await fetchArchivedCustomers();
         } catch (error: any) {
             setError(error.response?.data?.message || 'Failed to restore customer');
-        }
-    };
-
-    const handleDelete = async () => {
-        if (!customerToDelete) return;
-
-        try {
-            await axios.post(`/api/customers/${customerToDelete.customer_id}/delete`);
-            setSuccessMessage('Customer deleted successfully');
-            setIsDeleteDialogOpen(false);
-            setCustomerToDelete(null);
-            await fetchArchivedCustomers();
-        } catch (error: any) {
-            setError(error.response?.data?.message || 'Failed to delete customer');
         }
     };
 
@@ -459,16 +442,6 @@ const ArchivedCustomersPage = () => {
                                                 >
                                                     <RestoreIcon />
                                                 </IconButton>
-                                                <IconButton
-                                                    onClick={() => {
-                                                        setCustomerToDelete(customer);
-                                                        setIsDeleteDialogOpen(true);
-                                                    }}
-                                                    color="error"
-                                                    title="Delete Customer"
-                                                >
-                                                    <DeleteIcon />
-                                                </IconButton>
                                             </Stack>
                                         </TableCell>
                                     </TableRow>
@@ -492,23 +465,6 @@ const ArchivedCustomersPage = () => {
                     />
                 </Box>
             </Box>
-
-            {/* Delete Customer Dialog */}
-            <Dialog
-                open={isDeleteDialogOpen}
-                onClose={() => setIsDeleteDialogOpen(false)}
-            >
-                <DialogTitle>Delete Customer</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        Are you sure you want to delete the customer "{customerToDelete?.name}"? This action cannot be undone.
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
-                </DialogActions>
-            </Dialog>
 
             {/* Export Dialog */}
             <ExportDialog

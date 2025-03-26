@@ -97,7 +97,7 @@ const EmployeeStaffPage: React.FC = () => {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedRole, setSelectedRole] = useState('');
     const [selectedBranch, setSelectedBranch] = useState('');
-    const { user } = useAuth(); // Ensure that this is getting the user context
+    const { user } = useAuth();
 
     useEffect(() => {
         fetchBranches();
@@ -121,23 +121,16 @@ const EmployeeStaffPage: React.FC = () => {
 
     const fetchExportData = async () => {
         try {
-            let usersUrl = '/api/staff/users';
-            let pharmacistsUrl = '/api/staff/pharmacists';
-    
+            let pharmacistsUrl = '/api/staff/pharmacistsByBranches';
+
             if (user?.branchId) {
-                usersUrl += `?branch_id=${user.branchId}`;
                 pharmacistsUrl += `?branch_id=${user.branchId}`;
             }
-    
-            console.log('Fetching export data from:', usersUrl, pharmacistsUrl);
-    
-            const [usersResponse, pharmacistsResponse] = await Promise.all([
-                axios.get(usersUrl),
-                axios.get(pharmacistsUrl),
-            ]);
-    
+
+            const pharmacistsResponse = await axios.get(pharmacistsUrl);
+
             setExportData({
-                users: usersResponse.data.data,
+                users: [],  // Not using users in current setup
                 pharmacists: pharmacistsResponse.data.data
             });
             setOpenExport(true);
@@ -145,16 +138,6 @@ const EmployeeStaffPage: React.FC = () => {
             console.error('Error fetching export data:', error);
         }
     };
-
-    const userColumns = [
-        { field: 'employee_id', header: 'Employee ID' },
-        { field: 'name', header: 'Name' },
-        { field: 'role', header: 'Role' },
-        { field: 'email', header: 'Email' },
-        { field: 'phone', header: 'Phone' },
-        { field: 'branch_name', header: 'Branch' },
-        { field: 'hired_at', header: 'Hired Date' }
-    ];
 
     const pharmacistColumns = [
         { field: 'staff_id', header: 'Staff ID' },
@@ -172,16 +155,6 @@ const EmployeeStaffPage: React.FC = () => {
                     Staff & Employees
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                    {/* {tabValue === 0 ? (
-                        <FilterSection
-                            selectedRole={selectedRole}
-                            selectedBranch={selectedBranch}
-                            onRoleChange={setSelectedRole}
-                            onBranchChange={setSelectedBranch}
-                            branches={branches}
-                        />
-                    ) : ( */}
-                    {/* )} */}
                     <Button
                         variant="contained"
                         startIcon={<FileDownloadIcon />}
@@ -212,14 +185,10 @@ const EmployeeStaffPage: React.FC = () => {
                         },
                     }}
                 >
-                    {/* <Tab label="User Management" {...a11yProps(0)} /> */}
                     <Tab label="Pharmacist Management" {...a11yProps(0)} />
                 </Tabs>
             </Box>
 
-            {/* <TabPanel value={tabValue} index={0}>
-                <UserManagement selectedRole={selectedRole} selectedBranch={selectedBranch} />
-            </TabPanel> */}
             <TabPanel value={tabValue} index={0}>
                 <PharmacistManagement selectedBranch={selectedBranch} />
             </TabPanel>
