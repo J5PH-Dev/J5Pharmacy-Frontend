@@ -30,6 +30,7 @@ interface MedicineDetails {
         createdAt: string;
         updatedAt: string;
         critical: number;
+        batch_number: string;
     };
     branchInventory: BranchInventory[];
 }
@@ -250,9 +251,17 @@ const ViewMedicineDescription = () => {
                         {/* Brand Name */}
                         <Box sx={{ flex: '1 1 30%' }}>
                             <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>
-                                {medicineDetails.medicineInfo.brand_name}
+                                {medicineDetails.medicineInfo.brand_name || 'N/A'}
                             </Typography>
                             <Typography sx={{ color: 'black', fontSize: '15px' }}>Brand Name</Typography>
+                        </Box>
+                        
+                        {/* Batch Number */}
+                        <Box sx={{ flex: '1 1 30%' }}>
+                            <Typography sx={{ fontWeight: 'bold', fontSize: '19px' }}>
+                                {medicineDetails.medicineInfo.batch_number || 'N/A'}
+                            </Typography>
+                            <Typography sx={{ color: 'black', fontSize: '15px' }}>Batch Number</Typography>
                         </Box>
                         
                         {/* Price */}

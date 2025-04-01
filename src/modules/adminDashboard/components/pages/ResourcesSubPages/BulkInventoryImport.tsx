@@ -160,6 +160,7 @@ const TabPanel = (props: TabPanelProps) => {
     );
 };
 
+// Do not remove this Guidelines
 const Guidelines: React.FC<{ 
     open: boolean; 
     onClose: () => void;
@@ -903,6 +904,17 @@ const BulkInventoryImport: React.FC = () => {
         total: number;
     }>({ show: false, current: 0, total: 0 });
 
+    // Add batch information state
+    const [batchInfo, setBatchInfo] = useState({
+        batch_number: '',
+        order_number: '',
+        supplier_id: '',
+        received_date: new Date().toISOString().split('T')[0],
+        notes: ''
+    });
+    const [suppliers, setSuppliers] = useState<{ supplier_id: number; supplier_name: string }[]>([]);
+    const [showBatchDialog, setShowBatchDialog] = useState(false);
+
     // Add these states for branch pagination
     const [currentBranchPage, setCurrentBranchPage] = useState(0);
     const branchesPerPage = 8;
@@ -923,6 +935,7 @@ const BulkInventoryImport: React.FC = () => {
     useEffect(() => {
         fetchCategories();
         fetchBranches();
+        fetchSuppliers();
     }, []);
 
     useEffect(() => {
@@ -958,8 +971,6 @@ const BulkInventoryImport: React.FC = () => {
         }
     };
 
-
-
     const fetchBranches = async () => {
         try {
             const response = await axios.get('/api/admin/branches');
@@ -967,6 +978,16 @@ const BulkInventoryImport: React.FC = () => {
         } catch (error) {
             console.error('Error fetching branches:', error);
             setError('Failed to fetch branches');
+        }
+    };
+
+    const fetchSuppliers = async () => {
+        try {
+            const response = await axios.get('/api/resources/suppliers');
+            setSuppliers(response.data);
+        } catch (error) {
+            console.error('Error fetching suppliers:', error);
+            setError('Failed to fetch suppliers');
         }
     };
 
@@ -986,6 +1007,7 @@ const BulkInventoryImport: React.FC = () => {
                 'brand_name': 'Brand',
                 'category': 'BRANDED',
                 'quantity': '100',
+                'batch_number': '00000',
                 'expiry': '12/31/2024',
                 'dosage_amount': '500',
                 'dosage_unit': 'mg',
@@ -1268,6 +1290,12 @@ const BulkInventoryImport: React.FC = () => {
             return;
         }
 
+        // Validate batch information if it's provided
+        if (batchInfo.supplier_id && (!batchInfo.received_date || !batchInfo.supplier_id)) {
+            handleNotification('Please provide complete batch information or clear it', 'error');
+            return;
+        }
+
         // Check for invalid or missing products
         const invalidProducts = importedData.filter(
             product => product.status === 'invalid' || product.status === 'similar'
@@ -1315,10 +1343,26 @@ const BulkInventoryImport: React.FC = () => {
             const batchSize = 10;
             for (let i = 0; i < importData.length; i += batchSize) {
                 const batch = importData.slice(i, i + batchSize);
-            await axios.post('/api/resources/bulk-import/process', { 
+                
+                // Prepare request data with or without batch information
+                const requestData: any = {
                     products: batch,
                     branch_id: selectedBranch
-                });
+                };
+                
+                // Add batch information if provided
+                if (batchInfo.supplier_id) {
+                    requestData.batch_info = {
+                        batch_number: batchInfo.batch_number,
+                        order_number: batchInfo.order_number,
+                        supplier_id: batchInfo.supplier_id,
+                        received_date: batchInfo.received_date,
+                        notes: batchInfo.notes
+                    };
+                }
+                
+                await axios.post('/api/resources/bulk-import/process', requestData);
+                
                 setImportProgress(prev => ({
                     ...prev,
                     current: Math.min(i + batchSize, importData.length)
@@ -1486,11 +1530,11 @@ const BulkInventoryImport: React.FC = () => {
                     value={uploadProgress} 
                     sx={{
                         height: 8,
-                        borderRadius: 4,
+                        borderRadius: 1,
                         backgroundColor: '#e0e0e0',
                         '& .MuiLinearProgress-bar': {
                             backgroundColor: '#1B3E2D',
-                            borderRadius: 4,
+                            borderRadius: 1,
                         }
                     }}
                 />
@@ -1891,21 +1935,112 @@ const BulkInventoryImport: React.FC = () => {
         </Dialog>
     );
 
+    const BatchInfoDialog = () => {
+        const [batchInfoForm, setBatchInfoForm] = useState({
+            batch_number: batchInfo.batch_number,
+            order_number: batchInfo.order_number,
+            supplier_id: batchInfo.supplier_id,
+            received_date: batchInfo.received_date,
+            notes: batchInfo.notes
+        });
+    
+        const handleBatchInfoChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+            setBatchInfoForm(prev => ({
+                ...prev,
+                [field]: event.target.value
+            }));
+        };
+    
+        const handleBatchInfoSave = () => {
+            setBatchInfo(batchInfoForm);
+            setShowBatchDialog(false);
+            handleNotification('Batch information saved successfully', 'success');
+        };
+    
+        return (
+            <Dialog
+                open={showBatchDialog}
+                onClose={() => setShowBatchDialog(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Batch Information</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <TextField
+                            label="Batch Number"
+                            value={batchInfoForm.batch_number}
+                            onChange={handleBatchInfoChange('batch_number')}
+                            fullWidth
+                        />
+                        <TextField
+                            label="Order Number"
+                            value={batchInfoForm.order_number}
+                            onChange={handleBatchInfoChange('order_number')}
+                            fullWidth
+                        />
+                        <FormControl fullWidth>
+                            <InputLabel>Supplier</InputLabel>
+                            <Select
+                                value={batchInfoForm.supplier_id}
+                                onChange={(e) => {
+                                    setBatchInfoForm(prev => ({
+                                        ...prev,
+                                        supplier_id: e.target.value
+                                    }));
+                                }}
+                                label="Supplier"
+                            >
+                                {suppliers.map((supplier) => (
+                                    <MenuItem key={supplier.supplier_id} value={supplier.supplier_id}>
+                                        {supplier.supplier_name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                        <TextField
+                            label="Received Date"
+                            type="date"
+                            value={batchInfoForm.received_date}
+                            onChange={handleBatchInfoChange('received_date')}
+                            fullWidth
+                            InputLabelProps={{ shrink: true }}
+                        />
+                        <TextField
+                            label="Notes"
+                            multiline
+                            rows={3}
+                            value={batchInfoForm.notes}
+                            onChange={handleBatchInfoChange('notes')}
+                            fullWidth
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setShowBatchDialog(false)}>Cancel</Button>
+                    <Button onClick={handleBatchInfoSave} variant="contained" color="primary">
+                        Save
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        );
+    };
+
     // Add this component back inside the BulkInventoryImport component, before the return statement
     const SimilarProductsDialog = () => (
-        <Dialog
+            <Dialog
             open={showSimilarProducts}
             onClose={() => setShowSimilarProducts(false)}
             maxWidth="md"
-            fullWidth
-        >
+                fullWidth
+            >
             <DialogTitle>
                 <Typography variant="h6">Similar Products Found</Typography>
                 <Typography variant="body2" color="textSecondary">
                     Select the matching product from the list below
                 </Typography>
             </DialogTitle>
-            <DialogContent>
+                <DialogContent>
                 {resolvingProduct && (
                     <Box sx={{ mb: 3, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
                         <Typography variant="subtitle2" color="primary" gutterBottom>
@@ -1959,12 +2094,12 @@ const BulkInventoryImport: React.FC = () => {
                         </TableBody>
                     </Table>
                 </TableContainer>
-            </DialogContent>
-            <DialogActions>
+                </DialogContent>
+                <DialogActions>
                 <Button onClick={() => setShowSimilarProducts(false)}>Cancel</Button>
-            </DialogActions>
-        </Dialog>
-    );
+                </DialogActions>
+            </Dialog>
+        );
 
     // Function to handle viewing product details
     const handleViewProduct = (product: ImportedProduct) => {
@@ -2190,6 +2325,52 @@ const BulkInventoryImport: React.FC = () => {
                             }}
                         >
                             Import Guidelines
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            startIcon={<RefreshIcon />}
+                            onClick={() => setShowBatchDialog(true)}
+                            sx={{
+                                borderColor: '#1B3E2D',
+                                color: '#1B3E2D',
+                                animation: !hasSeenGuidelines ? 'pulse 2s infinite' : 'none',
+                                '@keyframes pulse': pulseAnimation['@keyframes pulse'],
+                                '&:hover': {
+                                    borderColor: '#2D5741',
+                                    backgroundColor: 'rgba(45, 87, 65, 0.04)',
+                                },
+                                width: '100%',
+                                maxWidth: 250
+                            }}
+                        >
+                            Batch Information
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            startIcon={<RefreshIcon />}
+                            onClick={() => {
+                                setBatchInfo({
+                                    batch_number: '',
+                                    order_number: '',
+                                    supplier_id: '',
+                                    received_date: new Date().toISOString().split('T')[0],
+                                    notes: ''
+                                });
+                            }}
+                            sx={{
+                                borderColor: '#1B3E2D',
+                                color: '#1B3E2D',
+                                animation: !hasSeenGuidelines ? 'pulse 2s infinite' : 'none',
+                                '@keyframes pulse': pulseAnimation['@keyframes pulse'],
+                                '&:hover': {
+                                    borderColor: '#2D5741',
+                                    backgroundColor: 'rgba(45, 87, 65, 0.04)',
+                                },
+                                width: '100%',
+                                maxWidth: 250
+                            }}
+                        >
+                            Reset Batch Information
                         </Button>
                         <Button
                             variant="outlined"
@@ -2676,6 +2857,9 @@ const BulkInventoryImport: React.FC = () => {
 
             {/* Add Import Progress Dialog */}
             <ImportProgressDialog />
+
+            {/* Add Batch Information Dialog */}
+            <BatchInfoDialog />
 
             {/* View Product Dialog */}
             <Dialog

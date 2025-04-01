@@ -34,6 +34,7 @@ interface FunctionKeysProps {
   branchId: number;
   onRecallTransaction: (items: CartItem[]) => void;
   onHoldSuccess: () => void;
+  handleNewTransaction: () => void;
 }
 
 const FunctionKeys: React.FC<FunctionKeysProps> = ({
@@ -42,7 +43,8 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
   currentTotal,
   branchId,
   onRecallTransaction,
-  onHoldSuccess
+  onHoldSuccess,
+  handleNewTransaction
 }) => {
   const [openNewTransaction, setOpenNewTransaction] = useState(false);
   const [openSearchProduct, setOpenSearchProduct] = useState(false);
@@ -209,6 +211,7 @@ const FunctionKeys: React.FC<FunctionKeysProps> = ({
         open={openNewTransaction}
         onClose={() => setOpenNewTransaction(false)}
         currentItems={currentItems}
+        onNewTransaction={handleNewTransaction}
       />
 
       <SearchProduct

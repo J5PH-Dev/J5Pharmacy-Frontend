@@ -17,6 +17,8 @@ import { AddItemDialog } from '../components/Cart/addItem/AddItemDialog';
 import { ManualStockDialog } from '../components/Cart/manualStock/ManualStockDialog';
 import RecallTransaction from '../components/FuntionKeys/dialogs/RecallTransaction';
 import { CheckoutDialog } from '../components/ActionButtons/checkout/CheckoutDialog';
+import Recent from '../components/Cart/Recent';
+import NewTransaction from '../components/FuntionKeys/dialogs/NewTransaction';
 // Import types and utilities
 import { CartItem } from '../types/cart';
 import { DiscountType } from '../types/discount';
@@ -63,6 +65,8 @@ const POSPage: React.FC = () => {
   });
   const [openCheckout, setOpenCheckout] = useState(false);
   const [pointsUsed, setPointsUsed] = useState(0);
+  const [recentItem, setRecentItem] = useState<CartItem | null>(null);
+  const [openNewTransaction, setOpenNewTransaction] = useState(false);
 
   const {
     subtotal,
@@ -100,20 +104,47 @@ const POSPage: React.FC = () => {
     const newItems = [...cartItems];
     const existingItemIndex = newItems.findIndex(item => item.id === product.id);
 
+    // Calculate the new quantity considering existing items
+    let newQuantity = product.quantity;
+    let stockLimited = false;
+
     if (existingItemIndex > -1) {
+      const totalQuantity = newItems[existingItemIndex].quantity + product.quantity;
+      if (totalQuantity > product.stock) {
+        newQuantity = product.stock - newItems[existingItemIndex].quantity;
+        stockLimited = true;
+        if (newQuantity <= 0) {
+          showNotification('Maximum stock already in cart', 'error');
+          return;
+        }
+      }
       newItems[existingItemIndex] = {
         ...newItems[existingItemIndex],
-        quantity: newItems[existingItemIndex].quantity + (product.quantity || 1)
+        quantity: newItems[existingItemIndex].quantity + newQuantity
       };
     } else {
-      newItems.push({ ...product, quantity: product.quantity || 1 });
+      if (product.quantity > product.stock) {
+        newQuantity = product.stock;
+        stockLimited = true;
+      }
+      newItems.push({ ...product, quantity: newQuantity });
     }
 
     setCartItems(newItems);
-    showNotification(
-      `Added ${product.quantity || 1}x ${product.name} to cart`, 
-      'success'
-    );
+    setRecentItem({ ...product, quantity: newQuantity });
+    
+    if (stockLimited) {
+      showNotification(
+        `Added ${newQuantity}x ${product.name} to cart (limited by available stock: ${product.stock})`,
+        'warning'
+      );
+    } else {
+      showNotification(
+        `Added ${newQuantity}x ${product.name} to cart`,
+        'success'
+      );
+    }
+    
     setDefaultQuantity(1);
   };
 
@@ -187,6 +218,29 @@ const POSPage: React.FC = () => {
       console.error('Checkout error:', error);
       showNotification('Failed to process payment', 'error');
     }
+  };
+
+  const handleNewTransaction = () => {
+    // Clear cart items
+    setCartItems([]);
+    
+    // Reset recent item
+    setRecentItem(null);
+    
+    // Reset customer data
+    setCustomerData({
+      name: 'Walk-in Customer',
+      starPointsId: '001',
+      pointsBalance: 0
+    });
+    
+    // Reset discount
+    setDiscountType('None');
+    setCustomDiscountValue(undefined);
+    setPointsUsed(0);
+    
+    // Reset invoice number (if needed)
+    setCurrentInvoiceNumber('');
   };
 
   useEffect(() => {
@@ -297,28 +351,46 @@ const POSPage: React.FC = () => {
               branchId={branchId}
               onRecallTransaction={handleRecallTransaction}
               onHoldSuccess={() => setCartItems([])}
+              handleNewTransaction={handleNewTransaction}
             />
           </Paper>
         </Grid>
 
         {/* Cart Section */}
         <Grid item xs={7} sx={{ height: '100%' }}>
-          <Paper 
-            elevation={2} 
-            sx={{ 
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden'
-            }}
-          >
-            <Cart
-              items={cartItems}
-              onRemoveItem={handleRemoveItem}
-              onEditQuantity={handleEditQuantity}
-              branchId={branchId}
-            />
-          </Paper>
+          <Grid container spacing={1.5} sx={{ height: '100%' }}>
+            <Grid item xs={12} sx={{ height: '70%' }}>
+              <Paper 
+                elevation={2} 
+                sx={{ 
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden'
+                }}
+              >
+                <Cart
+                  items={cartItems}
+                  onRemoveItem={handleRemoveItem}
+                  onEditQuantity={handleEditQuantity}
+                  branchId={branchId}
+                />
+              </Paper>
+            </Grid>
+
+            {/* Recent Section */}
+            <Grid item xs={12} sx={{ height: '30%' }}>
+              <Paper 
+                elevation={2} 
+                sx={{ 
+                  height: '100%',
+                  overflow: 'hidden'
+                }}
+              >
+                <Recent item={recentItem} />
+              </Paper>
+            </Grid>
+          </Grid>
         </Grid>
 
         {/* Right Side - Transaction Summary & Action Buttons */}
@@ -413,9 +485,17 @@ const POSPage: React.FC = () => {
         }}
         onCheckout={handleCheckout}
       />
+
+      <NewTransaction
+        open={openNewTransaction}
+        onClose={() => setOpenNewTransaction(false)}
+        currentItems={cartItems}
+        onNewTransaction={handleNewTransaction}
+      />
     </Box>
   );
 };
+
 
 const POSPageWrapper: React.FC = () => {
   return (

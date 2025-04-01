@@ -23,6 +23,10 @@ interface ImportedProduct {
         name: string;
         brand_name: string;
     };
+    batch_number?: string;
+    supplier_id?: number;
+    received_date?: string;
+    batch_notes?: string;
 }
 
 interface BulkImportContextType {
@@ -34,6 +38,18 @@ interface BulkImportContextType {
     importType: 'existing' | 'all' | null;
     setImportType: React.Dispatch<React.SetStateAction<'existing' | 'all' | null>>;
     validateProduct: (product: ImportedProduct) => Promise<ImportedProduct>;
+    batchInfo: {
+        batch_number: string;
+        supplier_id: number | null;
+        received_date: string;
+        notes: string;
+    };
+    setBatchInfo: React.Dispatch<React.SetStateAction<{
+        batch_number: string;
+        supplier_id: number | null;
+        received_date: string;
+        notes: string;
+    }>>;
 }
 
 const BulkImportContext = createContext<BulkImportContextType | undefined>(undefined);
@@ -43,13 +59,25 @@ export const BulkImportProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
     const [importType, setImportType] = useState<'existing' | 'all' | null>(null);
     const { isAuthenticated } = useAuth();
+    
+    const [batchInfo, setBatchInfo] = useState({
+        batch_number: '',
+        supplier_id: null as number | null,
+        received_date: new Date().toISOString().split('T')[0],
+        notes: ''
+    });
 
-    // Clear data when user logs out
     useEffect(() => {
         if (!isAuthenticated) {
             setImportedData([]);
             setSelectedBranch(null);
             setImportType(null);
+            setBatchInfo({
+                batch_number: '',
+                supplier_id: null,
+                received_date: new Date().toISOString().split('T')[0],
+                notes: ''
+            });
         }
     }, [isAuthenticated]);
 
@@ -57,6 +85,12 @@ export const BulkImportProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setImportedData([]);
         setSelectedBranch(null);
         setImportType(null);
+        setBatchInfo({
+            batch_number: '',
+            supplier_id: null,
+            received_date: new Date().toISOString().split('T')[0],
+            notes: ''
+        });
     };
 
     const validateProduct = async (product: ImportedProduct): Promise<ImportedProduct> => {
@@ -125,7 +159,9 @@ export const BulkImportProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 setSelectedBranch,
                 importType,
                 setImportType,
-                validateProduct
+                validateProduct,
+                batchInfo,
+                setBatchInfo
             }}
         >
             {children}

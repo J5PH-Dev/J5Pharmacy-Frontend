@@ -27,12 +27,25 @@ export const ManualStockDialog: React.FC<ManualStockDialogProps> = ({
     const qty = parseInt(quantity);
     if (!isNaN(qty) && qty > 0) {
       onSetQuantity(qty);
+      setQuantity(''); // Reset the input
       onClose();
     }
   };
 
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      handleSubmit();
+    }
+  };
+
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog 
+      open={open} 
+      onClose={() => {
+        setQuantity(''); // Reset on close
+        onClose();
+      }}
+    >
       <DialogTitle>Set Manual Quantity</DialogTitle>
       <DialogContent>
         <Typography gutterBottom>
@@ -44,17 +57,24 @@ export const ManualStockDialog: React.FC<ManualStockDialogProps> = ({
           label="Quantity"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value.replace(/[^0-9]/g, ''))}
-          onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+          onKeyPress={handleKeyPress}
           inputRef={inputRef}
           sx={{ mt: 2 }}
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button 
+          onClick={() => {
+            setQuantity('');
+            onClose();
+          }}
+        >
+          Cancel
+        </Button>
         <Button 
           onClick={handleSubmit}
           variant="contained"
-          disabled={!quantity}
+          disabled={!quantity || parseInt(quantity) <= 0}
         >
           Set Quantity
         </Button>

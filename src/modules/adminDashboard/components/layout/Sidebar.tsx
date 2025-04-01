@@ -122,16 +122,17 @@ const navigationItems: NavigationItem[] = [
       { title: 'Shortage', path: '/admin/inventory/medicine-shortage' },
     ],
   },
-  // {
-  //   title: 'Resource Management',
-  //   icon: <LocalShippingIcon />,
-  //   path: '/admin/resources',
-  //   children: [
-  //     { title: 'Supplier Management', path: '/admin/resources/supplier-management' },
-  //     { title: 'Bulk Inventory Import', path: '/admin/resources/bulk-inventory-import' },
-  //     // { title: 'Price Management', path: '/admin/resources/price-management' },
-  //   ],
-  // },
+   {
+     title: 'Resource Management',
+     icon: <LocalShippingIcon />,
+     path: '/admin/resources',
+     children: [
+       { title: 'Supplier Management', path: '/admin/resources/supplier-management' },
+     { title: 'Bulk Inventory Import', path: '/admin/resources/bulk-inventory-import' },
+     { title: 'Batch Management', path: '/admin/resources/batch-management' },
+       // { title: 'Price Management', path: '/admin/resources/price-management' },
+     ],
+   },
   {
     title: 'Reports',
     icon: <AssessmentIcon />,

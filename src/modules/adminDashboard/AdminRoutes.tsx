@@ -26,6 +26,7 @@ import EditCustomerDescription from './components/pages/CustomerSubPages/EditCus
 import SupplierManagement from './components/pages/ResourcesSubPages/SupplierManagement';
 import BulkInventoryImport from './components/pages/ResourcesSubPages/BulkInventoryImport';
 import PriceManagement from './components/pages/ResourcesSubPages/PriceManagement';
+import BatchManagement from './components/pages/ResourcesSubPages/BatchManagement';
 
 
 const AdminRoutes: React.FC = () => {
@@ -58,7 +59,7 @@ const AdminRoutes: React.FC = () => {
         <Route path="resources/supplier-management" element={<SupplierManagement />} />
         <Route path="resources/bulk-inventory-import" element={<BulkInventoryImport />} />
         <Route path="resources/price-management" element={<PriceManagement />} />
-
+        <Route path="resources/batch-management" element={<BatchManagement />} />
 
         <Route path="branches" element={<BranchesPage />} />
         <Route path="archived-branches" element={<ArchivedBranchesPage />} />

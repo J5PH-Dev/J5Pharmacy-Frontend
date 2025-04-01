@@ -136,6 +136,7 @@ export const AddItemDialog: React.FC<AddItemDialogProps> = ({
   };
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Allow alphanumeric characters and hyphens, convert to uppercase
     const value = event.target.value.toUpperCase();
     setSearchInput(value);
     
@@ -148,8 +149,8 @@ export const AddItemDialog: React.FC<AddItemDialogProps> = ({
 
   const handleKeyPress = async (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter' && searchInput) {
-      // If it looks like a barcode (only numbers)
-      if (/^\d+$/.test(searchInput)) {
+      // Only try barcode search if no item is selected
+      if (selectedIndex === -1) {
         try {
           const response = await axios.get(
             `http://localhost:5000/api/pos/barcode/${searchInput.toUpperCase()}`,
@@ -159,7 +160,26 @@ export const AddItemDialog: React.FC<AddItemDialogProps> = ({
             }
           );
           
-          handleAddProduct(response.data);
+          // Check stock before adding
+          if (response.data.stock <= 0) {
+            showNotification('This product is out of stock', 'error');
+            return;
+          }
+
+          // Ensure quantity doesn't exceed stock
+          const quantityToAdd = Math.min(defaultQuantity, response.data.stock);
+          
+          if (quantityToAdd < defaultQuantity) {
+            showNotification(
+              `Only ${quantityToAdd} items available. Added maximum available quantity.`,
+              'warning'
+            );
+          }
+
+          onAddProduct({
+            ...response.data,
+            quantity: quantityToAdd
+          });
           setSearchInput('');
           onClose();
         } catch (error) {
@@ -169,41 +189,56 @@ export const AddItemDialog: React.FC<AddItemDialogProps> = ({
             'error'
           );
         }
+      } else if (selectedIndex >= 0 && selectedIndex < products.length) {
+        // If an item is selected, check stock before adding
+        const selectedProduct = products[selectedIndex];
+        
+        if (selectedProduct.stock <= 0) {
+          showNotification('This product is out of stock', 'error');
+          return;
+        }
+
+        // Ensure quantity doesn't exceed stock
+        const quantityToAdd = Math.min(defaultQuantity, selectedProduct.stock);
+        
+        if (quantityToAdd < defaultQuantity) {
+          showNotification(
+            `Only ${quantityToAdd} items available. Added maximum available quantity.`,
+            'warning'
+          );
+        }
+
+        onAddProduct({
+          ...selectedProduct,
+          quantity: quantityToAdd
+        });
+        setSearchInput('');
+        onClose();
       }
     }
   };
 
-  const handleAddProduct = async (product: CartItem) => {
-    try {
-      // Check current stock - use the correct API path
-      const stockResponse = await axios.get(
-        `http://localhost:5000/api/pos/search/stock/${branchId}/${product.id}`,
-        { withCredentials: true }
-      );
-
-      const currentStock = stockResponse.data.stock;
-      console.log('Stock check:', {
-        productId: product.id,
-        currentStock,
-        defaultQuantity
-      });
-
-      if (defaultQuantity > currentStock) {
-        showNotification(`Only ${currentStock} items available in stock`, 'error');
-        return;
-      }
-
-      onAddProduct({
-        ...product,
-        quantity: defaultQuantity,
-        stock: currentStock // Update with latest stock
-      });
-      
-      onClose();
-    } catch (error) {
-      console.error('Error checking stock:', error);
-      showNotification('Error checking stock availability', 'error');
+  const handleAddProduct = (product: CartItem) => {
+    if (product.stock <= 0) {
+      showNotification('This product is out of stock', 'error');
+      return;
     }
+
+    // Ensure quantity doesn't exceed stock
+    const quantityToAdd = Math.min(defaultQuantity, product.stock);
+    
+    if (quantityToAdd < defaultQuantity) {
+      showNotification(
+        `Only ${quantityToAdd} items available. Added maximum available quantity.`,
+        'warning'
+      );
+    }
+
+    onAddProduct({
+      ...product,
+      quantity: quantityToAdd
+    });
+    onClose();
   };
 
   return (
