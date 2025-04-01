@@ -60,32 +60,28 @@ const RecallTransaction: React.FC<{
   }, [open, currentSession]);
 
   const handleRecall = async (transactionId: number) => {
-    if (cartItems.length > 0) {
-        const confirm = window.confirm(
-            'Recalling this transaction will clear your current cart. Continue?'
-        );
-        if (!confirm) return;
-    }
     try {
       const response = await axios.get(
-        `/api/pos/transactions/held/${transactionId}/items`,
+        `http://localhost:5000/api/pos/transactions/held/${transactionId}/items`,
         { withCredentials: true }
       );
-      
-      // Transform items to CartItem format
-      const recalledItems = response.data.data.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        barcode: item.barcode,
-        price: item.price,
-        quantity: item.quantity,
-        subtotal: item.subtotal
-      }));
-      
-      onRecall(recalledItems);
-      showNotification('Transaction recalled', 'success');
+
+      console.log('Recalling transaction:', {
+        transactionId,
+        items: response.data
+      });
+
+      onRecall(response.data);
+      showNotification('Transaction recalled successfully', 'success');
       onClose();
+
+      // Delete the held transaction after successful recall
+      await axios.delete(
+        `http://localhost:5000/api/pos/transactions/held/${transactionId}`,
+        { withCredentials: true }
+      );
     } catch (error) {
+      console.error('Error recalling transaction:', error);
       showNotification('Failed to recall transaction', 'error');
     }
   };

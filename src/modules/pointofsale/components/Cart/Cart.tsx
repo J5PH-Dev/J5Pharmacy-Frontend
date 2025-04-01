@@ -74,6 +74,7 @@ const Cart: React.FC<CartProps> = ({
             <TableHead>
               <TableRow>
                 <TableCell>Product Name</TableCell>
+                <TableCell align="center">Barcode</TableCell>
                 <TableCell align="center">Quantity</TableCell>
                 <TableCell align="right">Unit Price</TableCell>
                 <TableCell align="right">Subtotal</TableCell>
@@ -83,7 +84,7 @@ const Cart: React.FC<CartProps> = ({
             <TableBody>
               {items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={6} align="center">
                     <Typography color="text.secondary" sx={{ py: 4 }}>
                       No items in cart
                     </Typography>
@@ -98,6 +99,11 @@ const Cart: React.FC<CartProps> = ({
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {item.brand_name} • {item.category_name}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Typography variant="body2" fontFamily="monospace">
+                        {item.barcode}
                       </Typography>
                     </TableCell>
                     <TableCell align="center">

@@ -8,47 +8,68 @@ import {
   Typography,
   Box
 } from '@mui/material';
-import { CartItem } from '../../../types/cart';
+import { useNotification } from '../../../contexts/NotificationContext';
 
 interface NewTransactionProps {
   open: boolean;
   onClose: () => void;
-  currentItems: CartItem[];
+  currentItems: any[];
+  onNewTransaction: () => void;
 }
 
 const NewTransaction: React.FC<NewTransactionProps> = ({
   open,
   onClose,
-  currentItems
+  currentItems,
+  onNewTransaction
 }) => {
-  const handleConfirmNew = () => {
-    // Add logic to clear current transaction
+  const { showNotification } = useNotification();
+
+  const handleNewTransaction = () => {
+    onNewTransaction(); // This will be handled by POSPage
+    showNotification('Started new transaction', 'success');
     onClose();
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      handleNewTransaction();
+    } else if (event.key === 'Escape') {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      onKeyDown={handleKeyDown}
+      maxWidth="xs"
+      fullWidth
+    >
       <DialogTitle>New Transaction</DialogTitle>
       <DialogContent>
-        <Box sx={{ py: 2 }}>
-          {currentItems.length > 0 ? (
-            <Typography color="error">
-              Warning: Starting a new transaction will clear the current cart. 
-              Are you sure you want to continue?
-            </Typography>
-          ) : (
-            <Typography>
-              Start a new transaction?
+        <Box sx={{ mb: 2 }}>
+          <Typography gutterBottom>
+            Are you sure you want to start a new transaction?
+          </Typography>
+          {currentItems.length > 0 && (
+            <Typography color="error.main">
+              Warning: Current transaction has {currentItems.length} item(s) and will be cleared.
             </Typography>
           )}
         </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} color="inherit">
-          Cancel
+          Cancel (ESC)
         </Button>
-        <Button onClick={handleConfirmNew} color="primary" variant="contained">
-          Confirm New Transaction
+        <Button 
+          onClick={handleNewTransaction} 
+          variant="contained"
+          color="primary"
+        >
+          Confirm (Enter)
         </Button>
       </DialogActions>
     </Dialog>

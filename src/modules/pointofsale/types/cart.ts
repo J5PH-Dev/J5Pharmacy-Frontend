@@ -14,6 +14,7 @@ export interface CartItem {
   subtotal?: number;
   category?: number;
   category_id?: number;
+  pieces_per_box?: number;
 }
 
 export interface CheckoutRequest {
